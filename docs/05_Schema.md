@@ -70,7 +70,7 @@ users  SD
                                            -- density(comfortable|compact), locale, bn_digits, last_branch_id, saved table views
   email_verified_at TIMESTAMP NULL, last_login_at TIMESTAMP NULL, remember_token VARCHAR(100) NULL
   legacy_id, created_at, updated_at, deleted_at
-  UNIQUE(tenant_id, username), UNIQUE(tenant_id, email), UNIQUE(tenant_id, phone)
+  UNIQUE(email), UNIQUE(tenant_id, username), UNIQUE(tenant_id, phone)   -- email is app-wide unique (ADR 0006)
 
 branch_user
   branch_id FK→branches ON DELETE CASCADE, user_id FK→users ON DELETE CASCADE

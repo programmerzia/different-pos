@@ -2,20 +2,33 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "laravel/react-starter-kit",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Multi-tenant, multi-branch offline-first retail POS.",
     "keywords": [
-        "laravel",
-        "framework"
+        "pos",
+        "retail"
     ],
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "brick/math": "^1.0",
+        "brick/money": "^0.15.2",
+        "chillerlan/php-qrcode": "^6.0",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/chisel": "^0.1.0",
         "laravel/fortify": "^1.37.2",
         "laravel/framework": "^13.17",
+        "laravel/horizon": "^5.50",
+        "laravel/pulse": "^1.8",
+        "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",
-        "laravel/wayfinder": "^0.1.14"
+        "laravel/wayfinder": "^0.1.14",
+        "league/flysystem-aws-s3-v3": "^3.35",
+        "picqer/php-barcode-generator": "^3.3",
+        "sentry/sentry-laravel": "^4.29",
+        "spatie/laravel-activitylog": "^5.1",
+        "spatie/laravel-backup": "^10.3",
+        "spatie/laravel-permission": "^8.3",
+        "spatie/simple-excel": "^3.11"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
@@ -24,11 +37,13 @@
         "laravel/pao": "^1.0.6",
         "laravel/pint": "^1.27",
         "laravel/sail": "^1.53",
+        "laravel/telescope": "^5.26",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.9.3",
         "pestphp/pest": "^5.3",
         "pestphp/pest-plugin-drift": "^5.0",
-        "pestphp/pest-plugin-laravel": "^5.0"
+        "pestphp/pest-plugin-laravel": "^5.0",
+        "rector/rector": "^2.8"
     },
     "autoload": {
         "psr-4": {
@@ -56,25 +71,31 @@
             "@php artisan dev"
         ],
         "lint": [
+            "pint --parallel --test",
+            "rector --dry-run"
+        ],
+        "lint:fix": [
+            "rector",
             "pint --parallel"
         ],
-        "lint:check": [
-            "pint --parallel --test"
-        ],
-        "ci:check": [
-            "Composer\\Config::disableProcessTimeout",
-            "npm run check",
-            "npm run types:check",
-            "@test"
-        ],
-        "types:check": [
-            "phpstan analyse"
+        "analyse": [
+            "phpstan analyse --memory-limit=1G"
         ],
         "test": [
             "@php artisan config:clear --ansi",
-            "@lint:check",
-            "@types:check",
-            "@php artisan test"
+            "@php artisan test --parallel"
+        ],
+        "ci": [
+            "Composer\\Config::disableProcessTimeout",
+            "@lint",
+            "@analyse",
+            "@test",
+            "npm run lint",
+            "npm run typecheck",
+            "npm run test",
+            "npm run build",
+            "@composer audit",
+            "npm audit --omit=dev --audit-level=high"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

@@ -9,9 +9,9 @@ import { useTwoFactorAuth } from '@/hooks/use-two-factor-auth';
 import { disable, enable } from '@/routes/two-factor';
 
 export type Props = {
-    canManageTwoFactor?: boolean;
-    requiresConfirmation?: boolean;
-    twoFactorEnabled?: boolean;
+    canManageTwoFactor?: boolean | undefined;
+    requiresConfirmation?: boolean | undefined;
+    twoFactorEnabled?: boolean | undefined;
 };
 
 export default function ManageTwoFactor(props: Props) {

@@ -12,19 +12,19 @@ Legend: `[ ]` todo · `[~]` in progress (one at a time) · `[x]` done · `[-]` d
 ---
 
 ## Phase 0: Scaffold & tooling
-- [~] **0.1** Upgrade Composer to ≥ 2.8. Verify PHP ≥ 8.4, Node 24, MySQL 8.4, Redis, and `ext-sodium`. *Done when:* the versions meet 04_TRD §1. — 2026-10-30 check: ✅ PHP 8.5.12, Composer 2.11.1, MySQL 8.4.11, git 2.53, ext bcmath/exif/intl/mbstring/pcntl/pdo_mysql/sodium/zip. ❌ **missing (needs sudo, owner):** `ext-gd`, `ext-redis`, Redis/Valkey server, **Node 24** (have 22.23.2). Mockup tooling moved from the repo root to `tools/mockup/` so the scaffold can own `vendor/`.
-- [ ] **0.2** `laravel new` with the **React starter kit** into this directory (keep `docs/`, `CLAUDE.md`, `.cursorrules`, `README.md`). Pest. *Done when:* `php artisan --version` shows 13.x, and `npm run build` + `php artisan test` pass.
-- [ ] **0.3** `git init`, `.gitignore` (`.env*` except `.env.example`), first commit. (The owner adds the remote later.)
-- [ ] **0.4** Install the 04_TRD §2 packages. **Fill the "Pinned" columns.** *Done when:* all resolve for Laravel 13 / React 19, else STOP.
-- [ ] **0.5** Pint, Larastan 8, Rector, ESLint (incl. a ban on `dangerouslySetInnerHTML`, react-hooks, jsx-a11y), Prettier, strict TS, Vitest (+ fake-indexeddb), Playwright. Scripts: `composer lint|analyse|test|ci`, `npm run lint|typecheck|test|e2e`. *Done when:* all are green.
-- [ ] **0.6** `composer ci` runs every gate from 04_TRD §6 (provider-agnostic). A CI pipeline file is **deferred** until the owner picks the repo host.
-- [ ] **0.7** `.env.example` (MySQL, Redis, argon2id, UTC, S3, Sentry). Neutral `APP_NAME` ("POS"); **no product name anywhere** in code or UI strings.
-- [ ] **0.8** Remove public registration. Keep login, reset and 2FA.
-- [ ] **0.9** Pest arch baseline: strict_types, no debug calls, no `DB::` in controllers, final Actions with `handle()`, no `float` in money paths.
+- [x] **0.1** Upgrade Composer to ≥ 2.8. Verify PHP ≥ 8.4, Node 24, MySQL 8.4, Redis, and `ext-sodium`. *Done when:* the versions meet 04_TRD §1. — 2026-10-30 check: ✅ PHP 8.5.12, Composer 2.11.1, MySQL 8.4.11, git 2.53, ext bcmath/exif/intl/mbstring/pcntl/pdo_mysql/sodium/zip. ❌ **missing (needs sudo, owner):** `ext-gd`, `ext-redis`, Redis/Valkey server, **Node 24** (have 22.23.2). Mockup tooling moved from the repo root to `tools/mockup/` so the scaffold can own `vendor/`. — ✅ 2026-10-31 Node 24.22.2 via nvm; MySQL 8.4.13 + Redis 7.4.12 via Docker `compose.yaml`. **Exception:** `ext-gd`/`ext-redis` still need a sudo install (§Out-of-repo L5); mpdf deferred to 2.4, local cache/queue on the database driver until then.
+- [x] **0.2** `laravel new` with the **React starter kit** into this directory (keep `docs/`, `CLAUDE.md`, `.cursorrules`, `README.md`). Pest. *Done when:* `php artisan --version` shows 13.x, and `npm run build` + `php artisan test` pass. — ✅ 2026-10-31 Laravel 13.39.0, Inertia 3, Pest 5; tests on MySQL `pos_testing`.
+- [x] **0.3** `git init`, `.gitignore` (`.env*` except `.env.example`), first commit. (The owner adds the remote later.) — ✅ 2026-10-31 `4759395`; CLAUDE.md is tracked (the starter kit ignored it).
+- [x] **0.4** Install the 04_TRD §2 packages. **Fill the "Pinned" columns.** *Done when:* all resolve for Laravel 13 / React 19, else STOP. — ✅ 2026-10-31 owner-approved major bumps (TRD §2 note); all pinned; `mpdf/mpdf` deferred to 2.4 (needs ext-gd).
+- [x] **0.5** Pint, Larastan 8, Rector, Oxlint (incl. a ban on `dangerouslySetInnerHTML`, react-hooks, jsx-a11y; Vite+ toolchain replaces ESLint/Prettier), Oxfmt, strict TS, Vitest (+ fake-indexeddb), Playwright. Scripts: `composer lint|analyse|test|ci`, `npm run lint|typecheck|test|e2e`. *Done when:* all are green. — ✅ 2026-10-31 Pint (`laravel` + `declare_strict_types` + `final_class`), Rector (PHP 8.4 + dead-code/quality/type sets), Larastan level 8 (0 errors, no baseline), Oxlint (`react/no-danger`, hooks, jsx-a11y, `@inertiajs/*` banned under `resources/js/pos/**`), TS `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`, `vp test` (jsdom + fake-indexeddb, `passWithNoTests`), `playwright.config.ts` (`e2e/`, no browsers installed). Starter-kit fixes: QR code now an `<img data:>` instead of `dangerouslySetInnerHTML`; `jsx-a11y/no-autofocus` off on purpose (keyboard-first).
+- [x] **0.6** `composer ci` runs every gate from 04_TRD §6 (provider-agnostic). A CI pipeline file is **deferred** until the owner picks the repo host. — ✅ 2026-10-31 `composer ci` = lint → analyse → test → npm lint/typecheck/test/build → `composer audit` → `npm audit`. **TODO (not in `ci` yet):** `playwright test` (needs browsers, not installed), `gitleaks` (not installed), Pest `--coverage --min=80` (no xdebug/pcov on this machine).
+- [x] **0.7** `.env.example` (MySQL, Redis, argon2id, UTC, S3, Sentry). Neutral `APP_NAME` ("POS"); **no product name anywhere** in code or UI strings. — ✅ 2026-10-31 S3 + Sentry entries added (commented); `config/app.php` timezone UTC; the "Laravel" fallbacks/welcome page replaced by `config('app.name')`/neutral page.
+- [x] **0.8** Remove public registration. Keep login, reset and 2FA. — ✅ 2026-10-31 `Features::registration()` off, `CreateNewUser`, register page/view, login "Sign up" link and `RegistrationTest` removed; `RegistrationDisabledTest` asserts `/register` is 404.
+- [x] **0.9** Pest arch baseline: strict_types, no debug calls, no `DB::` in controllers, final Actions with `handle()`, no `float` in money paths. — ✅ 2026-10-31 `tests/Arch/ArchTest.php` (registered as the `Arch` suite in `phpunit.xml`); `App\Actions\Fortify` excluded. The "no `float` in money paths" check is **not** expressible in Pest arch (it cannot inspect type hints); covered instead by the Money cast tests (1.1) and Larastan level 8.
 
 ## Phase 1: Database & Auth
 **1A: Foundations**
-- [ ] **1.1** Money/Quantity casts (PHP) + `engine/money.ts` (paisa, milli-qty helpers) + formatters (en-IN grouping, Bangla digits) + tests.
+- [x] **1.1** Money/Quantity casts (PHP) + `engine/money.ts` (paisa, milli-qty helpers) + formatters (en-IN grouping, Bangla digits) + tests. — ✅ 2026-10-31 `App\Support\{Money,Quantity,Numbers}`, `App\Casts\{Money,Quantity}Cast`, `resources/js/engine/{money,quantity,digits}.ts`; shared golden cases `tests/fixtures/money/cases.json` run by Pest **and** Vitest; ±2^53 range on both sides.
 - [ ] **1.2** Migrations: tenants (incl. VAT BIN, settings, branding, pin box keys, sync_counter), branches, users (preferences: theme/scheme/density), branch_user, user_invitations, login_activities.
 - [ ] **1.3** Models, factories, `HasUuid` (UUIDv7), and the `Syncable` concern (assigns `sync_version` from `tenants.sync_counter` under lock).
 - [ ] **1.4** `CurrentTenant`/`CurrentBranch` + `BelongsToTenant`/`BelongsToBranch` (scope, auto-fill, cross-tenant guard) + tests.
@@ -34,7 +34,7 @@ Legend: `[ ]` todo · `[~]` in progress (one at a time) · `[x]` done · `[-]` d
 
 **1B: Auth & permissions**
 - [ ] **1.8** spatie/permission teams + `RolesAndPermissionsSeeder` (04_TRD §3.8 incl. `customers.reset_pin`, `cards.*`, `devices.manage`, `pos.customer_pin_override`).
-- [ ] **1.9** Fortify login by email/username/phone, argon2id, `LegacyMd5Hasher` + rehash + forced password change. Tests.
+- [ ] **1.9** Fortify login by email/username/phone + **business code** (ADR 0006: email app-wide unique, username/phone per tenant, remembered `pos_tenant` cookie, uniform error), argon2id, `LegacyMd5Hasher` + rehash + forced password change. Tests.
 - [ ] **1.10** Login throttling + `login_activities`.
 - [ ] **1.11** 2FA + per-role enforcement.
 - [ ] **1.12** Branch select/switch. Remember the last branch.
@@ -203,6 +203,7 @@ Legacy containment per [ADR 0003](adr/0003-legacy-security-containment.md):
 - [ ] **L1** (≤ 24 h) Delete `hidden.php`, `backup.php`, `error_log`, `upload_images/option.php`. Deny PHP in `/upload_images/`. Restrict or disable the `Backup` controller.
 - [ ] **L2** (≤ 24 h) Rotate the DB app password, the FTP password and the CI `encryption_key`. Server config only.
 - [ ] **L3** (≤ 1 week) Review access logs, DB grants and the FTP target for misuse. If found, apply ADR 0003 step 5.
+- [ ] **L5** (dev machine) `sudo apt install php-gd php-redis` so mpdf (2.4) and the Redis cache/queue can be used locally.
 - [ ] **L4** (≤ 1 week) Create the read-only `legacy_ro` DB user (IP-restricted) for 5.1 and the importer.
 
 ## Manual QA checklist (each release)
@@ -238,8 +239,10 @@ Legacy containment per [ADR 0003](adr/0003-legacy-security-containment.md):
 ## Progress log
 - 2026-10-29: Docs 00–06, CLAUDE.md and .cursorrules created from the legacy analysis.
 - 2026-10-29: v1.1 docs. React chosen. Offline-first POS, keyboard-first desktop UX (context menus, top bar notifications/clock, colour schemes), customer location, customer number, membership cards, customer PIN, VAT fields. SMS deferred. Migration scoped to DIFFERENT FASHION. Repo folder renamed to `pos-rewrite`. Gemini mockup prompt in `docs/mockup/`. No code yet.
+- 2026-10-31: Phase 0 done (0.1–0.9, `composer ci` green: 127 Pest, 72 Vitest). 1.1 money/quantity twins done. ADR 0006 (login: business code). Disk was full: cleared npm/Docker build caches + unused libreoffice image (owner OK).
 - 2026-10-30: Phase 0 started. 0.1 blocked on owner installs (ext-gd, ext-redis, Redis, Node 24). Root `index.html`, `scripts/`, `vendor/` moved to `tools/mockup/` (paths fixed in the build/test scripts and `docs/mockup/index.html`).
 - 2026-10-30: Q9 decided: variants + exchange in v1 (ADR 0005); docs 01/02/04/05/06 updated; Gemini mockup prompt v4 written.
 - 2026-10-30: Owner decisions: migrate DIFFERENT FASHION only (Q11). Shifts/Z-report/cash in-out dropped, since the legacy app has none (Q10): register Today summary + daily cash summary instead; `register_sessions`/`cash_movements` removed, `register_id` on sales/payments. Legacy security → ADR 0003 standard containment + §Out-of-repo tasks (Q12). Legacy DB findings ADR renumbered to 0004.
 - 2026-10-30: Architecture review. ADR 0001: keep the hybrid (Inertia back office + standalone POS SPA on `/api/pos/v1`), POS moved off Inertia to its own Vite entry + static shell at `/pos`, device pairing codes, sync counter acquired last in the locking order. ADR 0002: legacy migration strategy (full reload, store-generic importer, cross-cutting transform rules from the code + dump schema survey). Docs 02/04/05/06 updated. Open questions 11–12 added. No code yet.
 - 2026-10-29: Gemini mockup v1 reviewed (`docs/mockup/mockup_gap_review.md`, ~35 % of scope). Full-scope prompt `docs/mockup/gemini_prompt_final.md` written (legacy parity + new features). Open question 9 added.
+- 2026-10-31: Phase 0 steps 0.5–0.9 done: tooling gates (Pint/Rector/Larastan 8/Oxlint/tsc strict/Vitest/Playwright config), `composer ci`, neutral branding + `.env.example`, public registration removed, Pest arch tests. Open TODO: gitleaks, Playwright run and Pest coverage in `ci` once tools/browsers/coverage driver exist.

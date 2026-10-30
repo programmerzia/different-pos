@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This is a multi-tenant, multi-branch retail POS for Bangladesh, built with Laravel 13 + Inertia 2 + React 19 (TypeScript) + Tailwind CSS 4 on MySQL 8.4. It has an **offline-first POS register** and a **keyboard-first, desktop-style UI**. It is a ground-up rewrite of a legacy CodeIgniter POS. The product has **no name yet**: never hard-code one.
+This is a multi-tenant, multi-branch retail POS for Bangladesh, built with Laravel 13 + Inertia 3 + React 19 (TypeScript) + Tailwind CSS 4 on MySQL 8.4. It has an **offline-first POS register** and a **keyboard-first, desktop-style UI**. It is a ground-up rewrite of a legacy CodeIgniter POS. The product has **no name yet**: never hard-code one.
 
 ## Before ANY task: read the context docs
 They are the source of truth and win over your assumptions:

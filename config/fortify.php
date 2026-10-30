@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Laravel\Fortify\Features;
 
 return [
@@ -161,7 +163,7 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Public registration is intentionally disabled: users are created by invitation only.
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([

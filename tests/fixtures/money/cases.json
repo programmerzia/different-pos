@@ -1,0 +1,94 @@
+{
+    "_comment": "Golden cases run by BOTH tests/Unit/Support/MoneyParityTest.php (Pest) and resources/js/engine/money.test.ts (Vitest). Any divergence between the PHP and TS twins fails CI (04_TRD §3.9.4 pattern). Amounts are integer paisa, quantities integer milli-units.",
+    "parse": [
+        { "in": "1,234.50", "out": 123450 },
+        { "in": "৳ 1234.5", "out": 123450 },
+        { "in": "১২৩৪.৫০", "out": 123450 },
+        { "in": "0", "out": 0 },
+        { "in": "-12.3", "out": -1230 },
+        { "in": "  7  ", "out": 700 },
+        { "in": "1.234", "error": true },
+        { "in": "abc", "error": true },
+        { "in": "1e3", "error": true },
+        { "in": "", "error": true },
+        { "in": "1.", "error": true },
+        { "in": ".5", "error": true },
+        { "in": "90071992547409.92", "error": true }
+    ],
+    "parseRounded": [
+        { "in": "12.345", "out": 1235 },
+        { "in": "12.344999", "out": 1234 },
+        { "in": "-12.345", "out": -1235 },
+        { "in": "0.005", "out": 1 },
+        { "in": "0.0049", "out": 0 },
+        { "in": "1199.9999", "out": 120000 },
+        { "in": "950", "out": 95000 }
+    ],
+    "timesQty": [
+        { "paisa": 12345, "milli": 1000, "out": 12345 },
+        { "paisa": 10000, "milli": 1250, "out": 12500 },
+        { "paisa": 333, "milli": 1500, "out": 500 },
+        { "paisa": -333, "milli": 1500, "out": -500 },
+        { "paisa": 1, "milli": 500, "out": 1 },
+        { "paisa": 1, "milli": 499, "out": 0 },
+        { "paisa": 99999, "milli": 0, "out": 0 },
+        { "paisa": 99999999999, "milli": 99999999, "error": true }
+    ],
+    "percentOfBp": [
+        { "paisa": 10000, "bp": 1500, "out": 1500 },
+        { "paisa": 999, "bp": 1500, "out": 150 },
+        { "paisa": 333, "bp": 250, "out": 8 },
+        { "paisa": -999, "bp": 1500, "out": -150 },
+        { "paisa": 1, "bp": 5000, "out": 1 },
+        { "paisa": 123456, "bp": 10000, "out": 123456 }
+    ],
+    "allocate": [
+        { "paisa": 100, "weights": [1, 1, 1], "out": [34, 33, 33] },
+        { "paisa": -100, "weights": [1, 1, 1], "out": [-34, -33, -33] },
+        { "paisa": 1000, "weights": [3000, 7000], "out": [300, 700] },
+        { "paisa": 5, "weights": [1, 0, 1], "out": [3, 0, 2] },
+        { "paisa": 7, "weights": [2, 3, 5], "out": [1, 2, 4] },
+        { "paisa": 0, "weights": [1, 2], "out": [0, 0] },
+        { "paisa": 10, "weights": [0, 0], "error": true },
+        { "paisa": 10, "weights": [], "error": true },
+        { "paisa": 10, "weights": [-1, 2], "error": true }
+    ],
+    "format": [
+        { "paisa": 12345650, "en": "৳1,23,456.50", "bn": "৳১,২৩,৪৫৬.৫০" },
+        { "paisa": -5000, "en": "-৳50.00", "bn": "-৳৫০.০০" },
+        { "paisa": 5, "en": "৳0.05", "bn": "৳০.০৫" },
+        { "paisa": 0, "en": "৳0.00", "bn": "৳০.০০" },
+        { "paisa": 99900, "en": "৳999.00", "bn": "৳৯৯৯.০০" },
+        { "paisa": 100000, "en": "৳1,000.00", "bn": "৳১,০০০.০০" },
+        { "paisa": 100000000000, "en": "৳1,00,00,00,000.00", "bn": "৳১,০০,০০,০০,০০০.০০" },
+        { "paisa": 123450, "symbol": false, "en": "1,234.50", "bn": "১,২৩৪.৫০" }
+    ],
+    "toDecimalString": [
+        { "paisa": 123450, "out": "1234.50" },
+        { "paisa": -5, "out": "-0.05" },
+        { "paisa": 0, "out": "0.00" }
+    ],
+    "qtyParse": [
+        { "in": "1.25", "out": 1250 },
+        { "in": "2", "out": 2000 },
+        { "in": "১.৫", "out": 1500 },
+        { "in": "0.001", "out": 1 },
+        { "in": "-3", "out": -3000 },
+        { "in": "1.0005", "error": true },
+        { "in": "x", "error": true },
+        { "in": "1e2", "error": true },
+        { "in": "100000000000", "error": true }
+    ],
+    "qtyFormat": [
+        { "milli": 1250, "en": "1.25", "bn": "১.২৫" },
+        { "milli": 2000, "en": "2", "bn": "২" },
+        { "milli": 1, "en": "0.001", "bn": "০.০০১" },
+        { "milli": -1500, "en": "-1.5", "bn": "-১.৫" },
+        { "milli": 0, "en": "0", "bn": "০" }
+    ],
+    "qtyDecimal": [
+        { "milli": 1250, "out": "1.250" },
+        { "milli": 0, "out": "0.000" },
+        { "milli": -1, "out": "-0.001" }
+    ]
+}

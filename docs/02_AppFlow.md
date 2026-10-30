@@ -86,7 +86,7 @@ Rules: shortcuts never fire while typing in an input, except `Esc`, `F-keys`, `C
 | # | Method | URI | Route name | Page / response | Permission |
 |---|---|---|---|---|---|
 | **Auth** |
-| 1 | GET/POST | `/login` | `login` | `auth/login` | guest |
+| 1 | GET/POST | `/login` | `login` | `auth/login`: one identifier field (email / username / phone) + **business code** shown for non-email identifiers, remembered per browser in cookie `pos_tenant` (ADR 0006) | guest |
 | 2 | POST | `/logout` | `logout` | redirect | auth |
 | 3 | GET/POST | `/forgot-password`, `/reset-password/{token}` | `password.*` | `auth/forgot-password`, `auth/reset-password` | guest |
 | 4 | GET/POST | `/two-factor-challenge` | `two-factor.login` | `auth/two-factor-challenge` | pending 2FA |

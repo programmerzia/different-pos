@@ -18,74 +18,80 @@ Both frameworks could do the job. This choice minimises custom plumbing for keyb
 
 | Component | Constraint | Pinned | Notes |
 |---|---|---|---|
-| PHP | `^8.4` (dev has 8.5.12; CI runs 8.4 and 8.5) | | ext: `bcmath intl mbstring pdo_mysql redis gd zip exif pcntl sodium` |
-| Laravel | `^13.0` | | |
-| Composer | `>= 2.8` | | dev has 2.2.29 → **upgrade first** |
-| Node.js | 24 LTS | | npm, `package-lock.json` committed |
-| MySQL | 8.4 LTS | | utf8mb4_0900_ai_ci, strict, UTC |
-| Redis | 7.4 (or Valkey 8) | | cache, queue, locks, rate limits |
+| PHP | `^8.4` (dev has 8.5.12; CI runs 8.4 and 8.5) | 8.5.12 (dev) | ext: `bcmath intl mbstring pdo_mysql redis gd zip exif pcntl sodium` |
+| Laravel | `^13.0` | 13.39.0 | |
+| Composer | `>= 2.8` | 2.11.1 | |
+| Node.js | 24 LTS | 24.22.2 (via nvm) | npm, `package-lock.json` committed |
+| MySQL | 8.4 LTS | 8.4.13 (dev: Docker, `compose.yaml`) | utf8mb4_0900_ai_ci, strict, UTC |
+| Redis | 7.4 (or Valkey 8) | 7.4.12 (dev: Docker). Dev cache/queue use the `database` driver until `ext-redis` is installed | cache, queue, locks, rate limits |
 | Web | Nginx + PHP-FPM | | HTTP/2, brotli. The service worker is served with `Cache-Control: no-cache` |
 | OS (prod) | Ubuntu 24.04 LTS | | |
 | Object storage | S3-compatible (e.g. DigitalOcean Spaces) | | private bucket + signed URLs |
 | Supervisor | Horizon + scheduler | | |
-| Local dev | Laravel Sail **or** native PHP 8.5 + MySQL 8.4 + Redis | | |
+| Local dev | native PHP 8.5 + Node 24, with MySQL 8.4 + Redis 7.4 in Docker (`compose.yaml`, ports 33084/63840). Tests run on MySQL (`pos_testing`), never SQLite | | |
 | VCS | git (local `git init`). Remote/CI host decided later by the owner | | CI is provider-agnostic via `composer ci` (§6) |
 
 ## 2. Application dependencies
 
+> **Re-baselined 2026-10-31 with owner approval:** the Laravel 13 starter kit ships newer majors than first planned. Changes: Inertia 2→**3**, Pest 4→**5**, spatie/laravel-permission 6→**8**, activitylog 4→**5**, backup 9→**10**, brick/money 0.10→**0.15**, brick/math 0.12→**1.0**, chillerlan/php-qrcode 5→**6**, and the front-end toolchain is **Vite+** (`vite-plus`: Vite + Oxlint + Oxfmt + Vitest + type check) instead of separate ESLint/Prettier/Vitest. Pins below are the resolved versions (the lock files are authoritative).
+
 ### 2.1 Composer (require)
-| Package | Constraint | Purpose |
+| Package | Pinned | Purpose |
 |---|---|---|
-| `laravel/framework` | `^13.0` | core |
-| `inertiajs/inertia-laravel` | `^2.0` | SPA bridge |
-| `laravel/fortify` | `^1.25` | auth backend (starter kit) |
-| `laravel/sanctum` | `^4.0` | SPA session + **device tokens** for the POS sync API |
-| `laravel/wayfinder` | starter-kit version | typed TS route helpers |
-| `laravel/horizon` | `^5.30` | queues |
-| `laravel/pulse` | `^1.4` | perf monitoring (gated) |
-| `spatie/laravel-permission` | `^6.10` (teams) | roles/permissions per tenant |
-| `spatie/laravel-activitylog` | `^4.10` | audit |
-| `spatie/laravel-backup` | `^9.3` | backups |
-| `spatie/simple-excel` | `^3.7` | XLSX/CSV streaming |
-| `mpdf/mpdf` | `^8.2` | PDFs with correct **Bangla shaping** (invoices, statements, reports, **membership cards**) |
-| `brick/money` · `brick/math` | `^0.10` · `^0.12` | money / decimal qty |
-| `picqer/php-barcode-generator` | `^3.2` | Code128/EAN-13 in PDFs |
-| `chillerlan/php-qrcode` | `^5.0` | QR codes |
-| `league/flysystem-aws-s3-v3` | `^3.29` | S3 |
-| `sentry/sentry-laravel` | `^4.10` | errors |
+| `laravel/framework` | 13.39.0 | core |
+| `inertiajs/inertia-laravel` | 3.5.2 | back-office SPA bridge (ADR 0001) |
+| `laravel/fortify` | 1.41.0 | auth backend (starter kit; includes passkeys + 2FA) |
+| `laravel/sanctum` | 4.3.3 | **device tokens** for `/api/pos/v1` |
+| `laravel/wayfinder` | 0.1.23 | typed TS route helpers |
+| `laravel/horizon` | 5.50.1 | queues (prod, needs `ext-redis`) |
+| `laravel/pulse` | 1.8.1 | perf monitoring (gated) |
+| `spatie/laravel-permission` | 8.3.2 | roles/permissions, teams = tenant |
+| `spatie/laravel-activitylog` | 5.1.3 | audit |
+| `spatie/laravel-backup` | 10.3.3 | backups |
+| `spatie/simple-excel` | 3.11.0 | XLSX/CSV streaming |
+| `mpdf/mpdf` | **deferred to step 2.4** (`^8.3`) | Bangla-shaped PDFs. Needs `ext-gd`, which is not installed on the dev machine yet |
+| `brick/money` · `brick/math` | 0.15.2 · 1.0.0 | money / decimal qty |
+| `picqer/php-barcode-generator` | 3.3.0 | Code128/EAN-13 in PDFs |
+| `chillerlan/php-qrcode` | 6.0.1 | QR codes |
+| `league/flysystem-aws-s3-v3` | 3.35.3 | S3 |
+| `sentry/sentry-laravel` | 4.29.0 | errors |
+| starter-kit extras | `laravel/chisel` 0.1.1, `laravel/tinker` 3.0.2 | kept as shipped |
 
 ### 2.2 Composer (dev)
-`pestphp/pest ^4` + `pest-plugin-laravel ^4` · `larastan/larastan ^3` (level 8) · `laravel/pint ^1.20` · `rector/rector ^2` · `laravel/telescope ^5.5` (local only) · `fakerphp/faker` · `mockery/mockery` · `nunomaduro/collision ^8`.
+`pestphp/pest` 5.3.4 + `pest-plugin-laravel` 5.0.1 + `pest-plugin-drift` 5.0.0 · `larastan/larastan` 3.13.2 (level 8) · `laravel/pint` 1.32.1 · `rector/rector` 2.8.3 · `laravel/telescope` 5.26.0 (local only, not auto-discovered) · `fakerphp/faker` 1.24.1 · `mockery/mockery` 1.6.15 · `nunomaduro/collision` 8.9.5 · starter-kit: `laravel/pail`, `laravel/pao`, `laravel/sail` (unused; native dev).
 
 ### 2.3 npm
-| Package | Constraint | Purpose |
+| Package | Pinned | Purpose |
 |---|---|---|
-| `react` · `react-dom` | `^19.1` | UI |
-| `@inertiajs/react` | `^2.0` | SPA bridge |
-| `typescript` | `^5.8` | strict (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) |
-| `vite` · `laravel-vite-plugin` · `@vitejs/plugin-react` | starter-kit versions | build |
-| `tailwindcss` · `@tailwindcss/vite` | `^4.1` | styling |
-| shadcn/ui (copied components) + `radix-ui` primitives, `class-variance-authority`, `clsx`, `tailwind-merge` | starter-kit versions | components, **ContextMenu**, Dialog, Popover… |
-| `cmdk` | `^1.1` | command palette |
-| `lucide-react` | latest 0.x at scaffold | icons |
-| `@tanstack/react-table` · `@tanstack/react-virtual` | `^8.21` · `^3.13` | data grids, virtualised POS lists |
-| `react-hotkeys-hook` | `^5.0` | scoped keyboard shortcuts |
-| `zustand` | `^5.0` | POS UI state (non-persistent) |
-| `dexie` · `dexie-react-hooks` | `^4.0` · `^1.1` | IndexedDB local DB (offline register) |
-| `minisearch` | `^7.1` | in-memory local product/customer search |
-| `vite-plugin-pwa` (Workbox) | `^1.0` | service worker, precache, offline shell |
-| `libsodium-wrappers` | `^0.7.15` | sealed-box encryption of the customer PIN offline |
-| `react-i18next` · `i18next` | `^15` · `^25` | EN/BN |
-| `recharts` | `^2.15` | charts (shadcn chart wrapper) |
-| `jsbarcode` · `qrcode` | `^3.11` · `^1.5` | client-side receipt barcode/QR |
-| `@zxing/browser` | `^0.1.5` | camera barcode scan (stocktake, phone POS) |
-| `uuid` | `^11` | UUIDv7 for client ids |
-| `sonner` | `^2.0` | toasts |
-| `@fontsource-variable/inter`, `@fontsource/hind-siliguri`, `@fontsource/jetbrains-mono` | latest | self-hosted fonts |
-| `@sentry/react` | latest major at scaffold | client errors |
-| dev: `eslint ^9` + `typescript-eslint` + `eslint-plugin-react-hooks` + `eslint-plugin-jsx-a11y`, `prettier ^3` + tailwind plugin, `vitest ^3` + `@testing-library/react ^16` + `fake-indexeddb ^6`, `@playwright/test ^1.50` | | lint/test/e2e |
+| `react` · `react-dom` | 19.3.1 | UI |
+| `@inertiajs/react` · `@inertiajs/vite` | 3.9.1 | back-office bridge |
+| `typescript` | 5.9.3 | strict (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) |
+| `vite-plus` (+ `vite` → `@voidzero-dev/vite-plus-core`) | 1.4.0 | build, dev server, **lint (Oxlint), format (Oxfmt), test (Vitest), check** via `vp` |
+| `laravel-vite-plugin` · `@vitejs/plugin-react` · `babel-plugin-react-compiler` | 3.2.0 · 6.1.2 · 1.0.0 | build (React Compiler on) |
+| `tailwindcss` · `@tailwindcss/vite` | 4.3.3 | styling |
+| shadcn/ui + `@radix-ui/*`, `class-variance-authority`, `clsx`, `tailwind-merge`, `tw-animate-css` | starter kit | components |
+| `cmdk` | 1.1.1 | command palette |
+| `lucide-react` | 0.475.0 | icons |
+| `@tanstack/react-table` · `@tanstack/react-virtual` | 9.3.1 · 3.14.24 | data grids, virtualised POS lists |
+| `react-hotkeys-hook` | 5.3.3 | scoped shortcuts |
+| `zustand` | 5.0.16 | POS UI state |
+| `dexie` · `dexie-react-hooks` | 4.4.7 · 4.4.0 | IndexedDB (offline register) |
+| `minisearch` | 7.2.0 | local search |
+| `vite-plugin-pwa` | 2.0.0 | service worker |
+| `libsodium-wrappers` | 0.8.4 | sealed-box customer PIN |
+| `react-i18next` · `i18next` | 17.1.9 · 26.5.12 | EN/BN |
+| `recharts` | 3.10.1 | charts |
+| `jsbarcode` · `qrcode` | 3.12.3 · 1.5.4 | receipt barcode/QR |
+| `@zxing/browser` | 0.2.1 | camera scan |
+| `uuid` | 14.0.3 | UUIDv7 |
+| `sonner` | 2.0.8 | toasts |
+| `@fontsource-variable/inter`, `@fontsource/hind-siliguri`, `@fontsource/jetbrains-mono` | 5.3.0 | self-hosted fonts |
+| `@sentry/react` | 11.10.0 | client errors |
+| dev: `@testing-library/react` 16.3.3, `fake-indexeddb` 6.2.7, `jsdom` 30.1.3, `@playwright/test` 1.64.1, `@types/*` | | tests/e2e |
 
-**Starting point:** `laravel new` → **React starter kit** (Inertia 2 + React 19 + TS + Tailwind 4 + shadcn/ui + Fortify). Remove public registration.
+Lint rules required by §5 are Oxlint rules: `react/no-danger` (bans `dangerouslySetInnerHTML`), `react-hooks/*`, `jsx-a11y/*`, and `no-restricted-imports` for `@inertiajs/*` under `resources/js/pos/` (ADR 0001).
+
+**Starting point:** `laravel new --react --pest` → **React starter kit** (Inertia 3 + React 19 + TS + Tailwind 4 + shadcn/ui + Fortify + Vite+). Remove public registration.
 
 ## 3. Architecture
 
@@ -126,6 +132,7 @@ pos-rewrite/
 │  ├─ js/
 │  │  ├─ pages/**.tsx (Inertia pages, kebab-case folders)
 │  │  ├─ components/{ui (shadcn), app (AppShell, TopBar, StatusBar, CommandPalette, NotificationsPanel, Clock, ThemePopover, DataTable, RowContextMenu, Kbd, MoneyInput, QtyStepper, KpiTile, EmptyState, LocationFields, PinPad…)}
+│  │  ├─ engine/ (money.ts, quantity.ts, digits.ts: shared by back office + POS; PHP twins in app/Support)
 │  │  ├─ pos/  (standalone SPA; entry main.tsx; never imports @inertiajs/*, enforced by ESLint no-restricted-imports)
 │  │  │  ├─ db/ (Dexie schema + migrations)        ├─ sync/ (puller, outbox, pusher, connectivity)
 │  │  │  ├─ engine/ (pricing.ts, numbering.ts, stock.ts — pure, deterministic)
@@ -312,7 +319,8 @@ Roles:
 21. `composer audit` + `npm audit` in CI. High or critical fails the build.
 
 ## 6. Quality gates
-`composer ci` runs everything, so any CI provider can call it:
+`composer ci` runs everything, so any CI provider can call it. Currently wired: `composer lint` (pint --test + rector --dry-run) → `composer analyse` → `composer test` (`php artisan test --parallel`) → `npm run lint` (Oxlint via Vite+) → `npm run typecheck` → `npm run test` (Vitest via `vp test run`) → `npm run build` → `composer audit` → `npm audit --omit=dev --audit-level=high`. **Not yet wired (TODO):** `playwright test` (browsers not installed on the dev machine), `gitleaks` (not installed), and Pest `--coverage --min=…` (no xdebug/pcov driver). Formatting is `npm run format` (Oxfmt); ESLint/Prettier are not used. Pint also enforces `declare_strict_types` and `final_class`; `tests/Arch` holds the architecture rules.
+Full target pipeline:
 `pint --test` · `rector --dry-run` · `phpstan` (level 8) · `pest --parallel --coverage --min=80` (Actions, PriceCalculator, Sync ≥ 95 %) · `npm run lint` · `tsc --noEmit` · `vitest run` (engine ≥ 95 %, **pricing fixtures parity**) · `playwright test` (incl. **offline sale → reconnect → synced** scenario) · `composer audit` · `npm audit --omit=dev` · `gitleaks`.
 
 Performance budgets:

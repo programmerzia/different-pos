@@ -7,8 +7,8 @@ import PasskeyRegistration from '@/components/passkey-register';
 import type { Passkey } from '@/types/auth';
 
 export type Props = {
-    canManagePasskeys?: boolean;
-    passkeys?: Passkey[];
+    canManagePasskeys?: boolean | undefined;
+    passkeys?: Passkey[] | undefined;
 };
 
 const EmptyState = () => {

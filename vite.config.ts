@@ -43,6 +43,9 @@ export default defineConfig({
         ignorePatterns: [
             'vendor/**',
             'node_modules/**',
+            'tools/**',
+            'docs/**',
+            'e2e/.gitkeep',
             'public/**',
             'bootstrap/ssr/**',
             'tailwind.config.js',
@@ -51,10 +54,46 @@ export default defineConfig({
             'resources/js/routes/**',
             'resources/js/wayfinder/**',
         ],
+        plugins: ['typescript', 'react', 'jsx-a11y', 'import', 'oxc'],
+        rules: {
+            'react/no-danger': 'error',
+            // Keyboard-first app: focusing the primary field on open is intentional.
+            'jsx-a11y/no-autofocus': 'off',
+            'react/rules-of-hooks': 'error',
+            'react/exhaustive-deps': 'error',
+        },
+        overrides: [
+            {
+                // The POS register must work offline and never depend on
+                // Inertia page visits (see docs/04_TRD.md).
+                files: ['resources/js/pos/**'],
+                rules: {
+                    'no-restricted-imports': [
+                        'error',
+                        {
+                            patterns: [
+                                {
+                                    group: ['@inertiajs/*'],
+                                    message:
+                                        'resources/js/pos must not import @inertiajs/*: the POS is offline-first.',
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        ],
         options: {
             denyWarnings: true,
             typeAware: true,
         },
+    },
+    test: {
+        environment: 'jsdom',
+        setupFiles: ['./resources/js/test-setup.ts'],
+        include: ['resources/js/**/*.test.{ts,tsx}'],
+        passWithNoTests: true,
+        alias: { '@': new URL('./resources/js', import.meta.url).pathname },
     },
     fmt: {
         printWidth: 80,
@@ -65,6 +104,21 @@ export default defineConfig({
         htmlWhitespaceSensitivity: 'css',
         ignorePatterns: [
             '.github/**',
+            '*.md',
+            'compose.yaml',
+            'index.html',
+            'tsconfig.json',
+            'tests/**',
+            'tools/**',
+            'docs/**',
+            'vendor/**',
+            'node_modules/**',
+            'public/**',
+            'storage/**',
+            'bootstrap/**',
+            'resources/js/actions/**',
+            'resources/js/routes/**',
+            'resources/js/wayfinder/**',
             'composer.json',
             'resources/js/components/ui/*',
             'resources/views/mail/*',
