@@ -22,8 +22,8 @@ Also `docs/00_Legacy_Features.md` (parity) and `docs/adr/` (decisions). For smal
 
 ## Hard rules
 - **Money = integer paisa** (BIGINT, brick/money; integers in TS via `engine/money.ts`). Quantity = DECIMAL(14,3) (milli-units in TS). **No floats for money anywhere.**
-- **Business writes go only through final Action classes** in `DB::transaction()`, honouring the locking order (04_TRD §3.5). Controllers stay thin.
-- **Tenant isolation:** `BelongsToTenant`/`BelongsToBranch` and tenant-scoped `exists` rules. Cross-tenant access returns 404. Add isolation tests for every new model, route or endpoint (including the device API).
+- **Business writes go only through final Action classes** in `App\Support\Database\Transaction::run()` (never a raw `DB::transaction()`: the runner assigns `sync_version` last, just before commit), honouring the locking order (04_TRD §3.5). Controllers stay thin.
+- **Tenant isolation:** `BelongsToTenant`/`BelongsToBranch` (fail closed without a `TenantContext`; platform code uses `TenantContext::withoutTenancy()` explicitly) and tenant-scoped `exists` rules. `User` is deliberately unscoped (auth runs before the context): query tenant users via `User::inCurrentTenant()`. Cross-tenant access returns 404. Add isolation tests for every new model, route or endpoint (including the device API).
 - **POS is offline-first:** the sale path never awaits the network. Online and offline use the same local commit plus outbox. The server never rejects a synced sale for business reasons: it **flags** it.
 - **Pricing has two identical implementations** (`engine/pricing.ts`, `PriceCalculator.php`). Any change needs both, plus golden fixtures.
 - **Stock changes only through `StockLedger`** (append-only movements + FIFO batches).

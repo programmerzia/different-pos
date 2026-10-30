@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -15,13 +16,33 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table): void {
             $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
+            $table->uuid('uuid')->unique();
+            $table->foreignId('tenant_id')->nullable()->constrained()->restrictOnDelete(); // NULL only for platform admins
+            $table->string('name', 150);
+            $table->string('username', 50)->nullable();
+            $table->string('email', 150)->nullable()->unique(); // app-wide unique (ADR 0006)
+            $table->string('phone', 20)->nullable();
             $table->string('password');
+            $table->char('legacy_password_md5', 32)->nullable();
+            $table->boolean('must_change_password')->default(false);
+            $table->string('pin_hash')->nullable();
+            $table->unsignedTinyInteger('pin_failed_attempts')->default(0);
+            $table->timestamp('pin_locked_until')->nullable();
+            $table->boolean('is_platform_admin')->default(false);
+            $table->boolean('is_active')->default(true);
+            $table->json('preferences')->nullable();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->timestamp('last_login_at')->nullable();
             $table->rememberToken();
+            $table->unsignedInteger('legacy_id')->nullable();
             $table->timestamps();
+            $table->softDeletes();
+            $table->unique(['tenant_id', 'username']);
+            $table->unique(['tenant_id', 'phone']);
+            $table->index(['tenant_id', 'legacy_id']);
         });
+        // A platform admin has no tenant; everyone else must have one.
+        DB::statement('ALTER TABLE users ADD CONSTRAINT users_tenant_check CHECK (is_platform_admin = 1 OR tenant_id IS NOT NULL)');
 
         Schema::create('password_reset_tokens', function (Blueprint $table): void {
             $table->string('email')->primary();

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Support\Sync\SyncVersionRecorder;
+use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -17,7 +20,9 @@ final class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Reset for every request and queued job (Octane/queue safe).
+        $this->app->scoped(TenantContext::class);
+        $this->app->scoped(SyncVersionRecorder::class);
     }
 
     /**
@@ -34,6 +39,13 @@ final class AppServiceProvider extends ServiceProvider
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);
+
+        // 04_TRD §5.9 + §6: strict models and no N+1 outside production.
+        Model::shouldBeStrict(! app()->isProduction());
+
+        if (app()->runningUnitTests()) {
+            $this->loadMigrationsFrom(base_path('tests/database/migrations'));
+        }
 
         DB::prohibitDestructiveCommands(
             app()->isProduction(),

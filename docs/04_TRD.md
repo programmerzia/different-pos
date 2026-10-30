@@ -101,7 +101,7 @@ Lint rules required by §5 are Oxlint rules: `react/no-danger` (bans `dangerousl
 - **POS register = a standalone local-first React SPA inside the same app** (own Vite entry `resources/js/pos/main.tsx`, static Blade shell at `/pos`, **not** an Inertia page). It reads and writes IndexedDB and talks only to `/api/pos/v1` with a device token (§3.9). Devices enroll with a one-time pairing code issued in the back office. Rationale: [ADR 0001](adr/0001-application-architecture.md).
 - `/api/pos/v1` is the only versioned API contract. Request/response JSON fixtures in `tests/fixtures/pos-api/` run in both Pest and Vitest. Old clients get `426 Upgrade Required`.
 - Arch tests: `Actions\*` must not depend on `Http\*`; the only route exempt from the "every action authorizes" rule is the static `pos.index` shell.
-- **Every state-changing business operation is one final Action class** (`handle()`), run in `DB::transaction()` with the locking order (§3.5), emitting events after commit.
+- **Every state-changing business operation is one final Action class** (`handle()`), run in `App\Support\Database\Transaction::run()` with the locking order (§3.5), emitting events after commit. The runner wraps `DB::transaction()` (deadlock retries) and, at the end of the outermost callback, assigns `sync_version` to every Syncable row written (`SyncVersionRecorder`, one `tenants.sync_counter` lock per tenant). Writes outside the runner (factories, seeders, tinker) are versioned immediately.
 - Controllers: authorize → FormRequest → Action → Inertia/JSON. Reads go through `app/Queries` / `app/Reports`.
 
 ### 3.2 Folder structure
@@ -152,7 +152,8 @@ Single DB, shared schema.
 - `tenant_id` sits on every tenant table, and `branch_id` on branch tables.
 - The `BelongsToTenant`/`BelongsToBranch` traits provide a global scope, auto-fill on create, and a cross-tenant write guard.
 - Route binding resolves through the scoped query, so a foreign id gives 404.
-- Jobs restore the context via `WithTenantContext`.
+- The context lives in the scoped singleton `App\Support\Tenancy\TenantContext` (`run()`, `withoutTenancy()`). Its ids are mirrored into Laravel `Context`, which travels with queued jobs; the `WithTenantContext` job middleware restores them and fails a tenant job dispatched without one.
+- Scopes **fail closed**: a tenant/branch-scoped query with no context throws `MissingTenantContext`. Writes to another tenant/branch throw `CrossTenantWrite`.
 - Spatie permission teams = tenant.
 - **Device tokens are bound to (tenant, branch, register)**, and `AuthenticateDevice` sets the context from the token.
 - Global reference tables (`geo_*`) have no `tenant_id` and are read-only.

@@ -25,12 +25,12 @@ Legend: `[ ]` todo · `[~]` in progress (one at a time) · `[x]` done · `[-]` d
 ## Phase 1: Database & Auth
 **1A: Foundations**
 - [x] **1.1** Money/Quantity casts (PHP) + `engine/money.ts` (paisa, milli-qty helpers) + formatters (en-IN grouping, Bangla digits) + tests. — ✅ 2026-10-31 `App\Support\{Money,Quantity,Numbers}`, `App\Casts\{Money,Quantity}Cast`, `resources/js/engine/{money,quantity,digits}.ts`; shared golden cases `tests/fixtures/money/cases.json` run by Pest **and** Vitest; ±2^53 range on both sides.
-- [ ] **1.2** Migrations: tenants (incl. VAT BIN, settings, branding, pin box keys, sync_counter), branches, users (preferences: theme/scheme/density), branch_user, user_invitations, login_activities.
-- [ ] **1.3** Models, factories, `HasUuid` (UUIDv7), and the `Syncable` concern (assigns `sync_version` from `tenants.sync_counter` under lock).
-- [ ] **1.4** `CurrentTenant`/`CurrentBranch` + `BelongsToTenant`/`BelongsToBranch` (scope, auto-fill, cross-tenant guard) + tests.
+- [x] **1.2** Migrations: tenants (incl. VAT BIN, settings, branding, pin box keys, sync_counter), branches, users (preferences: theme/scheme/density), branch_user, user_invitations, login_activities. — ✅ 2026-10-31 + `roles.max_discount_pct_bp/is_system`, `activity_log.tenant_id`, CHECKs (tenant status, platform-admin-or-tenant); permission teams = `tenant_id`.
+- [x] **1.3** Models, factories, `HasUuid` (UUIDv7), and the `Syncable` concern (assigns `sync_version` from `tenants.sync_counter` under lock). — ✅ 2026-10-31 Tenant/Branch/User; `Transaction::run()` + `SyncVersionRecorder` (counter lock taken last, one bump per tx, rollback-safe, nested-safe).
+- [x] **1.4** `CurrentTenant`/`CurrentBranch` + `BelongsToTenant`/`BelongsToBranch` (scope, auto-fill, cross-tenant guard) + tests. — ✅ 2026-10-31 as `TenantContext` (one class for both); fail-closed scopes; User unscoped by design with a write guard + `inCurrentTenant()`.
 - [ ] **1.5** Middleware (EnsureTenantActive, ResolveTenant, EnsureBranchSelected, SetLocale). Route files `app.php`, `api-internal.php`, `pos-api.php`, `platform.php`.
-- [ ] **1.6** `WithTenantContext` job middleware + a test that a job without context fails.
-- [ ] **1.7** Tenant keypair generation (sodium X25519) on tenant create. `PinSealer` service (seal/open) + tests.
+- [x] **1.6** `WithTenantContext` job middleware + a test that a job without context fails. — ✅ 2026-10-31 via Laravel `Context` propagation (done before 1.5; independent).
+- [x] **1.7** Tenant keypair generation (sodium X25519) on tenant create. `PinSealer` service (seal/open) + tests. — ✅ 2026-10-31 secret key `encrypted` cast + hidden; `SealedPin` hides the PIN from dumps; tamper/foreign-tenant/malformed tests.
 
 **1B: Auth & permissions**
 - [ ] **1.8** spatie/permission teams + `RolesAndPermissionsSeeder` (04_TRD §3.8 incl. `customers.reset_pin`, `cards.*`, `devices.manage`, `pos.customer_pin_override`).
@@ -239,6 +239,7 @@ Legacy containment per [ADR 0003](adr/0003-legacy-security-containment.md):
 ## Progress log
 - 2026-10-29: Docs 00–06, CLAUDE.md and .cursorrules created from the legacy analysis.
 - 2026-10-29: v1.1 docs. React chosen. Offline-first POS, keyboard-first desktop UX (context menus, top bar notifications/clock, colour schemes), customer location, customer number, membership cards, customer PIN, VAT fields. SMS deferred. Migration scoped to DIFFERENT FASHION. Repo folder renamed to `pos-rewrite`. Gemini mockup prompt in `docs/mockup/`. No code yet.
+- 2026-10-31: Tenancy core 1.2–1.4, 1.6, 1.7 done (36 tests). Removed starter-kit account self-deletion (staff are deactivated via users.manage; history must keep its users). Sanctum `stateful` emptied (no SPA cookie auth, ADR 0001). `composer ci` green: 162 Pest, 72 Vitest.
 - 2026-10-31: Phase 0 done (0.1–0.9, `composer ci` green: 127 Pest, 72 Vitest). 1.1 money/quantity twins done. ADR 0006 (login: business code). Disk was full: cleared npm/Docker build caches + unused libreoffice image (owner OK).
 - 2026-10-30: Phase 0 started. 0.1 blocked on owner installs (ext-gd, ext-redis, Redis, Node 24). Root `index.html`, `scripts/`, `vendor/` moved to `tools/mockup/` (paths fixed in the build/test scripts and `docs/mockup/index.html`).
 - 2026-10-30: Q9 decided: variants + exchange in v1 (ADR 0005); docs 01/02/04/05/06 updated; Gemini mockup prompt v4 written.
