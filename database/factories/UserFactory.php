@@ -33,11 +33,21 @@ final class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => self::$password ??= Hash::make('password'),
+            'is_platform_admin' => false,
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
         ];
+    }
+
+    /** A platform admin: no tenant (users_tenant_check). */
+    public function platformAdmin(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'tenant_id' => null,
+            'is_platform_admin' => true,
+        ]);
     }
 
     /**

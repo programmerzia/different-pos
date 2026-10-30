@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Models\Branch;
+use App\Models\Tenant;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,4 +50,12 @@ expect()->extend('toBeOne', fn () => $this->toBe(1));
 function something(): void
 {
     // ..
+}
+
+/** Creates a branch of the tenant outside any request context (factories have no tenant context). */
+function makeBranch(Tenant $tenant): Branch
+{
+    return app(TenantContext::class)->withoutTenancy(
+        fn (): Branch => Branch::factory()->for($tenant)->create(),
+    );
 }

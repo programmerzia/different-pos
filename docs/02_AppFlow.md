@@ -110,7 +110,7 @@ Rules: shortcuts never fire while typing in an input, except `Esc`, `F-keys`, `C
 | 25 | POST | `/api/pos/v1/customers/verify-pin` | `pos-api.customers.verify-pin` | online PIN check → short-lived member token | device + staff |
 | 26 | POST | `/api/pos/v1/customers/{customer}/pin` | `pos-api.customers.pin` | set PIN (online only) | device + `customers.update` |
 | 27 | POST | `/api/pos/v1/authorize` | `pos-api.authorize` | Manager PIN override token (60 s, one permission, one cart hash) | device |
-| 28 | GET | `/api/pos/v1/ping` | `pos-api.ping` | 204 (connectivity probe) | device |
+| 28 | GET | `/api/pos/v1/ping` | `pos-api.ping` | 204 (connectivity probe) | device (until step 2.22 the route is unauthenticated; it carries no data) |
 | **Sales** |
 | 30 | GET | `/app/sales` | `sales.index` | `sales/index` | `sales.view` |
 | 31 | GET | `/app/sales/{sale}` | `sales.show` | `sales/show` | `sales.view` |
@@ -165,7 +165,7 @@ Rules: shortcuts never fire while typing in an input, except `Esc`, `F-keys`, `C
 | **Profile** |
 | 110 | GET/PUT | `/app/profile[/password\|/pin\|/2fa]` | `profile.*` | `profile/*` *(no branch)* | auth |
 | **Platform** |
-| 120 | resource + impersonate | `/platform/tenants` | `platform.*` | `platform/*` | `is_platform_admin` |
+| 120 | GET (placeholder `/platform` = `platform.index`), resource + impersonate | `/platform/tenants` | `platform.*` | `platform/*` | `is_platform_admin` (`EnsurePlatformAdmin`) |
 
 ## 3. Auth & session flow
 ```

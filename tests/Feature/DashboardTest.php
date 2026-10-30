@@ -2,28 +2,34 @@
 
 declare(strict_types=1);
 
-namespace Tests\Feature;
-
+use App\Actions\Tenancy\SeedTenantRoles;
+use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
+use App\Support\Permissions\SystemRoles;
+use Spatie\Permission\PermissionRegistrar;
 
-final class DashboardTest extends TestCase
-{
-    use RefreshDatabase;
+it('redirects guests to the login page', function (): void {
+    $this->get(route('dashboard'))->assertRedirect(route('login'));
+});
 
-    public function test_guests_are_redirected_to_the_login_page(): void
-    {
-        $response = $this->get(route('dashboard'));
-        $response->assertRedirect(route('login'));
-    }
+it('shows the dashboard to a permitted user with a branch', function (): void {
+    $tenant = Tenant::factory()->create();
+    $branch = makeBranch($tenant);
+    $user = User::factory()->for($tenant)->create();
+    $user->branches()->attach($branch);
+    app(SeedTenantRoles::class)->handle($tenant);
+    app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->id);
+    $user->assignRole(SystemRoles::CASHIER);
 
-    public function test_authenticated_users_can_visit_the_dashboard(): void
-    {
-        $user = User::factory()->create();
-        $this->actingAs($user);
+    $this->actingAs($user)->get(route('dashboard'))->assertOk();
+    expect(route('dashboard', absolute: false))->toBe('/app');
+});
 
-        $response = $this->get(route('dashboard'));
-        $response->assertOk();
-    }
-}
+it('forbids a user without dashboard.view', function (): void {
+    $tenant = Tenant::factory()->create();
+    $branch = makeBranch($tenant);
+    $user = User::factory()->for($tenant)->create();
+    $user->branches()->attach($branch);
+
+    $this->actingAs($user)->get(route('dashboard'))->assertForbidden();
+});

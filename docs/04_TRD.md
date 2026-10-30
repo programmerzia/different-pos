@@ -204,7 +204,7 @@ Roles:
 - **Accountant**: `dashboard.view sales.view returns.view customers.view vendors.view money.* reports.* payments.*`.
 - **Stock Keeper**: `products.* stock.* purchases.* vendors.* reports.view`.
 
-`roles.max_discount_pct_bp` holds the per-role discount cap.
+`roles.max_discount_pct_bp` holds the per-role discount cap. Seeded defaults: Owner 10000 (100%), Manager 2000 (20%), Cashier/Accountant/Stock Keeper 0. Source of truth in code: `App\Support\Permissions\{Permission,SystemRoles}`; `App\Actions\Tenancy\SeedTenantRoles` creates the five `is_system` roles per tenant (idempotent; re-running refreshes permission sets but keeps an existing role's discount cap).
 
 ### 3.9 Offline-first POS: sync design
 
