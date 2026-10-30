@@ -1,0 +1,23 @@
+# Local development services only (04_TRD §1). PHP and Node run natively.
+name: pos-rewrite
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: pos
+      TZ: UTC
+    command: >-
+      --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
+      --default-time-zone=+00:00 --sql-mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION,ONLY_FULL_GROUP_BY
+    ports: ["127.0.0.1:33084:3306"]
+    volumes: [mysql-data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-proot"]
+      interval: 5s
+      retries: 20
+  redis:
+    image: redis:7.4-alpine
+    ports: ["127.0.0.1:63840:6379"]
+volumes:
+  mysql-data:

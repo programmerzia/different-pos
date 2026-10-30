@@ -1,0 +1,33 @@
+# Cursor rules: Retail POS (product name TBD; never hard-code one)
+# Laravel 13 · PHP 8.4+ · Inertia 2 + React 19 (TS strict) · Tailwind CSS 4 + shadcn/ui · MySQL 8.4 · Redis · Dexie (offline POS) · Pest
+
+## Read first (every task)
+Before planning or editing code, read the docs in /docs in this order and treat them as the source of truth:
+1. docs/01_PRD.md          (scope + Non-Goals: never build a non-goal)
+2. docs/02_AppFlow.md      (shell, keyboard map, context menus, routes, permissions, POS + offline state machines)
+3. docs/03_UI_Spec.md      (tokens, colour schemes, density, component states)
+4. docs/04_TRD.md          (locked stack, folder structure, architecture, offline sync §3.9, security)
+5. docs/05_Schema.md       (schema, invariants, tenancy/auth/device flow, legacy migration)
+6. docs/06_Plan.md         (ordered checklist: work only on the first unchecked step)
+Reference: docs/00_Legacy_Features.md, docs/adr/.
+
+## After every completed step
+- Run the gates (composer ci, or the relevant subset: composer lint/analyse, php artisan test, npm run lint/typecheck/test).
+- Update docs/06_Plan.md in the same change: mark [x] with "— ✅ YYYY-MM-DD <note>" and append to the Progress log.
+- If a schema, route, permission, dependency or decision changed, update docs 02/04/05 in the same change.
+
+## Non-negotiable rules
+- Money = integer paisa (BIGINT, brick/money; TS integers via engine/money.ts). Qty = DECIMAL(14,3) / milli-units in TS. No floats for money.
+- Business writes only in final Action classes (handle()) inside DB::transaction(), honouring the locking order (04_TRD §3.5). Thin controllers, no DB:: in controllers.
+- Tenant/branch isolation via BelongsToTenant/BelongsToBranch. Scoped exists rules. Cross-tenant → 404. Isolation tests for every model/route/device endpoint.
+- POS is offline-first: local commit (Dexie) + outbox, never await the network on the sale path. The server flags synced sales, it never rejects them for business reasons.
+- Pricing engine is twinned (engine/pricing.ts ⇄ PriceCalculator.php) with shared golden fixtures. Change both or neither.
+- Stock only via StockLedger. Completed sales are immutable (void the same day or return).
+- Customer PIN: argon2id server-side only. Never logged, exported or serialised. Offline = sealed box only.
+- Customer number: server-assigned, 8 digits with a Luhn check digit, permanent, never reused. Card barcode = MC + customer_no + issue(2).
+- Keyboard-first: every action is registered in the hotkey registry + command palette + context menu (where applicable). Shift+F10 opens the context menu.
+- UI: semantic tokens only (no hex / palette classes), schemes via data-scheme, all text i18n (en + bn), no dangerouslySetInnerHTML, ≥44px touch targets, visible focus.
+- Permission names per 04_TRD §3.8, route names per 02_AppFlow §2.
+- declare(strict_types=1), final classes, full types, Larastan level 8, Pint, Pest tests for every Action.
+- No dependency changes without updating docs/04_TRD.md. No secrets in git. No DB tools in public/. No SMS code (deferred).
+- Ambiguity → add to docs/06_Plan.md "Open questions" and ask. Do not guess.

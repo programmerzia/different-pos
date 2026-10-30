@@ -1,0 +1,323 @@
+# 04 — Technical Requirements Document (TRD)
+
+> This document **locks** the stack. Do not add, swap or upgrade a dependency without updating this file in the same change. Anything in §1–§2 also needs human approval.
+> **Version rule.** The constraints below are the intended lines. At Phase 0, write the **exact resolved versions** into the "Pinned" column, and those pins become law. If a listed package has **no release supporting Laravel 13 / PHP 8.4 / React 19**, STOP and ask. Never substitute silently.
+
+---
+
+## 0. Why React (decision record)
+React 19 was chosen over Vue for this product because:
+- the official Laravel React starter kit and **shadcn/ui** (first-class on React) cover most of the UI
+- **Radix ContextMenu** and **cmdk** give the desktop-style right-click and command palette
+- **Dexie `useLiveQuery`** binds IndexedDB reactively for the offline register
+- **TanStack Table/Virtual** handle large keyboard-navigable grids
+
+Both frameworks could do the job. This choice minimises custom plumbing for keyboard-first + offline-first.
+
+## 1. Runtime & infrastructure
+
+| Component | Constraint | Pinned | Notes |
+|---|---|---|---|
+| PHP | `^8.4` (dev has 8.5.12; CI runs 8.4 and 8.5) | | ext: `bcmath intl mbstring pdo_mysql redis gd zip exif pcntl sodium` |
+| Laravel | `^13.0` | | |
+| Composer | `>= 2.8` | | dev has 2.2.29 → **upgrade first** |
+| Node.js | 24 LTS | | npm, `package-lock.json` committed |
+| MySQL | 8.4 LTS | | utf8mb4_0900_ai_ci, strict, UTC |
+| Redis | 7.4 (or Valkey 8) | | cache, queue, locks, rate limits |
+| Web | Nginx + PHP-FPM | | HTTP/2, brotli. The service worker is served with `Cache-Control: no-cache` |
+| OS (prod) | Ubuntu 24.04 LTS | | |
+| Object storage | S3-compatible (e.g. DigitalOcean Spaces) | | private bucket + signed URLs |
+| Supervisor | Horizon + scheduler | | |
+| Local dev | Laravel Sail **or** native PHP 8.5 + MySQL 8.4 + Redis | | |
+| VCS | git (local `git init`). Remote/CI host decided later by the owner | | CI is provider-agnostic via `composer ci` (§6) |
+
+## 2. Application dependencies
+
+### 2.1 Composer (require)
+| Package | Constraint | Purpose |
+|---|---|---|
+| `laravel/framework` | `^13.0` | core |
+| `inertiajs/inertia-laravel` | `^2.0` | SPA bridge |
+| `laravel/fortify` | `^1.25` | auth backend (starter kit) |
+| `laravel/sanctum` | `^4.0` | SPA session + **device tokens** for the POS sync API |
+| `laravel/wayfinder` | starter-kit version | typed TS route helpers |
+| `laravel/horizon` | `^5.30` | queues |
+| `laravel/pulse` | `^1.4` | perf monitoring (gated) |
+| `spatie/laravel-permission` | `^6.10` (teams) | roles/permissions per tenant |
+| `spatie/laravel-activitylog` | `^4.10` | audit |
+| `spatie/laravel-backup` | `^9.3` | backups |
+| `spatie/simple-excel` | `^3.7` | XLSX/CSV streaming |
+| `mpdf/mpdf` | `^8.2` | PDFs with correct **Bangla shaping** (invoices, statements, reports, **membership cards**) |
+| `brick/money` · `brick/math` | `^0.10` · `^0.12` | money / decimal qty |
+| `picqer/php-barcode-generator` | `^3.2` | Code128/EAN-13 in PDFs |
+| `chillerlan/php-qrcode` | `^5.0` | QR codes |
+| `league/flysystem-aws-s3-v3` | `^3.29` | S3 |
+| `sentry/sentry-laravel` | `^4.10` | errors |
+
+### 2.2 Composer (dev)
+`pestphp/pest ^4` + `pest-plugin-laravel ^4` · `larastan/larastan ^3` (level 8) · `laravel/pint ^1.20` · `rector/rector ^2` · `laravel/telescope ^5.5` (local only) · `fakerphp/faker` · `mockery/mockery` · `nunomaduro/collision ^8`.
+
+### 2.3 npm
+| Package | Constraint | Purpose |
+|---|---|---|
+| `react` · `react-dom` | `^19.1` | UI |
+| `@inertiajs/react` | `^2.0` | SPA bridge |
+| `typescript` | `^5.8` | strict (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`) |
+| `vite` · `laravel-vite-plugin` · `@vitejs/plugin-react` | starter-kit versions | build |
+| `tailwindcss` · `@tailwindcss/vite` | `^4.1` | styling |
+| shadcn/ui (copied components) + `radix-ui` primitives, `class-variance-authority`, `clsx`, `tailwind-merge` | starter-kit versions | components, **ContextMenu**, Dialog, Popover… |
+| `cmdk` | `^1.1` | command palette |
+| `lucide-react` | latest 0.x at scaffold | icons |
+| `@tanstack/react-table` · `@tanstack/react-virtual` | `^8.21` · `^3.13` | data grids, virtualised POS lists |
+| `react-hotkeys-hook` | `^5.0` | scoped keyboard shortcuts |
+| `zustand` | `^5.0` | POS UI state (non-persistent) |
+| `dexie` · `dexie-react-hooks` | `^4.0` · `^1.1` | IndexedDB local DB (offline register) |
+| `minisearch` | `^7.1` | in-memory local product/customer search |
+| `vite-plugin-pwa` (Workbox) | `^1.0` | service worker, precache, offline shell |
+| `libsodium-wrappers` | `^0.7.15` | sealed-box encryption of the customer PIN offline |
+| `react-i18next` · `i18next` | `^15` · `^25` | EN/BN |
+| `recharts` | `^2.15` | charts (shadcn chart wrapper) |
+| `jsbarcode` · `qrcode` | `^3.11` · `^1.5` | client-side receipt barcode/QR |
+| `@zxing/browser` | `^0.1.5` | camera barcode scan (stocktake, phone POS) |
+| `uuid` | `^11` | UUIDv7 for client ids |
+| `sonner` | `^2.0` | toasts |
+| `@fontsource-variable/inter`, `@fontsource/hind-siliguri`, `@fontsource/jetbrains-mono` | latest | self-hosted fonts |
+| `@sentry/react` | latest major at scaffold | client errors |
+| dev: `eslint ^9` + `typescript-eslint` + `eslint-plugin-react-hooks` + `eslint-plugin-jsx-a11y`, `prettier ^3` + tailwind plugin, `vitest ^3` + `@testing-library/react ^16` + `fake-indexeddb ^6`, `@playwright/test ^1.50` | | lint/test/e2e |
+
+**Starting point:** `laravel new` → **React starter kit** (Inertia 2 + React 19 + TS + Tailwind 4 + shadcn/ui + Fortify). Remove public registration.
+
+## 3. Architecture
+
+### 3.1 Style
+- **Modular monolith**: one Laravel app.
+- **Back office = classic Inertia (server-driven, online).**
+- **POS register = a standalone local-first React SPA inside the same app** (own Vite entry `resources/js/pos/main.tsx`, static Blade shell at `/pos`, **not** an Inertia page). It reads and writes IndexedDB and talks only to `/api/pos/v1` with a device token (§3.9). Devices enroll with a one-time pairing code issued in the back office. Rationale: [ADR 0001](adr/0001-application-architecture.md).
+- `/api/pos/v1` is the only versioned API contract. Request/response JSON fixtures in `tests/fixtures/pos-api/` run in both Pest and Vitest. Old clients get `426 Upgrade Required`.
+- Arch tests: `Actions\*` must not depend on `Http\*`; the only route exempt from the "every action authorizes" rule is the static `pos.index` shell.
+- **Every state-changing business operation is one final Action class** (`handle()`), run in `DB::transaction()` with the locking order (§3.5), emitting events after commit.
+- Controllers: authorize → FormRequest → Action → Inertia/JSON. Reads go through `app/Queries` / `app/Reports`.
+
+### 3.2 Folder structure
+```
+pos-rewrite/
+├─ CLAUDE.md · .cursorrules · README.md
+├─ docs/ (00–06, adr/, mockup/)
+├─ tools/mockup/ (mockup build scripts + compiled mockup; not part of the app)
+├─ app/
+│  ├─ Actions/{Auth,Catalog,Customers,Membership,Inventory,Money,Pos,Purchases,Returns,Sales,Settings,Sync,Tenancy}/
+│  ├─ Data/ · Enums/ · Events/ · Listeners/ · Exceptions/Domain/
+│  ├─ Http/
+│  │  ├─ Controllers/{Module}/            # Inertia pages
+│  │  ├─ Controllers/Api/{Module}/        # /app/api (session)
+│  │  ├─ Controllers/PosApi/V1/           # /api/pos/v1 (device token)
+│  │  ├─ Middleware/ (ResolveTenant, EnsureBranchSelected, EnsureTenantActive, SetLocale, AuthenticateDevice)
+│  │  ├─ Requests/{Module}/ · Resources/{Module}/
+│  ├─ Jobs/ · Notifications/
+│  ├─ Models/ (+ Concerns/{BelongsToTenant,BelongsToBranch,HasUuid,HasLegacyId,Syncable})
+│  ├─ Policies/ · Queries/ · Reports/
+│  ├─ Pos/Pricing/PriceCalculator.php     # PHP twin of the TS pricing engine (§3.9.4)
+│  ├─ Services/{Pdf/PdfRenderer, Numbering/DocumentNumberer, Membership/CustomerNumber (Luhn), Membership/CardRenderer, Crypto/PinSealer, Sync/{PullService,PushService}}
+│  ├─ Support/{Money,Quantity,Tenancy}/
+│  └─ Console/Commands/{IntegrityCheck, Legacy/ImportLegacyCommand, Geo/ImportGeoCommand}
+├─ database/{migrations, factories, seeders (Roles, Geo, DemoTenant)} · database/data/geo/*.json (BD reference data)
+├─ resources/
+│  ├─ css/app.css (tokens + schemes)
+│  ├─ js/
+│  │  ├─ pages/**.tsx (Inertia pages, kebab-case folders)
+│  │  ├─ components/{ui (shadcn), app (AppShell, TopBar, StatusBar, CommandPalette, NotificationsPanel, Clock, ThemePopover, DataTable, RowContextMenu, Kbd, MoneyInput, QtyStepper, KpiTile, EmptyState, LocationFields, PinPad…)}
+│  │  ├─ pos/  (standalone SPA; entry main.tsx; never imports @inertiajs/*, enforced by ESLint no-restricted-imports)
+│  │  │  ├─ db/ (Dexie schema + migrations)        ├─ sync/ (puller, outbox, pusher, connectivity)
+│  │  │  ├─ engine/ (pricing.ts, numbering.ts, stock.ts — pure, deterministic)
+│  │  │  ├─ search/ (MiniSearch index builder)     ├─ scanner/ (keyboard-wedge detector)
+│  │  │  ├─ store/ (zustand UI state)              └─ components/ (Register, ProductGrid, Cart, PaymentPanel, CustomerAttach, TodaySummary, SyncCenter)
+│  │  ├─ hooks/ (useHotkeys wrappers, useMoney, usePermissions, useFilters, useContextMenu, usePrint)
+│  │  ├─ i18n/{en,bn}.json · types/
+│  │  └─ sw.ts (service worker, vite-plugin-pwa injectManifest)
+│  └─ views/{app.blade.php (Inertia root), pos.blade.php (static POS shell, no server data), print/{receipt-thermal,receipt-a4,statement,report,card-cr80,card-a4}.blade.php}
+├─ routes/{web.php, app.php, api-internal.php, pos-api.php, platform.php, console.php}
+├─ tests/{Feature, Unit, Arch, fixtures/pricing/*.json} · e2e/ (Playwright)
+└─ lang/{en,bn}/
+```
+
+### 3.3 Multi-tenancy
+Single DB, shared schema.
+- `tenant_id` sits on every tenant table, and `branch_id` on branch tables.
+- The `BelongsToTenant`/`BelongsToBranch` traits provide a global scope, auto-fill on create, and a cross-tenant write guard.
+- Route binding resolves through the scoped query, so a foreign id gives 404.
+- Jobs restore the context via `WithTenantContext`.
+- Spatie permission teams = tenant.
+- **Device tokens are bound to (tenant, branch, register)**, and `AuthenticateDevice` sets the context from the token.
+- Global reference tables (`geo_*`) have no `tenant_id` and are read-only.
+
+### 3.4 Money, quantity, time, VAT
+- Money = BIGINT **paisa** (`brick/money`), serialised as `{amount, formatted}`. **No floats** in PHP, SQL or TS. TS uses `number` integers within the safe range, and arithmetic only through `engine/money.ts` helpers.
+- Quantity = DECIMAL(14,3) (`brick/math`). In TS, quantity is an integer in **milli-units** (`qty_milli`) inside the engine.
+- Rounding: half-up to the paisa per line. Optional cash rounding goes to `sales.rounding`.
+- VAT: rate in basis points per product. Inclusive or exclusive is a tenant setting. Each line stores its rate and amount. Invoices show a per-rate summary plus the seller and buyer BIN.
+- Timestamps are UTC. Display and business-day boundaries use the tenant timezone (default `Asia/Dhaka`).
+
+### 3.5 Inventory engine
+- **Source of truth: `stock_movements`** (append-only). `branch_stocks` is a cache updated in the same transaction. The nightly integrity check catches drift.
+- **FIFO by batch.** Sales split allocation across batches → `sale_item_batches` → COGS. Branch setting `batch_selection=auto|manual` (legacy `is_use_stock_invoice`).
+- **Locking order:** `document_sequences` → `branch_stocks` (ORDER BY product_id) FOR UPDATE → `stock_batches` (ORDER BY received_at,id) FOR UPDATE → party rows (`customers`/`vendors` balance, by id) → **`tenants.sync_counter` last**, immediately before commit. Holding the counter lock until commit makes `sync_version` values visible in commit order, so a pull cursor can never skip a row. Bulk writers reserve one range per chunk (ADR 0001 D6).
+- Negative stock: online sales are blocked unless `allow_negative_stock`. **Synced offline sales are always accepted.** A shortfall is costed at `products.cost_price` and the movement is flagged `is_backorder`. The sale is flagged `oversold`.
+
+### 3.6 Numbering
+- Back-office documents: `DocumentNumberer::next(type, branch)` with FOR UPDATE: `{BR}-{TYPE}-{YY}{seq6}`.
+- **POS sales are numbered on the device:** `{BR}-{REG}-{YY}{seq6}` (e.g. `DF1-R1-26000123`). Each register has exactly one active device. Enrollment and bootstrap give the device the server's high-water mark, and the device increments it locally inside the commit transaction. The server stores `registers.last_number` = max seen. Unique per register by construction, so there are never collisions.
+- **Customer number:** a tenant sequence (`document_sequences` type `customer`, starting 1000001) + 1 Luhn digit = 8 digits, assigned **on the server only**. Offline-created customers show "Pending no." until they sync.
+
+### 3.7 Idempotency
+- Every outbox op carries `op_id` (UUIDv7), and sales carry `client_uuid`. The server stores processed op ids (`sync_ops`). A replay returns the original result.
+- Back-office payment and return posts require an `Idempotency-Key` header.
+
+### 3.8 Permissions (seeded; names are a contract with 02_AppFlow)
+```
+dashboard.view
+pos.sell · pos.discount_override · pos.price_override · pos.backdate · pos.sell_below_cost · pos.customer_pin_override
+devices.manage
+sales.view · sales.void · returns.view · returns.create
+payments.collect · payments.pay
+customers.view · customers.create · customers.update · customers.delete · customers.reset_pin
+cards.view · cards.issue
+products.view · products.create · products.update · products.delete · products.view_cost
+stock.view · stock.adjust · stock.count · stock.transfer
+purchases.view · purchases.create · purchases.receive · purchases.cancel
+vendors.view · vendors.create · vendors.update · vendors.delete
+money.view · money.create · money.manage
+reports.view · reports.export · reports.profit · reports.all_branches
+users.manage · settings.manage · audit.view
+```
+Roles:
+- **Owner**: all.
+- **Manager**: all except `users.manage`, `settings.manage`, `audit.view`.
+- **Cashier**: `dashboard.view pos.sell sales.view returns.view customers.view customers.create cards.view products.view stock.view payments.collect`.
+- **Accountant**: `dashboard.view sales.view returns.view customers.view vendors.view money.* reports.* payments.*`.
+- **Stock Keeper**: `products.* stock.* purchases.* vendors.* reports.view`.
+
+`roles.max_discount_pct_bp` holds the per-role discount cap.
+
+### 3.9 Offline-first POS: sync design
+
+**3.9.1 Local database (Dexie, per enrolled device, DB name `pos_{tenant}_{register}`)**
+| Store | Content | Source |
+|---|---|---|
+| `meta` | device id, register, branch, cursors per entity, last pull/push, schema version, number high-water mark | bootstrap |
+| `settings` | tenant/branch settings needed by POS (tax mode, rounding, PIN policy, offline credit cap, allow negative, receipt template) | bootstrap/pull |
+| `staff` | id, name, role permissions subset, **PIN verifier** (PBKDF2-SHA256 200k iterations, per-device salt; not the server hash), offline login expiry | bootstrap |
+| `products` | id, family_id, variant_label, name/name_bn, sku, barcode, price, tax_bp, unit (decimal flag), min qty, category, brand, image url, active | pull |
+| `stock` | product_id → qty_on_hand snapshot for this branch | pull + local decrements |
+| `customers` | id, uuid, customer_no, name, phone, group, discount_bp, **has_pin**, pin_locked, credit_allowance (offline cap), card numbers + status. **No address/DOB/email** | pull |
+| `tenders`, `taxes`, `groups`, `categories`, `families`, `variant_options`, `variant_option_values` | small reference lists (families/options power the variant picker) | pull |
+| `sales` | local copy of sales made on this device (pruned 7 days after sync) | local |
+| `held` | held carts | local |
+| `outbox` | ops: `sale.create`, `customer.create` | local |
+
+**3.9.2 Pull.** `GET /api/pos/v1/pull?entity=products&cursor=…` returns `{changes:[…], tombstones:[ids], next_cursor, has_more}`. The cursor is the per-row `sync_version` (BIGINT, from a tenant counter incremented on every write of a `Syncable` model). Triggers: on boot, every 60 s while online, on `online` event, after each push. Initial load is paged at 1,000 rows. After a pull, the MiniSearch index is rebuilt incrementally.
+
+**3.9.3 Push.** The outbox is flushed in order, batches of ≤ 25 ops, `POST /api/pos/v1/push`. The server processes each op in its own transaction through the **same Actions** as online (e.g. `CompleteSale` with `origin=device`). Per-op result:
+- `ok`
+- `duplicate` (already processed, treated as ok)
+- `accepted_with_flags`
+- `rejected`
+
+`rejected` happens only on auth or structural corruption: the op is kept and surfaced in the Sync center. Retries use exponential backoff (1 s → 5 min cap) and Background Sync where available. A sale is **never** rejected for business reasons (stock, price) because it physically happened. Those cases become flags.
+
+**3.9.4 Shared pricing engine.**
+- `resources/js/pos/engine/pricing.ts` and `app/Pos/Pricing/PriceCalculator.php` implement the identical algorithm on integer paisa and milli-qty. Inputs: lines, discounts, group discount, tax mode, rounding.
+- Golden fixtures in `tests/fixtures/pricing/*.json` are executed by **both** Vitest and Pest. CI fails on any divergence.
+- The server recomputes every pushed sale. A difference is accepted as charged and flagged `price_mismatch` (with both values stored).
+
+**3.9.5 Customer PIN offline (sealed box).**
+- Each tenant has an X25519 keypair. The public key is in bootstrap, and the private key is encrypted at rest with `APP_KEY` (sodium).
+- Offline, the POS encrypts `{customer_id, pin, client_uuid, ts}` with `crypto_box_seal` and stores the ciphertext on the sale. The device cannot decrypt it, and no PIN hash is ever on the device.
+- On push, the server decrypts and verifies against the argon2id hash, counting attempts toward the lockout. Failure flags the sale `member_unverified`.
+- Online, the PIN goes over TLS to `verify-pin` and is never stored client-side.
+
+**3.9.6 Staff offline auth.**
+- Online login on the device stores a staff PIN verifier (3.9.1).
+- Offline unlock is allowed only if the last online login on that device was within `offline_login_days` (default 7). 5 failures lock offline unlock for that user until the next online login.
+- *Accepted risk:* a 4–6 digit verifier on a stolen device can be brute-forced offline. Mitigations are device revocation (remote wipe on next contact), short-lived offline windows, and limited local data.
+
+**3.9.7 Service worker.**
+- `vite-plugin-pwa` (`injectManifest`) precaches the app shell, the POS chunk, fonts and icons.
+- Navigation to `/pos` uses NetworkFirst (3 s timeout) and falls back to the cached static shell. The shell contains no server data, so a cached copy is never stale. The service worker never caches Inertia (`/app/*`) responses.
+- `/api/pos/v1/*` is never cached by the service worker (the app manages it).
+- Product images use a CacheFirst cache of max 2,000 entries over 30 days.
+- New versions: the update toast ("New version: reload when cart is empty") **never auto-reloads with a non-empty cart**.
+
+**3.9.8 Storage.**
+- Call `navigator.storage.persist()` on enrollment.
+- Warn at 80 % quota. Prune synced sales after 7 days.
+- Logout of the last staff member does **not** wipe (the register stays enrolled). Revocation wipes.
+
+**3.9.9 Conflict policy (server wins on master data, device wins on facts)**
+| Case | Resolution |
+|---|---|
+| Price changed while offline | The device price is used. Server flags `price_mismatch` if the recompute differs |
+| Stock insufficient at sync | Accept. Backorder movement. Flag `oversold` |
+| Customer deleted/merged while offline | Attach to the survivor (merge map) or walk-in. Flag `customer_merged` |
+| Offline-created customer has a duplicate phone | Merge into the existing customer. The device receives the mapping on the next pull |
+| Card reported lost while offline | Sale accepted. Flag `member_unverified` if the PIN also fails |
+| Product deleted while offline | Sale accepted with the snapshot name/SKU (FK to the soft-deleted product) |
+
+### 3.10 Keyboard-first & desktop UX implementation rules
+- All shortcuts are registered through one `useHotkeys` wrapper with **scopes** (`global`, `page:<name>`, `dialog`, `pos`). There is a central registry used by the `?` overlay and the command palette, so there are never orphan shortcuts.
+- Barcode scanner: a keyboard-wedge detector (≥ 4 chars, inter-key gap < 35 ms, terminated by Enter) routes scans globally. A scan never types into a focused text field on a non-POS page unless that field opts in.
+- Context menus: `RowContextMenu` wraps rows and tiles, with items from a per-entity action registry (the same registry feeds row action buttons and the palette). `Shift+F10` gives keyboard parity.
+- Focus management: after every POS action focus returns to the scan field. Dialogs restore focus on close. Visible focus ring everywhere.
+
+## 4. Third-party services
+
+| Service | Use | MVP |
+|---|---|---|
+| Email (SMTP/Postmark/SES) | invites, password reset, export ready | yes |
+| S3-compatible storage | media, exports, card PDFs, backups | yes (prod) |
+| Sentry | PHP + React errors | yes (prod) |
+| Uptime monitor | `/up` | yes (prod) |
+| BD geo reference data | divisions/districts/upazilas/unions (EN+BN) + post codes, imported once into `geo_*` from an open dataset (licence verified and recorded in `docs/adr`) | yes (data only) |
+| **SMS provider** | **deferred**. Adapter designed later (PRD §5) | no |
+| Payment gateways | non-goal | no |
+
+## 5. Security constraints (non-negotiable)
+1. **Passwords:** argon2id, min 8 chars, `uncompromised()` when online. Legacy MD5 is verified once, rehashed and nulled. Remove the fallback 180 days after go-live.
+2. **Staff PIN:** 4–6 digits, argon2id on the server. Device verifier per §3.9.6. Lockout. Never grants `users.manage`/`settings.manage`.
+3. **Customer PIN:** 4–6 digits, argon2id server-side only.
+   - Weak-PIN denylist.
+   - 5 failures → 30 min lock.
+   - Never logged, displayed, exported or stored on devices (sealed box only).
+   - Rate limit on `verify-pin`: 10/min per device and 5/min per customer.
+   - Reset requires `customers.reset_pin` + a reason (audited).
+4. **Device tokens:**
+   - Sanctum token with ability `pos:device`, bound to tenant/branch/register, rotated every 30 days. Stored in IndexedDB (not localStorage).
+   - Revocable, and revocation wipes local data.
+   - Each request also requires an authenticated staff operator id signed into the op.
+5. **2FA:** TOTP, enforceable per role.
+6. **Rate limits:** login 5/min (login+IP). `/app/api` 120/min per user. `/api/pos/v1/push` 60/min per device. Export 10/h per user.
+7. **Authorization:** every controller action authorizes. A Pest arch test fails the build otherwise.
+8. **Tenant isolation:** §3.3. Raw queries are allowed only in `app/Reports` and `app/Queries`, with an explicit tenant filter (arch test).
+9. Explicit `$fillable`. `Model::shouldBeStrict()` outside production.
+10. All input goes through FormRequests. Money is parsed with brick, never `(float)`.
+11. React escapes output. **`dangerouslySetInnerHTML` is banned** (lint rule). Blade print views use `{{ }}` only.
+12. CSRF on session routes. Device API uses bearer tokens (no cookies). Cookies: Secure, HttpOnly, SameSite=Lax, a neutral cookie name `pos_session` (no brand).
+13. Headers: CSP (self, Sentry; `worker-src 'self'`), HSTS, `X-Frame-Options DENY` (print views SAMEORIGIN), `Referrer-Policy strict-origin-when-cross-origin`, `Permissions-Policy camera=(self)`.
+14. Secrets only in `.env`. `gitleaks` in CI. Tenant private keys and API keys use encrypted casts.
+15. **No DB/admin tools in `public/`.** Telescope is local only. Horizon and Pulse are gated.
+16. Uploads: MIME and size validated, private bucket, signed URLs, EXIF stripped.
+17. Audit: business records, logins, permissions, voids, price changes, adjustments, **PIN resets/unlocks/overrides, card lost/reissue**, device enroll/revoke, impersonation. 2-year retention.
+18. Public receipt `/r/{token}`: a random 32-char token, no phone/address, revocable, rate limited.
+19. Backups: daily, encrypted, 30-day retention, monthly restore drill.
+20. Local device data minimisation (§3.9.1). Wipe on revoke.
+21. `composer audit` + `npm audit` in CI. High or critical fails the build.
+
+## 6. Quality gates
+`composer ci` runs everything, so any CI provider can call it:
+`pint --test` · `rector --dry-run` · `phpstan` (level 8) · `pest --parallel --coverage --min=80` (Actions, PriceCalculator, Sync ≥ 95 %) · `npm run lint` · `tsc --noEmit` · `vitest run` (engine ≥ 95 %, **pricing fixtures parity**) · `playwright test` (incl. **offline sale → reconnect → synced** scenario) · `composer audit` · `npm audit --omit=dev` · `gitleaks`.
+
+Performance budgets:
+- POS initial JS ≤ 300 KB gzip
+- POS local search p95 < 50 ms on 20k products
+- local sale commit < 100 ms
+- dashboard p95 ≤ 400 ms
+- no N+1 (`preventLazyLoading`)
