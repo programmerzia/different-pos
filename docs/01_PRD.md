@@ -164,7 +164,7 @@ Small and medium retail shops in Bangladesh (fashion, sports, electronics, cosme
 
 Do **not** build, scaffold or "prepare" these beyond what the schema already notes.
 
-1. **SMS of any kind** (receipts, reminders, OTP, invites). The provider and adapter will be decided later. MVP uses email, copyable links, QR and WhatsApp *share URLs* (plain `https://wa.me/?text=` links, no API).
+1. ~~SMS of any kind~~ → **withdrawn 2026-11-03 (ADR 0007):** transactional SMS (sale completed, payment received, due reminder) via an adapter; marketing SMS and OTP remain out of scope.
 2. **Payment gateway / card terminal integration** (bKash/Nagad/SSLCommerz APIs). Tenders are recorded manually with a reference.
 3. ~~Product variants matrix~~ → **in v1** (B5, decided 2026-10-30). Still out: more than 2 options per family, per-variant images, variant-level price rules.
 4. Full **double-entry GL**, NBR **Mushak** form generation/filing, bank reconciliation.

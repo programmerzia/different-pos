@@ -285,7 +285,7 @@ Roles:
 | Sentry | PHP + React errors | yes (prod) |
 | Uptime monitor | `/up` | yes (prod) |
 | BD geo reference data | divisions/districts/upazilas/unions (EN+BN) + post codes, imported once into `geo_*` from an open dataset (licence verified and recorded in `docs/adr`) | yes (data only) |
-| **SMS provider** | **deferred**. Adapter designed later (PRD §5) | no |
+| **SMS provider** | `SmsGateway` contract; drivers `ssl_wireless` (HTTP via Laravel `Http`), `log`, `null`. No SDK dependency (ADR 0007) | no |
 | Payment gateways | non-goal | no |
 
 ## 5. Security constraints (non-negotiable)

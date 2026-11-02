@@ -55,6 +55,44 @@ Legend: `[ ]` todo · `[~]` in progress (one at a time) · `[x]` done · `[-]` d
 - [ ] **1.25** Backed enums + CHECK constraints + generated-column unique guards (one active device per register, one active card per customer).
 - [ ] **1.26** Isolation test harness `assertTenantIsolated()`.
 
+## Phase D: Demo release (single phase, decided 2026-11-03)
+
+Goal: DIFFERENT FASHION's real products, stock, customers and sales history running on the new app, with a working online register, stock, dues, returns/exchange, cards, SMS, reports and user management. Everything below is **one phase**; everything in Phases 2–5 that is not referenced here moves to the next phase (see [ADR 0007](adr/0007-demo-first-ordering.md)). Original step numbers are kept in brackets so docs 02/04/05 stay traceable.
+
+Decisions baked in (ADR 0007): the register is a normal Inertia page talking to the same `CompleteSale` action the offline SPA will use later; **SMS is no longer deferred**; customer PIN, device sync, geo and 2FA wait for the next phase. Legacy facts from the 2026-10-29 dump (stores 7 + 10): 69 products (15 duplicate codes, many with cost 0), 1,311 customers (1,109 with `shop_name`, one duplicate phone, all group "Whole Sale"), 3,091 sales / 9,189 lines (one dated 2027-03-02), 286 open dues (৳95.5 lakh), 197 stock invoices / 204 batch lines, batch stock exceeds product stock by 648 units, no returns, no accounting rows, 2 users, 6 vendors.
+
+### D1. Data in
+- [ ] **D1.1** Schema for the slice [1.18–1.25 minus devices/sync_ops/geo]: categories, brands, units, tax_rates, product_families, variant_options/values, products (`shop_name`-free; variants per ADR 0005), customer_groups, customers (**`shop_name` column**, customer_no, no PIN columns used yet), membership_cards, vendors, payment_methods, branch_stocks, stock_batches, stock_movements, stock_adjustments, purchases, purchase_items, registers, sales, sale_items, sale_item_batches, payments, payment_allocations, sale_returns, sale_return_items, document_sequences, legacy_id_maps, messages (SMS log). Backed enums + CHECKs. Factories. Isolation tests per model.
+- [ ] **D1.2** `legacy:import` for stores 7 + 10 [5.1–5.4, 05_Schema §12 steps 1–12, 16]: separate read-only `legacy` connection; idempotent via `legacy_id_maps`; `--dry-run`; duplicate SKUs get `-{legacy_id}` and are reported; cost 0 products reported; one future-dated sale reported, not re-dated; stock batches from `store_stock_invoice_details.available_stock`, product-vs-batch differences in `migration_report.csv`; `reconciliation.csv` with counts and sums per store. Rehearsal under 15 min.
+
+### D2. Core writes
+- [ ] **D2.1** `DocumentNumberer` + `CustomerNumber` (Luhn) [2.1, 2.2].
+- [ ] **D2.2** Policies for every model + arch test that every controller action authorizes [2.5]; `activity_log` with tenant_id on every Action [1.15].
+- [ ] **D2.3** `StockLedger` (receive, FIFO issue with split, reverse) + `ReceivePurchase`, `CancelPurchase`, `PayVendor`, stock adjustments, stock queries [2.15–2.17, 2.20].
+- [ ] **D2.4** Pricing twin `engine/pricing.ts` + `PriceCalculator.php` + golden fixtures [2.21].
+- [ ] **D2.5** `CompleteSale` (origin web), `VoidSale`, `CollectCustomerPayment` (multi-invoice, advance), `CreateSaleReturn`, `CreateExchange` [2.26, 2.30–2.32a].
+- [ ] **D2.6** Receipts: thermal 80/58 + A4 PDF (mPDF needs `ext-gd`; HTML print view first, PDF when the extension is installed) [2.4, 2.33].
+- [ ] **D2.7** Catalog CRUD incl. family/variant generation from size × colour [2.7, 2.8, 2.8a]; customer CRUD with shop name and duplicate-phone detection [2.11]; cards: `IssueCard`, `ReportCardLost`, `ReissueCard`, CR80 PDF + bleed PDF + CSV for the press [2.13]; vendors [2.14].
+
+### D3. Screens (the mockup is the spec)
+- [ ] **D3.1** Tokens, i18n, hotkeys, shell, command palette, context menus, DataTable, shared components [3.1–3.8].
+- [ ] **D3.2** Auth: login by email/username/phone + business code, throttling, branch select, forced password change for migrated users [1.9, 1.10, 1.12, 3.10].
+- [ ] **D3.3** Products (+ variant matrix), customers (profile with inline card, "New sale", statement), membership cards, vendors + purchases, sales history, returns + exchange, due collection [3.12–3.17].
+- [ ] **D3.4** Register at `/app/pos` (online): scan, variant picker with multi size/qty, customer attach highlight, split tender, due rules, receipt print, hold/resume local [3.29–3.33 online subset].
+- [ ] **D3.5** Users, roles matrix, branches (single-branch hides branch UI), settings incl. SMS gateway [3.11, 3.22 subset].
+
+### D4. SMS and reports
+- [ ] **D4.1** SMS adapter: `SmsGateway` contract, drivers `ssl_wireless`, `log`, `null`; per-tenant settings; queued `SendSms` with `messages` log; events: sale completed (named customer only), payment received, due reminder (manual trigger). [new; replaces 6.2]
+- [ ] **D4.2** Reports: top customers by purchase (period), customers ranked by last purchase (not bought for 1/2/3+ months), sales by day/product/category/user, dues aging, stock valuation, daily cash summary; CSV export [2.37, 2.38, 2.40 subset]. Dashboard KPIs [2.41].
+- [ ] **D4.3** Audit trail screen (activity log with filters) [part of 3.11].
+
+### D5. Hardening for the demo
+- [ ] **D5.1** Tenant/branch isolation across every new route; role × route matrix; concurrency tests for numbering, customer_no and last-unit sale [4.1–4.4, 4.12].
+- [ ] **D5.2** Keyboard-only e2e: sale with a member, due collection, return, card export [4.15 subset].
+- [ ] **D5.3** Rehearsed import on the latest dump + `integrity:check` green + demo seed on top of real data.
+
+Next phase (not before D5 is done): offline register SPA + device sync [2.22–2.29, 3.23–3.28, 3.34], customer PIN [2.12, 2.28, 4.7], geo [1.17, 2.10, 4.9], 2FA + invitations [1.11, 1.13], platform admin [1.16], money module [2.35, 2.36, 3.19], backups + nightly integrity [2.42, 2.43], remaining reports, UAT and cut-over [5.5–5.9].
+
 ## Phase 2: Core domain & API
 **2A: Shared services**
 - [ ] **2.1** `DocumentNumberer` (FOR UPDATE, yearly reset) + concurrency test.
@@ -215,13 +253,13 @@ Legacy containment per [ADR 0003](adr/0003-legacy-security-containment.md):
 - [ ] Every scheme × light/dark × density on the key pages. 360 px phone.
 
 ## Open questions
-1. ~~SMS provider~~ → **deferred** (decided 2026-10-29; Phase 6.2).
+1. ~~SMS provider~~ → **SSL Wireless first** (decided 2026-11-03, ADR 0007); `log` driver for development. Owner to confirm the account before go-live.
 2. ~~Store → tenant grouping~~ → **DIFFERENT FASHION = stores 7 + 10** (decided 2026-10-29).
 3. ~~VAT fields~~ → **standard fields** (BIN, per-line rate/amount, VAT summary). Mushak forms are a non-goal (decided 2026-10-29).
 4. ~~Repo/CI~~ → **separate git repo, the owner pushes later**. CI host TBD; `composer ci` is provider-agnostic (decided 2026-10-29).
 5. ~~Product name~~ → **none for now**. Use neutral names, white-label later (decided 2026-10-29).
-6. Branch codes and display names for stores 7 and 10 (needed at 5.2).
-7. Should the customer PIN policy default stay `always` for every tenant, or only for DIFFERENT FASHION? (Default `always` assumed.)
+6. ~~Branch codes~~ → **DF1 "Main", DF2 "Branch 2"** assumed for the demo (store 10 has one sale). Owner can rename in Settings.
+7. Customer PIN is deferred to the next phase (ADR 0007); `member_auth=none` for all demo sales. Should the policy default stay `always` for every tenant, or only for DIFFERENT FASHION? (Default `always` assumed.)
 8. Card stock: does the client have a CR80 card printer, or will they use A4 + lamination? (Both are supported. This affects which one we QA first.)
 9. ~~Mockup v2 scope~~ → **decided 2026-10-30** ([ADR 0005](adr/0005-variants-and-exchange.md)): **in v1:** size × colour variants, in-POS exchange. **Out (post-MVP):** loyalty/points, gift cards/vouchers/coupons, purchase orders + purchase returns, SMS automation, Mushak forms, payment gateways, backup restore UI. Super Admin stays limited to 1.16 (provision + impersonate). Mockup update prompt: `docs/mockup/gemini_followup_v4.md`. Original list:
    - product variants (size × colour matrix)
@@ -249,3 +287,4 @@ Legacy containment per [ADR 0003](adr/0003-legacy-security-containment.md):
 - 2026-10-31: Phase 0 steps 0.5–0.9 done: tooling gates (Pint/Rector/Larastan 8/Oxlint/tsc strict/Vitest/Playwright config), `composer ci`, neutral branding + `.env.example`, public registration removed, Pest arch tests. Open TODO: gitleaks, Playwright run and Pest coverage in `ci` once tools/browsers/coverage driver exist.
 - 2026-10-31: Steps 1.5 and 1.8 done. Middleware stack + route files, `/app` dashboard, 48 permissions, five system roles per tenant (discount caps Owner 10000 / Manager 2000 bp). `composer ci` green.
 - 2026-11-02: Cleanup pass: dropped spec-section citations and over-long docblocks from code, removed starter boilerplate (Pest helpers, example tests), User model aligned with the others, branch select page made presentable, README rewritten. `DatabaseSeeder` now seeds a demo tenant/branch/owner (`owner@demo.test`) and a platform admin (`admin@demo.test`); `SeederTest` proves the owner reaches `/app`. All gates green.
+- 2026-11-03: Legacy dump (2026-10-29) loaded into the dev MySQL as `legacy` and profiled. Phase D (demo release) written as a single phase; remaining Phase 2–5 work moves to the next phase (ADR 0007). SMS un-deferred.

@@ -35,7 +35,7 @@ Also `docs/00_Legacy_Features.md` (parity) and `docs/adr/` (decisions). For smal
 - Every controller action authorizes. Permission names match 04_TRD §3.8, and route names match 02_AppFlow §2.
 - Dependencies change only by updating 04_TRD first (human approval for §1–2).
 - `declare(strict_types=1)`, final classes, full types, Larastan 8, Pest tests (happy + failure + edge) for every Action.
-- No secrets in git. No DB/admin tools in `public/`. No SMS code (deferred).
+- No secrets in git. No DB/admin tools in `public/`. SMS goes through the `SmsGateway` contract only (ADR 0007); never call a provider HTTP API directly.
 - Ambiguity → add it to `06_Plan.md` §Open questions and ask. Don't guess.
 
 ## Common commands

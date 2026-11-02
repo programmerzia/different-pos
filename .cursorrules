@@ -29,5 +29,5 @@ Reference: docs/00_Legacy_Features.md, docs/adr/.
 - UI: semantic tokens only (no hex / palette classes), schemes via data-scheme, all text i18n (en + bn), no dangerouslySetInnerHTML, ≥44px touch targets, visible focus.
 - Permission names per 04_TRD §3.8, route names per 02_AppFlow §2.
 - declare(strict_types=1), final classes, full types, Larastan level 8, Pint, Pest tests for every Action.
-- No dependency changes without updating docs/04_TRD.md. No secrets in git. No DB tools in public/. No SMS code (deferred).
+- No dependency changes without updating docs/04_TRD.md. No secrets in git. No DB tools in public/. SMS only through the SmsGateway contract (ADR 0007).
 - Ambiguity → add to docs/06_Plan.md "Open questions" and ask. Do not guess.
