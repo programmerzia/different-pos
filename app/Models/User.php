@@ -9,8 +9,6 @@ use App\Models\Concerns\HasUuid;
 use App\Support\Tenancy\TenantContext;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -55,12 +53,14 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'username', 'email', 'phone', 'password', 'preferences'])]
-#[Hidden(['password', 'legacy_password_md5', 'pin_hash', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 final class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasRoles, HasUuid, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
+
+    protected $fillable = ['name', 'username', 'email', 'phone', 'password', 'preferences'];
+
+    protected $hidden = ['password', 'legacy_password_md5', 'pin_hash', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'];
 
     protected static function booted(): void
     {
@@ -101,11 +101,7 @@ final class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         return $this->belongsToMany(Branch::class)->withPivot('is_default');
     }
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    /** @return array<string, string> */
     protected function casts(): array
     {
         return [

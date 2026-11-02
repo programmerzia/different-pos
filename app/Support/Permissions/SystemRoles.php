@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Permissions;
 
-/** The five system roles every tenant gets (04_TRD §3.8). */
+/** The five system roles every tenant gets. */
 final class SystemRoles
 {
     public const string OWNER = 'Owner';

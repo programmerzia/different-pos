@@ -11,7 +11,7 @@ use Brick\Math\Exception\MathException;
 use JsonSerializable;
 
 /**
- * A quantity stored as DECIMAL(14,3) and handled as integer milli-units (1.250 kg = 1250). 04_TRD §3.4.
+ * A quantity stored as DECIMAL(14,3) and handled as integer milli-units (1.250 kg = 1250).
  * The TypeScript twin is resources/js/engine/quantity.ts.
  */
 final readonly class Quantity implements JsonSerializable

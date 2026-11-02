@@ -40,7 +40,7 @@ final class AppServiceProvider extends ServiceProvider
     {
         Date::use(CarbonImmutable::class);
 
-        // 04_TRD §5.9 + §6: strict models and no N+1 outside production.
+        // Strict models (lazy loading, silent attribute discards) outside production.
         Model::shouldBeStrict(! app()->isProduction());
 
         if (app()->runningUnitTests()) {

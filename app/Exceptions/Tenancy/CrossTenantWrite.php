@@ -6,7 +6,7 @@ namespace App\Exceptions\Tenancy;
 
 use LogicException;
 
-/** A model belonging to another tenant/branch was about to be written. 05_Schema §11. */
+/** A model belonging to another tenant/branch was about to be written. */
 final class CrossTenantWrite extends LogicException
 {
     public static function for(string $model, string $column, int|string|null $expected, int|string|null $actual): self

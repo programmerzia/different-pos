@@ -11,7 +11,7 @@ use LogicException;
 
 /**
  * Collects Syncable rows written during a Transaction::run() and gives them sync_version values in
- * ONE tenants.sync_counter lock taken just before commit (04_TRD §3.5 locking order, ADR 0001 D6).
+ * ONE tenants.sync_counter lock taken just before commit (always the last lock).
  *
  * Because that row lock is held until commit, versions become visible in commit order, so a pull
  * cursor (sync_version > cursor) can never skip a row.

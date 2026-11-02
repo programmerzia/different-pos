@@ -6,7 +6,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/** branch_user, user_invitations, login_activities: 05_Schema §1. */
+/** branch_user, user_invitations, login_activities tables. */
 return new class extends Migration
 {
     public function up(): void

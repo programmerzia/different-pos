@@ -1,7 +1,3 @@
-/**
- * Golden cases shared with tests/Unit/Support/MoneyParityTest.php (Pest).
- * If one of these fails, the TypeScript and PHP twins have diverged.
- */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vite-plus/test';

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreignId('tenant_id')->nullable()->constrained()->restrictOnDelete(); // NULL only for platform admins
             $table->string('name', 150);
             $table->string('username', 50)->nullable();
-            $table->string('email', 150)->nullable()->unique(); // app-wide unique (ADR 0006)
+            $table->string('email', 150)->nullable()->unique(); // unique across tenants
             $table->string('phone', 20)->nullable();
             $table->string('password');
             $table->char('legacy_password_md5', 32)->nullable();

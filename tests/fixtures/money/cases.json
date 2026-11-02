@@ -1,5 +1,5 @@
 {
-    "_comment": "Golden cases run by BOTH tests/Unit/Support/MoneyParityTest.php (Pest) and resources/js/engine/money.test.ts (Vitest). Any divergence between the PHP and TS twins fails CI (04_TRD §3.9.4 pattern). Amounts are integer paisa, quantities integer milli-units.",
+    "_comment": "Shared golden cases: run by both the Pest and Vitest money tests so the PHP and TS implementations cannot drift. Amounts are integer paisa, quantities integer milli-units.",
     "parse": [
         { "in": "1,234.50", "out": 123450 },
         { "in": "৳ 1234.5", "out": 123450 },

@@ -11,9 +11,8 @@ use SensitiveParameter;
 use SodiumException;
 
 /**
- * Sealed boxes (X25519, libsodium crypto_box_seal) for customer PINs entered offline (04_TRD §3.9.5).
- * The POS encrypts {customer_id, pin, client_uuid, ts} with the tenant's PUBLIC key; only the server,
- * holding the secret key (encrypted at rest with APP_KEY), can open it. No PIN hash ever reaches a device.
+ * Sealed boxes (libsodium crypto_box_seal) for customer PINs entered offline.
+ * Devices seal with the tenant's public key; only the server can open the box.
  */
 final class PinSealer
 {

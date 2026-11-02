@@ -1,9 +1,6 @@
 /**
- * Money as integer paisa (1 taka = 100 paisa). 04_TRD §3.4.
- *
- * TypeScript twin of app/Support/Money/Money.php. Both run tests/fixtures/money/cases.json.
- * Rules: no floats, ever. Rounding is half-up (ties away from zero). Intermediate products use
- * BigInt so they cannot overflow. Every result must stay within Number.MAX_SAFE_INTEGER.
+ * Money as integer paisa (1 taka = 100 paisa). Rounding is half-up; intermediate products use BigInt.
+ * Keep in sync with app/Support/Money: both sides run the shared fixtures.
  */
 import { groupIndian, toBanglaDigits, toLatinDigits } from './digits';
 
@@ -102,10 +99,7 @@ export function percentOfBp(paisa: Paisa, basisPoints: number): Paisa {
     return mulDivHalfUp(paisa, basisPoints, 10_000);
 }
 
-/**
- * Splits an amount in proportion to the weights; the parts always sum to the amount.
- * Largest-remainder method, ties go to the lower index (same as Money::allocate()).
- */
+/** Splits an amount by weights (largest remainder, ties to the lower index); parts sum to the amount. */
 export function allocateMoney(paisa: Paisa, weights: number[]): Paisa[] {
     if (weights.length === 0) {
         throw new MoneyError('Cannot allocate money: no weights.');
@@ -153,7 +147,7 @@ export function moneyToDecimalString(paisa: Paisa): string {
     return paisa < 0 ? `-${text}` : text;
 }
 
-/** Display: "৳1,23,456.50", "-৳50.00"; Bangla digits for "bn". Same as MoneyFormatter.php. */
+/** Display: "৳1,23,456.50", "-৳50.00"; Bangla digits for "bn". */
 export function formatMoney(
     paisa: Paisa,
     locale: 'en' | 'bn' = 'en',

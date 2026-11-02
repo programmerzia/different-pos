@@ -1,8 +1,35 @@
-# Retail POS: rewrite (name TBD)
+# Retail POS
 
-A modern, offline-first, keyboard-first multi-branch retail POS for Bangladesh. It is built on Laravel 13 + Inertia + React, and replaces a legacy CodeIgniter system. The first live tenant is DIFFERENT FASHION.
+A multi-tenant, multi-branch retail POS for Bangladesh with an offline-first register. Built with Laravel 13, Inertia, React 19, TypeScript, Tailwind CSS 4 and MySQL 8.4.
 
-**Status:** planning. No application code yet. Start at [docs/06_Plan.md](docs/06_Plan.md) Phase 0.
+## Getting started
+
+```bash
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+docker compose up -d          # MySQL 8.4 and Redis
+php artisan migrate:fresh --seed
+composer dev                  # app server, queue worker and Vite
+```
+
+Demo login: `owner@demo.test` / `password`.
+
+## Quality gates
+
+```bash
+composer ci                   # everything below, plus build and audits
+composer lint                 # Pint + Rector (dry run)
+composer analyse              # PHPStan / Larastan
+composer test                 # Pest
+npm run lint
+npm run typecheck
+npm run test
+npm run e2e                   # Playwright
+```
+
+## Docs
 
 | Doc | What it covers |
 |---|---|
@@ -13,6 +40,3 @@ A modern, offline-first, keyboard-first multi-branch retail POS for Bangladesh. 
 | [04_TRD.md](docs/04_TRD.md) | Stack, architecture, offline sync, security, quality gates |
 | [05_Schema.md](docs/05_Schema.md) | DB schema, invariants, auth/device flow, legacy migration |
 | [06_Plan.md](docs/06_Plan.md) | Ordered checklist, open questions, progress log |
-| [mockup/gemini_prompt.md](docs/mockup/gemini_prompt.md) | Prompt for generating the UI mockup |
-
-AI agents: read [CLAUDE.md](CLAUDE.md) first.

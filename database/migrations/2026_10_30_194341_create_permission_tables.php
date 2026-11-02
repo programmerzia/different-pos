@@ -45,7 +45,7 @@ return new class extends Migration
             }
             $table->string('name');
             $table->string('guard_name');
-            $table->unsignedInteger('max_discount_pct_bp')->default(0); // per-role discount cap (04_TRD §3.8)
+            $table->unsignedInteger('max_discount_pct_bp')->default(0); // per-role discount cap
             $table->boolean('is_system')->default(false);
             $table->timestamps();
             if ($teams || config('permission.testing')) {

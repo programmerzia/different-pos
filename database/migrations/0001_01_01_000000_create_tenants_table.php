@@ -7,7 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/** Tenants and branches: 05_Schema §1. Runs before the users table (filename order). */
+/** Tenants and branches. Runs before the users table (filename order). */
 return new class extends Migration
 {
     public function up(): void

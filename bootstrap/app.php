@@ -22,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function (): void {
-            // 04_TRD §3.2. Session routes live under /app; the device API has no session.
+            // Session routes live under /app; the device API has no session.
             Route::middleware('web')->prefix('app')->group(base_path('routes/app.php'));
             Route::middleware('web')->prefix('platform')->group(base_path('routes/platform.php'));
             Route::middleware(['web', 'auth', 'tenant.active', 'tenant.resolve', 'branch.selected', 'locale'])

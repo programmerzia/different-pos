@@ -65,7 +65,7 @@ export default defineConfig({
         overrides: [
             {
                 // The POS register must work offline and never depend on
-                // Inertia page visits (see docs/04_TRD.md).
+                // Inertia page visits.
                 files: ['resources/js/pos/**'],
                 rules: {
                     'no-restricted-imports': [

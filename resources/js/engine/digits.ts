@@ -1,4 +1,4 @@
-/** Latin (0-9) ↔ Bangla (০-৯) digits and Indian grouping. Twin of app/Support/Numbers/Digits.php. */
+/** Latin (0-9) ↔ Bangla (০-৯) digits and Indian grouping. */
 const BANGLA = '০১২৩৪৫৬৭৮৯';
 
 export function toLatinDigits(value: string): string {

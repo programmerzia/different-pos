@@ -12,9 +12,8 @@ use Closure;
 use Illuminate\Support\Facades\Context;
 
 /**
- * Restores the tenant/branch a job was dispatched under (04_TRD §3.3).
- * The ids travel in Laravel's Context, which TenantContext::set() fills at dispatch time.
- * A tenant job dispatched without a context fails instead of running unscoped.
+ * Restores the tenant/branch a job was dispatched under, from Laravel's Context.
+ * A job dispatched without a tenant fails instead of running unscoped.
  */
 final class WithTenantContext
 {

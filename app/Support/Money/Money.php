@@ -14,7 +14,7 @@ use Brick\Math\RoundingMode;
 use JsonSerializable;
 
 /**
- * An amount of BDT stored as integer paisa (1 taka = 100 paisa). 04_TRD §3.4.
+ * An amount of BDT stored as integer paisa (1 taka = 100 paisa).
  *
  * Every operation that can produce a fraction of a paisa rounds half-up (ties away from zero).
  * The TypeScript twin is resources/js/engine/money.ts. Both run tests/fixtures/money/cases.json.
@@ -58,7 +58,7 @@ final readonly class Money implements JsonSerializable
 
     /**
      * Converts a decimal string with any precision, rounding half-up to the paisa.
-     * Only for trusted sources that are known to be imprecise (legacy FLOAT columns, ADR 0002 M3).
+     * Only for trusted sources that are known to be imprecise (legacy FLOAT columns).
      */
     public static function parseRounded(string $input): self
     {
@@ -85,7 +85,7 @@ final readonly class Money implements JsonSerializable
         return new self(abs($this->paisa));
     }
 
-    /** Unit price × quantity, rounded half-up to the paisa (one line, 04_TRD §3.4). */
+    /** Unit price × quantity, rounded half-up to the paisa (one line). */
     public function times(Quantity $quantity): self
     {
         return new self(self::mulDivHalfUp($this->paisa, $quantity->milli, Quantity::SCALE_FACTOR));

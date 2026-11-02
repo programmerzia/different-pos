@@ -1,6 +1,6 @@
 /**
  * Quantity as integer milli-units (1.250 kg = 1250), stored server-side as DECIMAL(14,3).
- * TypeScript twin of app/Support/Quantity/Quantity.php. Both run tests/fixtures/money/cases.json.
+ * Keep in sync with app/Support/Quantity: both sides run the shared fixtures.
  */
 import { toBanglaDigits, toLatinDigits } from './digits';
 

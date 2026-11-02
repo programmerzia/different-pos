@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * One business (a customer of the SaaS). Not tenant-scoped itself. 05_Schema §1.
+ * One business (a customer of the SaaS). Not tenant-scoped itself.
  *
  * @property int $id
  * @property string $uuid
@@ -46,11 +46,11 @@ final class Tenant extends Model
 
     public const string STATUS_SUSPENDED = 'suspended';
 
-    /** Defaults merged under the stored settings (05_Schema §1). */
+    /** Defaults merged under the stored settings. */
     public const array DEFAULT_SETTINGS = [
         'tax_inclusive' => true,
         'backdate_days' => 3,
-        'customer_pin_policy' => 'always', // always|credit_only|off (open question 7)
+        'customer_pin_policy' => 'always', // always|credit_only|off
         'offline_credit_cap' => 0,         // paisa
         'offline_login_days' => 7,
         'lapsed_days' => 90,
@@ -62,7 +62,7 @@ final class Tenant extends Model
         'currency', 'timezone', 'locale', 'settings', 'branding',
     ];
 
-    /** The sealed-box secret never leaves the server (CLAUDE.md: customer PIN rules). */
+    /** The sealed-box secret never leaves the server. */
     protected $hidden = ['pin_box_secret_key', 'sync_counter'];
 
     protected static function booted(): void

@@ -12,7 +12,7 @@ return new class extends Migration
     {
         Schema::create('activity_log', function (Blueprint $table): void {
             $table->id();
-            $table->unsignedBigInteger('tenant_id')->nullable(); // NULL for platform events (05_Schema §1)
+            $table->unsignedBigInteger('tenant_id')->nullable(); // NULL for platform events
             $table->string('log_name')->nullable()->index();
             $table->text('description');
             $table->nullableMorphs('subject', 'subject');

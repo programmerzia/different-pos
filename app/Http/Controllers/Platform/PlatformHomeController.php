@@ -7,7 +7,7 @@ namespace App\Http\Controllers\Platform;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 
-/** Placeholder; tenant management UI (route 120) comes later. Guarded by EnsurePlatformAdmin. */
+/** Placeholder until the tenant management UI exists. */
 final class PlatformHomeController extends Controller
 {
     public function __invoke(): JsonResponse

@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
- * A shop of a tenant. 05_Schema §1.
+ * A shop of a tenant.
  *
  * @property int $id
  * @property string $uuid

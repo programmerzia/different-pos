@@ -33,7 +33,11 @@ final class TenantContext
         $this->tenant = $tenant;
         $this->branch = $branch;
         Context::add('tenant_id', $tenant->id);
-        $branch instanceof Branch ? Context::add('branch_id', $branch->id) : Context::forget('branch_id');
+        if ($branch instanceof Branch) {
+            Context::add('branch_id', $branch->id);
+        } else {
+            Context::forget('branch_id');
+        }
     }
 
     public function forget(): void
@@ -59,7 +63,11 @@ final class TenantContext
         try {
             return $callback();
         } finally {
-            $previousTenant instanceof Tenant ? $this->set($previousTenant, $previousBranch) : $this->forget();
+            if ($previousTenant instanceof Tenant) {
+                $this->set($previousTenant, $previousBranch);
+            } else {
+                $this->forget();
+            }
         }
     }
 

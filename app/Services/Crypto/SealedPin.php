@@ -7,7 +7,7 @@ namespace App\Services\Crypto;
 use SensitiveParameter;
 
 /**
- * The opened contents of an offline customer-PIN box (04_TRD §3.9.5).
+ * The opened contents of an offline customer-PIN box.
  * The PIN is hidden from var_dump/print_r/logs; never serialise this object.
  */
 final readonly class SealedPin

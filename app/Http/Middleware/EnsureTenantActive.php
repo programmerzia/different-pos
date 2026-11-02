@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * 05_Schema §11: a suspended tenant is logged out on the next request.
+ * A suspended tenant is logged out on the next request.
  * Platform admins (no tenant) pass; ResolveTenant keeps them off tenant routes.
  */
 final class EnsureTenantActive

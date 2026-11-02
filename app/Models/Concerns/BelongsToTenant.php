@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Tenant isolation for a model with a tenant_id column (04_TRD §3.3, 05_Schema §11):
+ * Tenant isolation for a model with a tenant_id column:
  * - global scope tenant_id = current (fails closed without a context);
  * - tenant_id auto-filled on create;
  * - any create/update/delete of a row of another tenant throws CrossTenantWrite.

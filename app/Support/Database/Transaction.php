@@ -8,9 +8,8 @@ use App\Support\Sync\SyncVersionRecorder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The only way business Actions open a transaction (CLAUDE.md, 04_TRD §3.1).
- * Wraps DB::transaction() and, at the end of the OUTERMOST callback, assigns sync versions
- * (the tenants.sync_counter lock is the last lock taken: 04_TRD §3.5).
+ * The only way business Actions open a transaction. Wraps DB::transaction() and, at the end of
+ * the outermost callback, assigns sync versions (the tenants.sync_counter lock is taken last).
  */
 final class Transaction
 {

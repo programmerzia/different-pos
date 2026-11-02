@@ -1,4 +1,4 @@
-# Local development services only (04_TRD §1). PHP and Node run natively.
+# Local development services only. PHP and Node run natively.
 name: pos-rewrite
 services:
   mysql:

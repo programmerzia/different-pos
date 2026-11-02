@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Permissions;
 
-/** The single source of permission names (04_TRD §3.8, a contract with 02_AppFlow). */
+/** The single source of permission names. */
 final class Permission
 {
     public const string GUARD = 'web';

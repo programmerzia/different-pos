@@ -13,8 +13,8 @@ use Spatie\Permission\Models\Permission as PermissionModel;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
-/** The 04_TRD §3.8 permission list, typed out independently of the code under test. */
-const TRD_PERMISSIONS = [
+/** The expected permission list, typed out independently of the code under test. */
+const EXPECTED_PERMISSIONS = [
     'dashboard.view',
     'pos.sell', 'pos.discount_override', 'pos.price_override', 'pos.backdate', 'pos.sell_below_cost', 'pos.customer_pin_override',
     'devices.manage',
@@ -47,16 +47,16 @@ function sorted(array $names): array
     return $names;
 }
 
-it('seeds exactly the TRD permission list from one constant', function (): void {
+it('seeds every permission from the single list', function (): void {
     $this->seed(RolesAndPermissionsSeeder::class);
 
-    expect(sorted(Permission::ALL))->toBe(sorted(TRD_PERMISSIONS))
+    expect(sorted(Permission::ALL))->toBe(sorted(EXPECTED_PERMISSIONS))
         ->and(count(Permission::ALL))->toBe(count(array_unique(Permission::ALL)))
-        ->and(sorted(PermissionModel::query()->pluck('name')->all()))->toBe(sorted(TRD_PERMISSIONS))
+        ->and(sorted(PermissionModel::query()->pluck('name')->all()))->toBe(sorted(EXPECTED_PERMISSIONS))
         ->and(PermissionModel::query()->where('guard_name', '!=', 'web')->count())->toBe(0);
 });
 
-it('creates the five system roles per tenant with the TRD permission sets', function (): void {
+it('creates the five system roles per tenant', function (): void {
     $tenant = Tenant::factory()->create();
     app(SeedTenantRoles::class)->handle($tenant);
 
@@ -67,8 +67,8 @@ it('creates the five system roles per tenant with the TRD permission sets', func
             'Owner' => 10000, 'Manager' => 2000, 'Cashier' => 0, 'Accountant' => 0, 'Stock Keeper' => 0,
         ]);
 
-    expect(rolePermissions($tenant, 'Owner'))->toBe(sorted(TRD_PERMISSIONS))
-        ->and(rolePermissions($tenant, 'Manager'))->toBe(sorted(array_diff(TRD_PERMISSIONS, ['users.manage', 'settings.manage', 'audit.view'])))
+    expect(rolePermissions($tenant, 'Owner'))->toBe(sorted(EXPECTED_PERMISSIONS))
+        ->and(rolePermissions($tenant, 'Manager'))->toBe(sorted(array_diff(EXPECTED_PERMISSIONS, ['users.manage', 'settings.manage', 'audit.view'])))
         ->and(rolePermissions($tenant, 'Cashier'))->toBe(sorted([
             'dashboard.view', 'pos.sell', 'sales.view', 'returns.view', 'customers.view', 'customers.create',
             'cards.view', 'products.view', 'stock.view', 'payments.collect',
