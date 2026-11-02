@@ -17,5 +17,10 @@ export function AppShell({ children, variant = 'sidebar' }: Props) {
         );
     }
 
-    return <SidebarProvider defaultOpen={isOpen}>{children}</SidebarProvider>;
+    // Column: top bar, then (sidebar | content), then the status bar.
+    return (
+        <SidebarProvider defaultOpen={isOpen} className="min-h-svh flex-col">
+            {children}
+        </SidebarProvider>
+    );
 }

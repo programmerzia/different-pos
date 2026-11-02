@@ -38,7 +38,8 @@ tenants                                    -- one business (customer of the SaaS
   currency CHAR(3) DEFAULT 'BDT', timezone VARCHAR(64) DEFAULT 'Asia/Dhaka', locale VARCHAR(5) DEFAULT 'en'
   status VARCHAR(16) DEFAULT 'active'      -- active|suspended  CHECK
   settings JSON                            -- tax_inclusive, backdate_days, customer_pin_policy(always|credit_only|off),
-                                           -- offline_credit_cap (paisa, default 0), offline_login_days (7), lapsed_days, card terms text
+                                           -- offline_credit_cap (paisa, default 0), offline_login_days (7), lapsed_days, card terms text,
+                                           -- default_credit_limit (paisa, null = no limit), return_days (null = no return window)
   branding JSON NULL                       -- post-MVP white-label: display_name, logo_path, brand_hex (PRD Epic J)
   pin_box_public_key VARCHAR(64)           -- X25519 base64 (sealed-box for offline customer PIN)
   pin_box_secret_key TEXT                  -- encrypted cast
@@ -203,7 +204,7 @@ customers [tenant] SD
   pin_hash VARCHAR(255) NULL               -- argon2id; NEVER serialised (hidden), never synced
   pin_set_at TIMESTAMP NULL, pin_failed_attempts TINYINT UNSIGNED DEFAULT 0, pin_locked_until TIMESTAMP NULL
   member_since DATE NULL                   -- first card issue date
-  credit_limit BIGINT NULL                 -- NULL = no due allowed unless tenant default
+  credit_limit BIGINT NULL                 -- NULL = the tenant setting default_credit_limit applies (null there = no limit; D2.5)
   balance BIGINT DEFAULT 0                 -- cached receivable (+ = owes us, − = advance); recomputed nightly
   last_purchase_at TIMESTAMP NULL          -- for "lapsed customers"
   notes TEXT NULL, is_walk_in BOOL DEFAULT 0, is_active BOOL DEFAULT 1
@@ -449,9 +450,10 @@ sales [tenant][B]
 sale_items
   id, sale_id FK→sales ON DELETE CASCADE, product_id FK→products
   product_name VARCHAR(200), sku VARCHAR(64)    -- snapshots
-  qty DECIMAL(14,3), unit_price BIGINT, discount BIGINT DEFAULT 0
-  tax_rate_bp INT UNSIGNED DEFAULT 0, tax_amount BIGINT DEFAULT 0
-  line_total BIGINT                        -- qty×unit_price − discount + tax (exclusive mode)
+  qty DECIMAL(14,3), unit_price BIGINT, discount BIGINT DEFAULT 0   -- discount = line + customer-group discount
+  tax_rate_bp INT UNSIGNED DEFAULT 0, tax_amount BIGINT DEFAULT 0  -- tax after the order-discount share
+  line_total BIGINT                        -- qty×unit_price − discount (+ tax_amount when VAT is exclusive); the order
+                                           -- discount stays on the header, so Σ line_total − order_discount + rounding = total
   cogs BIGINT DEFAULT 0                    -- Σ sale_item_batches
   qty_returned DECIMAL(14,3) DEFAULT 0
   legacy_id
@@ -498,7 +500,8 @@ sale_returns [tenant][B]
   subtotal BIGINT, tax_total BIGINT, total BIGINT
   refund_mode VARCHAR(16)                  -- refund|credit|exchange (credit reduces sale due / customer balance)
   exchange_sale_id NULL FK→sales           -- set when refund_mode=exchange (ADR 0005)
-  refunded BIGINT DEFAULT 0, credited BIGINT DEFAULT 0     -- refunded + credited = total
+  refunded BIGINT DEFAULT 0, credited BIGINT DEFAULT 0     -- refunded + credited = total. credited = the part that
+                                           -- settled the sale's open due, stayed on account, or paid the exchange sale
   reason VARCHAR(32), note TEXT NULL
   legacy_id, created_by, timestamps
   UNIQUE(tenant_id, number), INDEX(sale_id), INDEX(branch_id, returned_at)
@@ -589,12 +592,12 @@ accounts 1─* cash_transactions *─1 transaction_categories
 ```
 
 ## 10. Invariants (enforced in Actions + verified by the nightly `integrity:check` job + tests)
-1. `sales.total = subtotal − item_discount_total − order_discount + tax_total + shipping + rounding` and `subtotal = Σ sale_items.qty×unit_price`.
-2. `sales.paid = Σ allocations(non-void payments → sale)`. `sales.due = total − paid − Σ sale_returns.credited`. `due ≥ 0`.
+1. `sales.total = Σ sale_items.line_total − order_discount + shipping + rounding` and `subtotal = Σ sale_items.qty×unit_price`. With exclusive VAT this equals `subtotal − item_discount_total − order_discount + tax_total + shipping + rounding`; with inclusive VAT `tax_total` is contained in `subtotal` (not added).
+2. `sales.paid = Σ allocations(non-void payments → sale)`. `sales.due = total − paid`. `due ≥ 0`. Credit that settles a sale (a return settling the sale's due, spending an advance, an exchange) is a payment row of the system method `customer_credit` / `exchange_credit` allocated to the sale (D2.5), so no separate `credited` term is needed.
 3. `sale_items.cogs = Σ sale_item_batches.qty × unit_cost`. `Σ sale_item_batches.qty = sale_items.qty` (unless backorder).
 4. `branch_stocks.qty_on_hand = Σ stock_movements.qty` per (branch, product).
 5. `Σ stock_batches.qty_remaining = qty_on_hand` per (branch, product) when no backorders.
-6. `customers.balance = Σ sales.due − unallocated customer payments (advances)`. `vendors.balance` is the mirror for purchases.
+6. `customers.balance = Σ sales.due − advances`, advances = unallocated money received + Σ sale_returns.credited − Σ customer_credit/exchange_credit payments (credit spent). Equivalently `balance = Σ sales.total − Σ sale_returns.total + Σ refunds out − Σ money received` (completed sales, non-void payments). `vendors.balance` is the mirror for purchases.
 7. Completed sales are immutable except `due/paid/payment_status/returned_total` (via payments/returns) and void fields.
 8. No row in any tenant table references a row of another tenant (FK targets share `tenant_id`, checked by the integrity job).
 9. Every non-pending `customers.customer_no` passes the Luhn check, is unique per tenant, and is never changed or reused (even after delete or merge).
@@ -652,7 +655,8 @@ Request
 - Step 1: the logo is not copied (reported as `logo_not_copied`). Step 2: roles via `config/legacy.php`; unmapped groups → Cashier (reported).
 - Step 6: geo ids are **not** matched yet (no geo tables in Phase D); a customer with a free-text address gets `location_verified=0`. A duplicate phone (after E.164 normalisation) is merged into the oldest: the newer row stays as a soft-deleted shell with `merged_into_id`, no `customer_no` and no phone; its legacy id maps to the survivor so its sales follow. A blank name becomes the shop name, else `Customer L{id}` (reported). A `customer_group_id` that does not exist in legacy becomes a placeholder group `Legacy group #{id}` (reported). The walk-in customer is created **after** the legacy customers, so legacy customer 1 gets 10000016 and the walk-in the next number.
 - Step 7: a product code already used in the tenant gets `{code}-{legacy_id}` (reported); cost 0 is reported; only `Active` products are active.
-- Step 8: **every** stock invoice line gets a batch (sold-out lines with `qty_remaining = 0`), so sale lines can link to it; the `opening` movement is written only for a positive remainder. Like `StockLedger::receive()`, the batch `source_id` and the movement reference point at the `purchase_items` row. Imported purchases are `paid = total`, `due = 0` (legacy never tracked vendor payables). Rows are bulk-inserted (no `StockLedger` call: nothing is issued). Purchase and sale numbers that another branch already uses get the branch prefix (`DF2-ST1`, `DF2-S-1`), reported.
+- Step 8: the remainder of each stock invoice line (`available_stock > 0`) goes through `StockLedger::receive()` as an `opening` batch (`qty_received = qty_remaining = available_stock`, `batch_no` = legacy invoice_no, ref = the `purchase_items` row), which also writes the movement and `branch_stocks`; the legacy received quantity is kept on `purchase_items` only. **Exception:** a sold-out line (`available_stock = 0`) gets a directly inserted batch with `source_type=purchase`, `qty_remaining = 0` and no movement, only so sale lines can link to it. Imported purchases are `paid = total`, `due = 0` (legacy never tracked vendor payables). Purchase and sale numbers that another branch already uses get the branch prefix (`DF2-ST1`, `DF2-S-1`), reported.
+- Step 9: writes nothing; it asserts `qty_on_hand = Σ batch remainders = Σ movements` per (branch, product) and reports the legacy `product.quantity` differences.
 - Step 10: `sold_at` is the legacy Asia/Dhaka wall-clock time converted to UTC. `item_discount_total = Σ line discounts`, `order_discount = total_discount − Σ line discounts`, `sales.paid = total − due`. `sale_item_batches.unit_cost` = the line's legacy `buy_price`, so `cogs = Σ batch qty × unit_cost` holds; lines without a resolvable stock invoice have no batch row (reported as `unlinked_batch`).
 - Step 11: payment rows with an amount ≤ 0 are skipped (reported). Numbers are stable: `L-P{legacy payment id}` and `L-S{legacy sale id}` (synthesised). The synthesis is general: any imported sale whose allocations fall short of `total − due` gets one cash payment for the gap (ADR 0002 M3 balancing payment); "Paid without payment rows" is reported as one summary line with the count.
 - Step 12: returns move no stock (the legacy batch remainders already include restocked units).

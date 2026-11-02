@@ -244,11 +244,14 @@ final class LegacyFixture
         ]);
         $db->table('store_stock_invoice_list')->insert([
             ['id' => 1053, 'store_id' => 7, 'invoice_no' => 'ST1', 'created_at' => '2024-05-06 04:57:42', 'created_by' => 28],
+            ['id' => 1054, 'store_id' => 7, 'invoice_no' => 'ST2', 'created_at' => '2024-05-08 04:00:00', 'created_by' => 28],
             ['id' => 1060, 'store_id' => 10, 'invoice_no' => 'ST1', 'created_at' => '2025-07-22 06:58:54', 'created_by' => 31],
         ]);
         $db->table('store_stock_invoice_details')->insert([
             ['id' => 5001, 'invoice_id' => 1053, 'product_id' => 2418, 'buy_price' => 600, 'quantity' => 20, 'available_stock' => 8],
             ['id' => 5002, 'invoice_id' => 1053, 'product_id' => 2419, 'buy_price' => 700.5, 'quantity' => 10, 'available_stock' => 5],
+            // Sold out: a batch row for linking only, no movement.
+            ['id' => 5004, 'invoice_id' => 1054, 'product_id' => 2419, 'buy_price' => 710, 'quantity' => 4, 'available_stock' => 0],
             ['id' => 5003, 'invoice_id' => 1060, 'product_id' => 2451, 'buy_price' => 600, 'quantity' => 5, 'available_stock' => 3],
         ]);
         $db->table('store_sales_invoice_list')->insert([

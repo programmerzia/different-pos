@@ -70,6 +70,7 @@ Both frameworks could do the job. This choice minimises custom plumbing for keyb
 | `laravel-vite-plugin` · `@vitejs/plugin-react` · `babel-plugin-react-compiler` | 3.2.0 · 6.1.2 · 1.0.0 | build (React Compiler on) |
 | `tailwindcss` · `@tailwindcss/vite` | 4.3.3 | styling |
 | shadcn/ui + `@radix-ui/*`, `class-variance-authority`, `clsx`, `tailwind-merge`, `tw-animate-css` | starter kit | components |
+| `@radix-ui/react-context-menu` · `@radix-ui/react-popover` | 2.4.1 · 1.3.1 | row context menu (D3.1), theme/notification/date-range popovers (added 2026-11-03) |
 | `cmdk` | 1.1.1 | command palette |
 | `lucide-react` | 0.475.0 | icons |
 | `@tanstack/react-table` · `@tanstack/react-virtual` | 9.3.1 · 3.14.24 | data grids, virtualised POS lists |
@@ -124,7 +125,7 @@ pos-rewrite/
 │  ├─ Policies/ · Queries/ · Reports/
 │  ├─ Pos/Pricing/PriceCalculator.php     # PHP twin of the TS pricing engine (§3.9.4)
 │  ├─ Services/{Pdf/PdfRenderer, Numbering/DocumentNumberer, Membership/CustomerNumber (Luhn), Membership/CardRenderer, Crypto/PinSealer, Sync/{PullService,PushService}}
-│  ├─ Support/{Money,Quantity,Tenancy}/
+│  ├─ Support/{Money,Quantity,Tenancy,Http}/       # Http/TableQuery: page/sort/filter parsing for DataTable endpoints
 │  ├─ Legacy/ (Importer, Steps/* one per 05_Schema §12 step, Transform/*; throwaway, removed after cut-over; reads the read-only `legacy` DB connection, maps in config/legacy.php)
 │  └─ Console/Commands/{IntegrityCheck, LegacyImport, Geo/ImportGeoCommand}
 ├─ database/{migrations, factories, seeders (Roles, Geo, DemoTenant)} · database/data/geo/*.json (BD reference data)
@@ -141,6 +142,7 @@ pos-rewrite/
 │  │  │  ├─ store/ (zustand UI state)              └─ components/ (Register, ProductGrid, Cart, PaymentPanel, CustomerAttach, TodaySummary, SyncCenter)
 │  │  ├─ hooks/ (useHotkeys wrappers, useMoney, usePermissions, useFilters, useContextMenu, usePrint)
 │  │  ├─ i18n/{en,bn}.json · types/
+│  │  ├─ hotkeys/ (matcher, registry, dispatch, host, use-hotkeys) · command/ (action registry shared by row buttons, context menu and palette; nav; search; ui-store) · components/{shell,data-table}/ (D3.1). NB the shared action registry lives in `command/`, not `actions/`: `resources/js/actions/` is the Wayfinder output folder and is git-ignored.
 │  │  └─ sw.ts (service worker, vite-plugin-pwa injectManifest)
 │  └─ views/{app.blade.php (Inertia root), pos.blade.php (static POS shell, no server data), print/{receipt-thermal,receipt-a4,statement,report,card-cr80,card-a4}.blade.php}
 ├─ routes/{web.php, app.php, api-internal.php, pos-api.php, platform.php, console.php}
@@ -169,12 +171,13 @@ Single DB, shared schema.
 ### 3.5 Inventory engine
 - **Source of truth: `stock_movements`** (append-only). `branch_stocks` is a cache updated in the same transaction. The nightly integrity check catches drift.
 - **FIFO by batch.** Sales split allocation across batches → `sale_item_batches` → COGS. Branch setting `batch_selection=auto|manual` (legacy `is_use_stock_invoice`).
-- **Locking order:** `document_sequences` → `branch_stocks` (ORDER BY product_id) FOR UPDATE → `stock_batches` (ORDER BY received_at,id) FOR UPDATE → party rows (`customers`/`vendors` balance, by id) → **`tenants.sync_counter` last**, immediately before commit. Holding the counter lock until commit makes `sync_version` values visible in commit order, so a pull cursor can never skip a row. Bulk writers reserve one range per chunk (ADR 0001 D6).
+- **Locking order:** `document_sequences` → `branch_stocks` (ORDER BY product_id) FOR UPDATE → `stock_batches` (ORDER BY received_at,id) FOR UPDATE → party rows (`customers`/`vendors` balance, by id) → the documents being settled (`sales`/`purchases` rows, by id) → **`tenants.sync_counter` last**, immediately before commit. Holding the counter lock until commit makes `sync_version` values visible in commit order, so a pull cursor can never skip a row. Bulk writers reserve one range per chunk (ADR 0001 D6).
 - Negative stock: online sales are blocked unless `allow_negative_stock`. **Synced offline sales are always accepted.** A shortfall is costed at `products.cost_price` and the movement is flagged `is_backorder`. The sale is flagged `oversold`.
 - `App\Support\Stock\StockLedger` is the only writer of `branch_stocks`/`stock_batches`/`stock_movements` (`lock`, `receive`, `issue`/`issueMany` with optional forced batch for `batch_selection=manual`, `reverse`). A purchase can be cancelled only while all its batches are untouched and nothing is paid on it; batch unit cost = landed line total (net + tax ± prorated shipping/order discount) ÷ qty.
 
 ### 3.6 Numbering
-- Back-office documents: `DocumentNumberer::next(type, branch)` with FOR UPDATE: `{BR}-{TYPE}-{YY}{seq6}`.
+- Back-office documents: `DocumentNumberer::next(type, branch)` with FOR UPDATE: `{BR}-{TYPE}-{YY}{seq6}`. Types in use: `purchase`, `payment` (due collections, vendor payments), `adjustment`, `sale` (web/register sales until device numbering arrives), `return`.
+- Payments that belong to one sale or return take a derived number instead of a sequence: tenders `{sale number}/{n}`, a return's credit `{return number}/C` and refund `{return number}/R` (D2.5).
 - **POS sales are numbered on the device:** `{BR}-{REG}-{YY}{seq6}` (e.g. `DF1-R1-26000123`). Each register has exactly one active device. Enrollment and bootstrap give the device the server's high-water mark, and the device increments it locally inside the commit transaction. The server stores `registers.last_number` = max seen. Unique per register by construction, so there are never collisions.
 - **Customer number:** a tenant sequence (`document_sequences` type `customer`, starting 1000001) + 1 Luhn digit = 8 digits, assigned **on the server only**. Offline-created customers show "Pending no." until they sync.
 

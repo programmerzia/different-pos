@@ -60,7 +60,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $member_auth_by
  * @property string|null $member_pin_box
  * @property int|null $membership_card_id
- * @property array<string, mixed>|null $sync_flags
+ * @property list<string>|null $sync_flags
  * @property int|null $sync_flags_ack_by
  * @property Carbon|null $sync_flags_ack_at
  * @property array<string, mixed>|null $client_totals

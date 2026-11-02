@@ -1,0 +1,229 @@
+{
+    "shell": {
+        "skip": "Skip to content"
+    },
+    "nav": {
+        "label": "Main navigation",
+        "home": "Home",
+        "toggle_sidebar": "Toggle sidebar",
+        "toggle_group": "Expand or collapse {{name}}",
+        "dashboard": "Dashboard",
+        "pos": "POS Register",
+        "sales": "Sales",
+        "sales_list": "Sales",
+        "returns": "Returns",
+        "sync_exceptions": "Sync exceptions",
+        "customers": "Customers",
+        "customers_list": "Customers",
+        "dues": "Dues",
+        "cards": "Membership cards",
+        "inventory": "Inventory",
+        "products": "Products",
+        "stock": "Stock",
+        "adjustments": "Adjustments",
+        "stocktakes": "Stocktakes",
+        "transfers": "Transfers",
+        "labels": "Labels",
+        "purchases": "Purchases",
+        "purchases_list": "Purchases",
+        "vendors": "Vendors",
+        "money": "Money",
+        "reports": "Reports",
+        "settings": "Settings",
+        "business": "Business",
+        "branches": "Branches",
+        "users": "Users",
+        "roles": "Roles",
+        "audit": "Audit log"
+    },
+    "tabs": {
+        "label": "Primary",
+        "home": "Home",
+        "pos": "POS",
+        "sales": "Sales",
+        "stock": "Stock",
+        "more": "More"
+    },
+    "user": {
+        "menu": "Account menu",
+        "profile": "Profile & settings",
+        "shortcuts": "Keyboard shortcuts",
+        "logout": "Log out"
+    },
+    "lang": {
+        "switch": "Switch language"
+    },
+    "branch": {
+        "switch": "Switch branch",
+        "choose": "Choose branch"
+    },
+    "sync": {
+        "online": "Online",
+        "offline": "Offline"
+    },
+    "status_bar": {
+        "no_branch": "No branch",
+        "version": "v1.0.0"
+    },
+    "notifications": {
+        "title": "Notifications",
+        "tab_all": "All",
+        "tab_alerts": "Alerts",
+        "tab_exports": "Exports",
+        "empty": "You're all caught up"
+    },
+    "theme": {
+        "title": "Appearance",
+        "mode": "Mode",
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System",
+        "scheme": "Colour scheme",
+        "density": "Density",
+        "comfortable": "Comfortable",
+        "compact": "Compact"
+    },
+    "scheme": {
+        "teal": "Teal",
+        "indigo": "Indigo",
+        "violet": "Violet",
+        "rose": "Rose",
+        "ocean": "Ocean",
+        "graphite": "Graphite"
+    },
+    "palette": {
+        "title": "Command palette",
+        "open": "Open command palette",
+        "hint": "Search pages, actions, products, customers and invoices.",
+        "placeholder": "Search or jump to…",
+        "empty": "No results.",
+        "error": "Search is unavailable.",
+        "recent": "Recent",
+        "pages": "Pages",
+        "actions": "Actions",
+        "products": "Products",
+        "customers": "Customers",
+        "invoices": "Invoices"
+    },
+    "commands": {
+        "new_sale": "New sale",
+        "new_customer": "New customer",
+        "new_product": "New product",
+        "receive_purchase": "Receive purchase",
+        "shortcuts": "Keyboard shortcuts",
+        "toggle_language": "Switch language",
+        "theme": "Appearance",
+        "toggle_density": "Toggle compact density"
+    },
+    "hotkeys": {
+        "palette": "Command palette",
+        "shortcuts": "Shortcut overlay",
+        "sidebar": "Toggle sidebar",
+        "language": "Switch language",
+        "theme": "Appearance",
+        "branch": "Switch branch",
+        "notifications": "Notifications",
+        "back": "Back",
+        "context_menu": "Context menu for the focused item",
+        "new": "New record",
+        "search": "Focus the page search",
+        "move": "Move row selection",
+        "open": "Open row",
+        "select": "Toggle row selection",
+        "extend": "Extend selection",
+        "prev_page": "Previous page",
+        "next_page": "Next page",
+        "clear": "Clear selection",
+        "edit": "Edit row",
+        "delete": "Delete row"
+    },
+    "shortcuts": {
+        "title": "Keyboard shortcuts",
+        "hint": "Single-letter shortcuts work outside text fields.",
+        "global": "Everywhere",
+        "page": "This page"
+    },
+    "actions": {
+        "menu": "Row actions",
+        "open": "Open",
+        "open_new_tab": "Open in new tab",
+        "edit": "Edit",
+        "duplicate": "Duplicate",
+        "copy": "Copy",
+        "copy_id": "Copy ID",
+        "copy_row": "Copy row as text",
+        "export_selected": "Export selected",
+        "delete": "Delete"
+    },
+    "table": {
+        "empty": "Nothing here",
+        "empty_hint": "No records match. Try changing the filters.",
+        "columns": "Columns",
+        "bulk": "Bulk actions",
+        "selected": "{{n}} selected",
+        "clear_selection": "Clear",
+        "select_all": "Select all rows",
+        "select_row": "Select row",
+        "showing": "{{from}}–{{to}} of {{total}}",
+        "prev": "Previous page",
+        "next": "Next page"
+    },
+    "confirm": {
+        "ok": "Confirm",
+        "cancel": "Cancel",
+        "delete_named": "Delete \"{{name}}\""
+    },
+    "qty": {
+        "decrease": "Decrease quantity",
+        "increase": "Increase quantity"
+    },
+    "status": {
+        "paid": "Paid",
+        "partial": "Partial",
+        "unpaid": "Unpaid",
+        "due": "Due",
+        "overdue": "Overdue",
+        "draft": "Draft",
+        "held": "Held",
+        "void": "Void",
+        "voided": "Void",
+        "completed": "Completed",
+        "received": "Received",
+        "cancelled": "Cancelled",
+        "in_stock": "In stock",
+        "low_stock": "Low stock",
+        "out_of_stock": "Out of stock",
+        "due_soon": "Due soon"
+    },
+    "range": {
+        "label": "Date range",
+        "today": "Today",
+        "last7": "Last 7 days",
+        "thisMonth": "This month",
+        "lastMonth": "Last month",
+        "custom": "Custom",
+        "from": "From",
+        "to": "To"
+    },
+    "upload": {
+        "drop": "Drop a file here",
+        "choose": "Choose file",
+        "remove": "Remove file",
+        "bad_type": "{{name}} is not an allowed file type.",
+        "too_big": "{{name}} is larger than {{mb}} MB."
+    },
+    "pin": {
+        "staff_title": "Enter PIN",
+        "staff_hint": "Enter your staff PIN.",
+        "customer_title": "Please enter your PIN",
+        "customer_hint": "Please enter your PIN to continue.",
+        "entered": "{{n}} digits entered",
+        "clear": "Clear",
+        "backspace": "Delete last digit",
+        "confirm": "Confirm"
+    },
+    "dashboard": {
+        "title": "Dashboard",
+        "soon": "The dashboard arrives in a later step."
+    }
+}

@@ -1,3 +1,4 @@
+import type { Preferences } from '@/lib/preferences';
 import type { Auth } from '@/types/auth';
 
 declare module 'react' {
@@ -11,6 +12,7 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            preferences: Preferences;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

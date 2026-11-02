@@ -13,25 +13,31 @@ use App\Legacy\NumberBook;
 use App\Legacy\Transform\LegacyDate;
 use App\Legacy\Transform\Text;
 use App\Models\Product;
+use App\Models\StockBatch;
 use App\Support\Money\Money;
 use App\Support\Quantity\Quantity;
+use App\Support\Stock\StockLedger;
+use App\Support\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use LogicException;
 use stdClass;
 
 /**
- * Step 8: stock invoices -> received purchases + purchase_items + one stock batch per detail line
- * (qty_received = quantity, qty_remaining = available_stock, batch_no = legacy invoice_no) and ONE
- * `opening` movement per batch for its remainder. History is in the purchases; the movement ledger
- * starts from the remainder. Sold-out lines still get a batch (remaining 0) so sales can link to it.
+ * Step 8: stock invoices -> received purchases + purchase_items (the legacy received quantity).
+ * The remainder of each line (available_stock > 0) is put on the shelf with StockLedger::receive()
+ * as an `opening` batch (qty = available_stock, batch_no = legacy invoice_no, ref = the purchase_items
+ * row), which also writes the movement and branch_stocks. Sold-out lines get a direct zero-remaining
+ * batch without a movement, only so sale lines can link to it.
  *
  * Legacy never tracked what was owed to vendors, so imported purchases are recorded as paid.
- * Written with bulk inserts (StockLedger is not used: no stock is issued, and every row keeps the
- * 05_Schema §10 invariants: on hand = Σ movements = Σ batch remainders).
  */
 final readonly class StockInvoicesToPurchasesAndBatches implements Step
 {
+    public function __construct(private StockLedger $ledger, private TenantContext $tenancy) {}
+
     public const string TABLE = 'store_stock_invoice_list';
 
     public const string DETAILS = 'store_stock_invoice_details';
@@ -171,22 +177,47 @@ final readonly class StockInvoicesToPurchasesAndBatches implements Step
         }
         $itemIds = DB::table('purchase_items')->whereIn('purchase_id', $purchaseIds->values()->all())->pluck('id', 'legacy_id');
 
-        // Like StockLedger::receive(): a purchase batch's source and its movement point at the purchase_items row.
-        $batches = [];
+        // Remaining stock goes on the shelf through the ledger (opening batch + movement + branch_stocks).
+        // A sold-out line still needs a batch row for sale-line linking: inserted directly, remainder 0,
+        // no movement, so on hand = Σ movements = Σ remainders still holds.
+        $products = Product::query()->withTrashed()->whereIn('id', array_unique(array_merge([], ...array_map(
+            static fn (array $saleLines): array => array_column($saleLines, 'product_id'),
+            array_values($lines),
+        ))))->get()->keyBy('id');
+        $zero = [];
         foreach ($rows as $row) {
             $id = (int) $row->id;
-            $branchId = $context->branchId((int) $row->store_id);
+            $branch = $context->branch((int) $row->store_id);
             foreach ($lines[$id] ?? [] as $line) {
-                $batches[] = [
+                $itemId = (int) $itemIds[$line['legacy_id']];
+                $batchNo = mb_substr($numbersById[$id], 0, 50);
+                if ($line['remaining']->isPositive()) {
+                    $batch = $this->tenancy->run($context->tenant(), $branch, fn (): StockBatch => $this->ledger->receive(
+                        $products->get($line['product_id']) ?? throw new LogicException("Product {$line['product_id']} vanished during the import."),
+                        $branch,
+                        $line['remaining'],
+                        $line['unit_cost'],
+                        StockMovementType::Opening,
+                        $batchNo,
+                        ['type' => 'purchase_items', 'id' => $itemId, 'user_id' => $fallbackUser, 'note' => 'Legacy import: batch remainder'],
+                        CarbonImmutable::parse($line['received_at'], 'UTC'),
+                    ));
+                    DB::table('stock_batches')->where('id', $batch->id)->update(['legacy_id' => $line['legacy_id']]);
+                    $context->ids->put(self::DETAILS, 0, $line['legacy_id'], $batch->id);
+
+                    continue;
+                }
+
+                $zero[] = [
                     'tenant_id' => $tenantId,
-                    'branch_id' => $branchId,
+                    'branch_id' => $branch->id,
                     'product_id' => $line['product_id'],
                     'source_type' => StockSourceType::Purchase->value,
-                    'source_id' => (int) $itemIds[$line['legacy_id']],
-                    'batch_no' => mb_substr($numbersById[$id], 0, 50),
+                    'source_id' => $itemId,
+                    'batch_no' => $batchNo,
                     'unit_cost' => $line['unit_cost']->paisa,
                     'qty_received' => $line['qty']->toDecimalString(),
-                    'qty_remaining' => $line['remaining']->toDecimalString(),
+                    'qty_remaining' => '0.000',
                     'received_at' => $line['received_at'],
                     'legacy_id' => $line['legacy_id'],
                     'created_at' => $now,
@@ -194,38 +225,14 @@ final readonly class StockInvoicesToPurchasesAndBatches implements Step
                 ];
             }
         }
-        foreach (array_chunk($batches, 1000) as $chunk) {
+
+        foreach (array_chunk($zero, 1000) as $chunk) {
             DB::table('stock_batches')->insert($chunk);
         }
-
-        $legacyLines = array_column($batches, 'legacy_id');
-        $batchRows = DB::table('stock_batches')->where('tenant_id', $tenantId)->where('source_type', StockSourceType::Purchase->value)
-            ->whereIn('legacy_id', $legacyLines)->get(['id', 'legacy_id', 'branch_id', 'product_id', 'unit_cost', 'qty_remaining', 'source_id']);
-
-        $movements = [];
-        foreach ($batchRows as $batch) {
-            $context->ids->put(self::DETAILS, 0, (int) $batch->legacy_id, (int) $batch->id);
-            $remaining = Quantity::parse((string) $batch->qty_remaining);
-            if (! $remaining->isPositive()) {
-                continue;
-            }
-            $movements[] = [
-                'tenant_id' => $tenantId,
-                'branch_id' => (int) $batch->branch_id,
-                'product_id' => (int) $batch->product_id,
-                'stock_batch_id' => (int) $batch->id,
-                'type' => StockMovementType::Opening->value,
-                'qty' => $remaining->toDecimalString(),
-                'unit_cost' => (int) $batch->unit_cost,
-                'reference_type' => 'purchase_items',
-                'reference_id' => (int) $batch->source_id,
-                'note' => 'Legacy import: batch remainder',
-                'user_id' => $fallbackUser,
-                'created_at' => $now,
-            ];
-        }
-        foreach (array_chunk($movements, 1000) as $chunk) {
-            DB::table('stock_movements')->insert($chunk);
+        if ($zero !== []) {
+            DB::table('stock_batches')->where('tenant_id', $tenantId)->where('source_type', StockSourceType::Purchase->value)
+                ->whereIn('legacy_id', array_column($zero, 'legacy_id'))->pluck('id', 'legacy_id')
+                ->each(fn (mixed $batchId, mixed $legacyId) => $context->ids->put(self::DETAILS, 0, (int) $legacyId, (int) $batchId));
         }
     }
 }

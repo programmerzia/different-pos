@@ -2,16 +2,29 @@
 
 @import 'tw-animate-css';
 
+/* Self-hosted fonts (@fontsource): no CDN, so a shop with bad internet still renders. */
+@import '@fontsource-variable/inter';
+@import '@fontsource/hind-siliguri/latin-400.css';
+@import '@fontsource/hind-siliguri/bengali-400.css';
+@import '@fontsource/hind-siliguri/bengali-500.css';
+@import '@fontsource/hind-siliguri/bengali-600.css';
+@import '@fontsource/hind-siliguri/bengali-700.css';
+@import '@fontsource/jetbrains-mono/latin-400.css';
+@import '@fontsource/jetbrains-mono/latin-500.css';
+
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+    /* Latin falls through to Hind Siliguri for Bangla glyphs automatically. */
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
+        'Inter Variable', 'Hind Siliguri', 'Noto Sans Bengali', ui-sans-serif,
+        system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-mono:
+        'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -27,6 +40,8 @@
     --color-popover-foreground: var(--popover-foreground);
 
     --color-primary: var(--primary);
+    --color-primary-hover: var(--primary-hover);
+    --color-primary-soft: var(--primary-soft);
     --color-primary-foreground: var(--primary-foreground);
 
     --color-secondary: var(--secondary);
@@ -34,12 +49,26 @@
 
     --color-muted: var(--muted);
     --color-muted-foreground: var(--muted-foreground);
+    --color-subtle-foreground: var(--subtle-foreground);
 
+    /* shadcn "accent" = the neutral hover/selected surface; the amber attention colour is "highlight". */
     --color-accent: var(--accent);
     --color-accent-foreground: var(--accent-foreground);
+    --color-highlight: var(--highlight);
+    --color-highlight-foreground: var(--highlight-foreground);
 
     --color-destructive: var(--destructive);
     --color-destructive-foreground: var(--destructive-foreground);
+    --color-danger: var(--destructive);
+    --color-danger-soft: var(--danger-soft);
+    --color-success: var(--success);
+    --color-success-soft: var(--success-soft);
+    --color-warning: var(--warning);
+    --color-warning-soft: var(--warning-soft);
+    --color-info: var(--info);
+    --color-info-soft: var(--info-soft);
+    --color-money-positive: var(--money-positive);
+    --color-money-negative: var(--money-negative);
 
     --color-border: var(--border);
     --color-input: var(--input);
@@ -50,6 +79,8 @@
     --color-chart-3: var(--chart-3);
     --color-chart-4: var(--chart-4);
     --color-chart-5: var(--chart-5);
+    --color-chart-6: var(--chart-6);
+    --color-chart-7: var(--chart-7);
 
     --color-sidebar: var(--sidebar);
     --color-sidebar-foreground: var(--sidebar-foreground);
@@ -59,77 +90,229 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    --spacing-topbar: var(--topbar-h);
+    --spacing-row: var(--row-h);
+    --spacing-statusbar: 1.75rem;
 }
 
+/* 03_UI_Spec §1.2 light. Brand tokens below are overridden per scheme (§1.4). */
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --destructive-foreground: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.87 0 0);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
+    --background: #f8fafc;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+    --secondary: #f1f5f9;
+    --secondary-foreground: #0f172a;
+    --muted: #f1f5f9;
+    --muted-foreground: #475569;
+    --subtle-foreground: #64748b;
+    --border: #e2e8f0;
+    --input: #cbd5e1;
+
+    --primary: #0f766e;
+    --primary-hover: #115e59;
+    --primary-soft: #ccfbf1;
+    --primary-foreground: #ffffff;
+    --ring: #14b8a6;
+
+    --accent: #f1f5f9;
+    --accent-foreground: #0f172a;
+    --highlight: #d97706;
+    --highlight-foreground: #ffffff;
+
+    --success: #15803d;
+    --success-soft: #dcfce7;
+    --warning: #b45309;
+    --warning-soft: #fef3c7;
+    --destructive: #b91c1c;
+    --destructive-foreground: #ffffff;
+    --danger-soft: #fee2e2;
+    --info: #1d4ed8;
+    --info-soft: #dbeafe;
+    --money-positive: #15803d;
+    --money-negative: #b91c1c;
+
+    --chart-1: #0f766e;
+    --chart-2: #d97706;
+    --chart-3: #1d4ed8;
+    --chart-4: #be185d;
+    --chart-5: #7c3aed;
+    --chart-6: #15803d;
+    --chart-7: #475569;
+
+    --sidebar: #ffffff;
+    --sidebar-foreground: #0f172a;
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--primary-soft);
+    --sidebar-accent-foreground: var(--foreground);
+    --sidebar-border: #e2e8f0;
+    --sidebar-ring: var(--ring);
+
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.87 0 0);
+
+    /* Density: comfortable (default) */
+    --topbar-h: 3.25rem;
+    --row-h: 2.75rem;
+    --card-pad: 1.5rem;
+    --table-font: 0.875rem;
+    --menu-item-h: 2rem;
+    --statusbar-h: 1.75rem;
 }
 
+:root[data-density='compact'] {
+    --topbar-h: 2.75rem;
+    --row-h: 2rem;
+    --card-pad: 1rem;
+    --table-font: 0.8125rem;
+    --menu-item-h: 1.75rem;
+}
+
+/* 03_UI_Spec §1.2 dark. */
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.396 0.141 25.723);
-    --destructive-foreground: oklch(0.637 0.237 25.331);
-    --border: oklch(0.269 0 0);
-    --input: oklch(0.269 0 0);
-    --ring: oklch(0.439 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.985 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(0.269 0 0);
-    --sidebar-ring: oklch(0.439 0 0);
+    --background: #0b1120;
+    --foreground: #f1f5f9;
+    --card: #111827;
+    --card-foreground: #f1f5f9;
+    --popover: #1f2937;
+    --popover-foreground: #f1f5f9;
+    --secondary: #1f2937;
+    --secondary-foreground: #f1f5f9;
+    --muted: #0f172a;
+    --muted-foreground: #94a3b8;
+    --subtle-foreground: #64748b;
+    --border: #1e293b;
+    --input: #334155;
+
+    --primary: #14b8a6;
+    --primary-hover: #2dd4bf;
+    --primary-soft: #042f2e;
+    --primary-foreground: #042f2e;
+    --ring: #2dd4bf;
+
+    --accent: #1e293b;
+    --accent-foreground: #f1f5f9;
+    --highlight: #fbbf24;
+    --highlight-foreground: #451a03;
+
+    --success: #4ade80;
+    --success-soft: #052e16;
+    --warning: #fbbf24;
+    --warning-soft: #422006;
+    --destructive: #f87171;
+    --destructive-foreground: #450a0a;
+    --danger-soft: #450a0a;
+    --info: #60a5fa;
+    --info-soft: #172554;
+    --money-positive: #4ade80;
+    --money-negative: #f87171;
+
+    --chart-1: #2dd4bf;
+    --chart-2: #fbbf24;
+    --chart-3: #60a5fa;
+    --chart-4: #f472b6;
+    --chart-5: #a78bfa;
+    --chart-6: #4ade80;
+    --chart-7: #94a3b8;
+
+    --sidebar: #111827;
+    --sidebar-border: #1e293b;
+}
+
+/* Colour schemes override only the brand tokens (§1.4): status colours keep their meaning. */
+[data-scheme='teal'] {
+    --primary: #0F766E;
+    --primary-hover: #115E59;
+    --primary-soft: #CCFBF1;
+    --primary-foreground: #FFFFFF;
+    --ring: #14B8A6;
+}
+[data-scheme='indigo'] {
+    --primary: #4338CA;
+    --primary-hover: #3730A3;
+    --primary-soft: #E0E7FF;
+    --primary-foreground: #FFFFFF;
+    --ring: #818CF8;
+}
+[data-scheme='violet'] {
+    --primary: #6D28D9;
+    --primary-hover: #5B21B6;
+    --primary-soft: #EDE9FE;
+    --primary-foreground: #FFFFFF;
+    --ring: #A78BFA;
+}
+[data-scheme='rose'] {
+    --primary: #BE123C;
+    --primary-hover: #9F1239;
+    --primary-soft: #FFE4E6;
+    --primary-foreground: #FFFFFF;
+    --ring: #FB7185;
+}
+[data-scheme='ocean'] {
+    --primary: #0369A1;
+    --primary-hover: #075985;
+    --primary-soft: #E0F2FE;
+    --primary-foreground: #FFFFFF;
+    --ring: #38BDF8;
+}
+[data-scheme='graphite'] {
+    --primary: #334155;
+    --primary-hover: #1E293B;
+    --primary-soft: #E2E8F0;
+    --primary-foreground: #FFFFFF;
+    --ring: #CBD5E1;
+}
+
+.dark[data-scheme='teal'],
+.dark [data-scheme='teal'] {
+    --primary: #14B8A6;
+    --primary-hover: #2DD4BF;
+    --primary-soft: #042F2E;
+    --primary-foreground: #042F2E;
+    --ring: #2DD4BF;
+}
+.dark[data-scheme='indigo'],
+.dark [data-scheme='indigo'] {
+    --primary: #818CF8;
+    --primary-hover: #A5B4FC;
+    --primary-soft: #1E1B4B;
+    --primary-foreground: #1E1B4B;
+    --ring: #A5B4FC;
+}
+.dark[data-scheme='violet'],
+.dark [data-scheme='violet'] {
+    --primary: #A78BFA;
+    --primary-hover: #C4B5FD;
+    --primary-soft: #2E1065;
+    --primary-foreground: #2E1065;
+    --ring: #C4B5FD;
+}
+.dark[data-scheme='rose'],
+.dark [data-scheme='rose'] {
+    --primary: #FB7185;
+    --primary-hover: #FDA4AF;
+    --primary-soft: #4C0519;
+    --primary-foreground: #4C0519;
+    --ring: #FDA4AF;
+}
+.dark[data-scheme='ocean'],
+.dark [data-scheme='ocean'] {
+    --primary: #38BDF8;
+    --primary-hover: #7DD3FC;
+    --primary-soft: #082F49;
+    --primary-foreground: #082F49;
+    --ring: #7DD3FC;
+}
+.dark[data-scheme='graphite'],
+.dark [data-scheme='graphite'] {
+    --primary: #CBD5E1;
+    --primary-hover: #E2E8F0;
+    --primary-soft: #1E293B;
+    --primary-foreground: #0F172A;
+    --ring: #E2E8F0;
 }
 
 @layer base {
@@ -139,5 +322,43 @@
 
     body {
         @apply bg-background text-foreground;
+        line-height: 1.6;
+    }
+
+    /* Visible focus everywhere (03_UI_Spec §5): 2px ring, 2px offset. */
+    :focus-visible {
+        outline: 2px solid var(--ring);
+        outline-offset: 2px;
+    }
+
+    /* Bangla needs more leading than the Latin scale. */
+    :lang(bn) {
+        line-height: 1.7;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+}
+
+@layer utilities {
+    /* Tabular numerals for money and quantities. */
+    .num {
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: 'tnum';
+    }
+
+    /* Touch targets stay >= 44px on coarse pointers. */
+    @media (pointer: coarse) {
+        .touch-target {
+            min-height: 2.75rem;
+            min-width: 2.75rem;
+        }
     }
 }

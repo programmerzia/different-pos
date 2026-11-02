@@ -56,6 +56,8 @@ final class Tenant extends Model
         'offline_login_days' => 7,
         'lapsed_days' => 90,
         'card_terms' => '',
+        'default_credit_limit' => null,    // paisa; applies to customers without their own credit_limit; null = no limit
+        'return_days' => null,             // return window in days after the sale; null = no limit
     ];
 
     protected $fillable = [

@@ -39,7 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'platform.admin' => EnsurePlatformAdmin::class,
         ]);
 
-        $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+        $middleware->encryptCookies(except: ['appearance', 'scheme', 'density', 'sidebar_state']);
 
         $middleware->web(append: [
             HandleAppearance::class,

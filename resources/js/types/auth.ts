@@ -10,8 +10,18 @@ export type User = {
     [key: string]: unknown;
 };
 
+export type AuthBranch = {
+    id: number;
+    name: string;
+};
+
 export type Auth = {
     user: User;
+    /** Effective permission names in the current tenant (hide UI with these; the server still authorizes). */
+    permissions: string[];
+    /** The user's active branches; the branch switcher shows only when there is more than one. */
+    branches: AuthBranch[];
+    branch_id: number | null;
 };
 
 export type Passkey = {

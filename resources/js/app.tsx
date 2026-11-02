@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import '@/i18n';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
@@ -32,7 +33,7 @@ void createInertiaApp({
         );
     },
     progress: {
-        color: '#4B5563',
+        color: 'var(--primary)',
     },
 });
 

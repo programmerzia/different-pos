@@ -97,8 +97,8 @@ Rules: shortcuts never fire while typing in an input, except `Esc`, `F-keys`, `C
 | **Dashboard & shell** |
 | 10 | GET | `/app` | `dashboard` | `dashboard` | `dashboard.view` |
 | 11 | GET | `/app/api/notifications` · POST `/{id}/read` · POST `/read-all` | `api.notifications.*` | JSON | auth |
-| 12 | GET | `/app/api/search?q=` | `api.search` | JSON (palette) | auth (results permission-filtered) |
-| 13 | PUT | `/app/api/preferences` | `api.preferences` | JSON (theme, scheme, density, locale) | auth |
+| 12 | GET | `/app/api/search?q=` | `api.search` | JSON (palette): products (name/sku/barcode), customers (`#number`, phone, name via CustomerSearch), sales (by number); min 2 chars, 8 per group | auth (results permission-filtered) |
+| 13 | PATCH | `/app/api/preferences` | `api.preferences` | JSON (theme, scheme, density, locale, bn_digits; the user can only change themselves, `UserPolicy::updatePreferences`) | auth |
 | **POS** |
 | 20 | GET | `/pos` | `pos.index` | **static Blade shell** `pos.blade.php` + Vite entry `resources/js/pos/main.tsx` (standalone SPA, **not** an Inertia page; no server data, no session; precached by the service worker). See ADR 0001 | none on the shell (static, no data). `pos.sell` is enforced by local staff unlock and on every pushed op |
 | 21 | POST | `/app/settings/devices/pairing-codes` | `devices.pairing-codes.store` | JSON: one-time pairing code (8 chars, 10 min TTL, single use) + QR for a chosen register | `devices.manage` |
@@ -276,9 +276,11 @@ On create, the success toast shows the **new customer number** with [Print card]
 ### 5.4 Purchase receive · 5.5 Sales return · 5.6 Due collection · 5.7 Stocktake · 5.8 Transfer
 Unchanged from v1.0 of this document (all **online-only**):
 - **Purchase:** draft → received (irreversible) / cancelled.
-- **Return:** scan the receipt → returnable qty → restock → refund or credit.
+- **Return:** scan the receipt → returnable qty → restock → refund or credit. Within the tenant setting `return_days` (none = no limit). The value first settles the sale's open due; refund pays the rest (cash by default), credit leaves it on the account. Returns happen in the branch of the sale.
+- **Void:** same business day (tenant timezone), `sales.void`, not after a return and not for an exchange's replacement sale. Payments that only settle this sale are voided; a due collection that also paid other sales keeps the rest as an advance.
 - **Exchange:** scan the receipt → returnable qty → add replacements → server quote → pay the difference / refund / credit → one receipt showing both parts (ADR 0005).
-- **Due collection:** oldest-first auto-allocation, editable, overpay → advance.
+- **Due collection:** oldest-first auto-allocation, editable, overpay → advance. Allocates to the dues of the current branch.
+- **Due on a sale:** named customer only; customer `credit_limit`, else tenant `default_credit_limit`; above it needs a manager (`pos.customer_pin_override`, actor or approving manager). Discount above the role cap needs `pos.discount_override`; the customer-group discount does not count against the cap.
 - **Stocktake:** draft → counting → review → posted.
 - **Transfer:** draft → in_transit → received (short-receive with a reason).
 

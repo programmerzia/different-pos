@@ -23,7 +23,7 @@ arch('actions are final and expose handle()')
     ->classes()
     ->toBeFinal()
     ->toHaveMethod('handle')
-    ->ignoring('App\Actions\Fortify');
+    ->ignoring(['App\Actions\Fortify', 'App\Actions\Sales\Data']);
 
 arch('actions do not depend on the HTTP layer')
     ->expect('App\Actions')

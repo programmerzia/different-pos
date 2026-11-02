@@ -17,6 +17,9 @@ final readonly class DocumentNumberer
 {
     public const string CUSTOMER = 'customer';
 
+    /** Source of auto-generated EAN-13 barcodes: a plain, never-resetting tenant sequence. */
+    public const string BARCODE = 'barcode';
+
     private const int CUSTOMER_START = 1_000_001;
 
     public function __construct(private TenantContext $context) {}
@@ -81,6 +84,7 @@ final readonly class DocumentNumberer
         }
 
         $customer = $type === self::CUSTOMER;
+        $plain = $customer || $type === self::BARCODE;
         $code = $branchId === null
             ? null
             : DB::table('branches')->where('tenant_id', $tenantId)->where('id', $branchId)->value('code');
@@ -89,7 +93,7 @@ final readonly class DocumentNumberer
             throw new LogicException("Branch [{$branchId}] does not belong to the current tenant.");
         }
 
-        $prefix = $customer ? '' : ($code === null ? '' : $code.'-').strtoupper($type).'-';
+        $prefix = $plain ? '' : ($code === null ? '' : $code.'-').strtoupper($type).'-';
 
         DB::table('document_sequences')->insertOrIgnore([
             'tenant_id' => $tenantId,
@@ -98,7 +102,7 @@ final readonly class DocumentNumberer
             'prefix' => $prefix,
             'next_number' => $customer ? self::CUSTOMER_START : 1,
             'pad' => $customer ? 7 : 6,
-            'reset_yearly' => ! $customer,
+            'reset_yearly' => ! $plain,
             'current_year' => $year,
         ]);
     }

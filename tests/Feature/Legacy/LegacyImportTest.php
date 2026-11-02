@@ -65,7 +65,7 @@ it('imports stores 7 and 10 into one tenant with two branches', function (): voi
     expect(($this->counts)())->toMatchArray([
         'users' => 2, 'brands' => 1, 'categories' => 2, 'vendors' => 3, 'customer_groups' => 1,
         'customers' => 4, // 815, 816, the merged 830 shell, walk-in
-        'products' => 3, 'purchases' => 2, 'stock_batches' => 3, 'stock_movements' => 3, 'branch_stocks' => 3,
+        'products' => 3, 'purchases' => 3, 'stock_batches' => 4, 'stock_movements' => 3, 'branch_stocks' => 3,
         'sales' => 3, 'sale_items' => 3, 'payments' => 3, 'payment_allocations' => 3, 'sale_returns' => 1,
     ]);
 
@@ -150,8 +150,19 @@ it('builds stock from batch remainders and reports the difference from product q
     expect((float) $onHand)->toBe(16.0)
         ->and((string) $batches)->toBe((string) $onHand)
         ->and((string) $movements)->toBe((string) $onHand)
-        ->and(DB::table('stock_batches')->where('legacy_id', 5001)->first(['qty_received', 'qty_remaining', 'unit_cost', 'batch_no']))
-        ->toEqual((object) ['qty_received' => '20.000', 'qty_remaining' => '8.000', 'unit_cost' => 60000, 'batch_no' => 'ST1']);
+        ->and(DB::table('stock_batches')->where('legacy_id', 5001)->first(['source_type', 'qty_received', 'qty_remaining', 'unit_cost', 'batch_no']))
+        ->toEqual((object) ['source_type' => 'opening', 'qty_received' => '8.000', 'qty_remaining' => '8.000', 'unit_cost' => 60000, 'batch_no' => 'ST1'])
+        ->and(DB::table('purchase_items')->where('legacy_id', 5001)->value('qty'))->toBe('20.000');
+
+    // A sold-out line keeps a zero-remaining batch (for sale-line links) but writes no movement.
+    $soldOut = DB::table('stock_batches')->where('legacy_id', 5004)->first(['id', 'source_type', 'qty_received', 'qty_remaining', 'batch_no']);
+    expect([$soldOut->source_type, $soldOut->qty_received, $soldOut->qty_remaining, $soldOut->batch_no])->toBe(['purchase', '4.000', '0.000', 'ST2'])
+        ->and(DB::table('stock_movements')->where('stock_batch_id', $soldOut->id)->exists())->toBeFalse();
+
+    // The opening movement came from StockLedger and points at the purchase_items row.
+    $batch = DB::table('stock_batches')->where('legacy_id', 5001)->first(['id', 'source_id']);
+    expect(DB::table('stock_movements')->where('stock_batch_id', $batch->id)->first(['type', 'qty', 'reference_type', 'reference_id']))
+        ->toEqual((object) ['type' => 'opening', 'qty' => '8.000', 'reference_type' => 'purchase_items', 'reference_id' => $batch->source_id]);
 
     $mismatch = ($this->report)('stock_mismatch');
     expect($mismatch)->toHaveCount(1)
@@ -159,7 +170,7 @@ it('builds stock from batch remainders and reports the difference from product q
         ->and($mismatch[0][3])->toContain('difference -2');
 
     // The second ST1 (store 10) collides and gets the branch prefix.
-    expect(DB::table('purchases')->where('tenant_id', $tenantId)->orderBy('legacy_id')->pluck('number')->all())->toBe(['ST1', 'DF2-ST1']);
+    expect(DB::table('purchases')->where('tenant_id', $tenantId)->orderBy('legacy_id')->pluck('number')->all())->toBe(['ST1', 'ST2', 'DF2-ST1']);
 });
 
 it('imports sales as completed history with lines, batch links and cogs', function (): void {

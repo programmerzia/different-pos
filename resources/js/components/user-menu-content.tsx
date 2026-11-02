@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings } from 'lucide-react';
+import { Keyboard, LogOut, Settings } from 'lucide-react';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -7,22 +7,17 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
+import { Kbd } from '@/components/kbd';
+import { useUiStore } from '@/command/ui-store';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
+import { useT } from '@/i18n';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { User } from '@/types';
 
-type Props = {
-    user: User;
-};
-
-export function UserMenuContent({ user }: Props) {
+export function UserMenuContent({ user }: { user: User }) {
+    const { t } = useT();
     const cleanup = useMobileNavigation();
-
-    const handleLogout = () => {
-        cleanup();
-        router.flushAll();
-    };
 
     return (
         <>
@@ -33,29 +28,40 @@ export function UserMenuContent({ user }: Props) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild className="min-h-11 md:min-h-8">
                     <Link
-                        className="block w-full cursor-pointer"
+                        className="w-full cursor-pointer"
                         href={edit()}
                         prefetch
                         onClick={cleanup}
                     >
-                        <Settings className="mr-2" />
-                        Settings
+                        <Settings aria-hidden="true" />
+                        {t('user.profile')}
                     </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    className="min-h-11 md:min-h-8"
+                    onSelect={() => useUiStore.getState().open('shortcuts')}
+                >
+                    <Keyboard aria-hidden="true" />
+                    {t('user.shortcuts')}
+                    <Kbd keys="?" className="ml-auto" />
                 </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem asChild className="min-h-11 md:min-h-8">
                 <Link
-                    className="block w-full cursor-pointer"
+                    className="w-full cursor-pointer"
                     href={logout()}
                     as="button"
-                    onClick={handleLogout}
+                    onClick={() => {
+                        cleanup();
+                        router.flushAll();
+                    }}
                     data-test="logout-button"
                 >
-                    <LogOut className="mr-2" />
-                    Log out
+                    <LogOut aria-hidden="true" />
+                    {t('user.logout')}
                 </Link>
             </DropdownMenuItem>
         </>

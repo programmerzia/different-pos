@@ -35,4 +35,10 @@ final class UserPolicy
     {
         return $this->allows($user, 'users.manage', $model);
     }
+
+    /** Anyone may change their own UI preferences (theme, locale ...); nobody else's. */
+    public function updatePreferences(User $user, User $model): bool
+    {
+        return $user->is($model) && $this->allows($user, [], $model);
+    }
 }
