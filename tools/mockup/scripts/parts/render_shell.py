@@ -9,10 +9,8 @@ RENDER_SHELL_TOP_JS = """
             <div className="w-full max-w-md bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl shadow-slate-950/10 p-6 space-y-5 animate-in fade-in duration-200">
               {/* Brand Header */}
               <div className="text-center space-y-1.5">
-                <div className="w-10 h-10 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] mx-auto flex items-center justify-center font-bold text-sm shadow-xs">
-                  DF
-                </div>
-                <h1 className="text-lg font-bold tracking-tight text-[var(--foreground)] uppercase">Different Fashion</h1>
+                <img src={LOGO_SRC} alt="" className="w-[72px] h-[72px] rounded-2xl object-cover mx-auto shadow-xs border border-[var(--border)]" />
+                <h1 className="text-lg font-bold tracking-tight text-[var(--foreground)] uppercase">{shopSettings.shopName}</h1>
                 <p className="text-xs text-[var(--muted-foreground)]">Point of Sale & Enterprise Retail Management</p>
                 <div className="text-[10px] font-mono text-[var(--muted-foreground)]">Terminal: POS-DF1-01 · Dhaka, BD</div>
               </div>
@@ -128,7 +126,8 @@ RENDER_SHELL_TOP_JS = """
                             setLoginPassword(usr.pin);
                             setLoginAttempts(0);
                             setLoginIsLockedOut(false);
-                            setLoginStep('branch_picker');
+                            if (activeBranches.length === 1) handleBranchSelect(activeBranches[0].name);
+                            else setLoginStep('branch_picker');
                             addToast(`Selected desk: ${usr.name} (${usr.role})`, "info");
                           }}
                           className="p-2 rounded-md bg-[var(--surface-sunken)] hover:bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--primary)] text-left flex items-center justify-between transition-colors cursor-pointer"
@@ -154,11 +153,7 @@ RENDER_SHELL_TOP_JS = """
                   </div>
 
                   <div className="space-y-2">
-                    {[
-                      { id: 'df1', name: 'Different Fashion - Main [DF1]', address: 'Holding 42, Sector 3, Uttara Showroom', status: 'Counter 1 Active' },
-                      { id: 'df2', name: 'Different Fashion - Dhanmondi [DF2]', address: 'Road 27, Dhanmondi Showroom', status: 'Counter 1 Active' },
-                      { id: 'df3', name: 'Different Fashion - Uttara [DF3]', address: 'Sector 11, Uttara Showroom', status: 'Counter 2 Ready' }
-                    ].map(br => (
+                    {activeBranches.map(br => (
                       <button
                         key={br.id}
                         type="button"
@@ -173,7 +168,7 @@ RENDER_SHELL_TOP_JS = """
                         </div>
                         <div className="text-right">
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--success-soft)] text-[var(--success)]">
-                            {br.status}
+                            {br.code}
                           </span>
                         </div>
                       </button>
@@ -322,22 +317,20 @@ RENDER_SHELL_TOP_JS = """
               </button>
 
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-md bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center font-bold text-xs tracking-tight shadow-xs">
-                  DF
-                </div>
+                <img src={LOGO_SRC} alt="" className="w-7 h-7 rounded-md object-cover shadow-xs" />
                 <div>
                   <div className="flex items-center gap-1.5 leading-none">
-                    <span className="font-bold text-xs tracking-wider uppercase text-[var(--foreground)]">Different Fashion</span>
+                    <span className="font-bold text-xs tracking-wider uppercase text-[var(--foreground)]">{shopSettings.shopName}</span>
                     <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-[var(--surface-sunken)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono font-medium">RETAIL POS</span>
                   </div>
                   {/* Branch & Counter Indicator */}
-                  <div className="flex items-center gap-1 text-[11px] text-[var(--muted-foreground)] hover:text-[var(--primary)] cursor-pointer group mt-0.5"
-                    onClick={() => setBranch(b => b.includes('Main') ? 'Different Fashion - 2 [DF2]' : 'Different Fashion - Main [DF1]')}
+                  {hasMultipleBranches && <div className="flex items-center gap-1 text-[11px] text-[var(--muted-foreground)] hover:text-[var(--primary)] cursor-pointer group mt-0.5"
+                    onClick={() => { const i = activeBranches.findIndex(x => x.name === branch); setBranch(activeBranches[(i + 1) % activeBranches.length].name); }}
                     title="Click to Switch Store Location"
                   >
                     <span className="truncate max-w-[170px] font-medium">{branch}</span>
                     <Icon name="chevronDown" size={11} className="group-hover:translate-y-0.5 transition-transform opacity-70" />
-                  </div>
+                  </div>}
                 </div>
               </div>
 
@@ -882,6 +875,7 @@ RENDER_SHELL_TOP_JS = """
                         group_bn: 'গ্রাহক সেবা',
                         items: [
                           { id: 'customers', label: 'Customer Directory', label_bn: 'গ্রাহক তালিকা', icon: 'user', shortcut: 'G C' },
+                          { id: 'customer_statement', label: 'Customer Statement', label_bn: 'গ্রাহক স্টেটমেন্ট', icon: 'fileText', shortcut: 'G A' },
                           { id: 'membership_cards', label: 'Privilege Club Cards', label_bn: 'মেম্বারশিপ কার্ড', icon: 'idCard', shortcut: '' },
                           { id: 'messaging', label: 'WhatsApp / SMS Receipt', label_bn: 'বার্তা প্রেরণ', icon: 'send', shortcut: 'G W' }
                         ]
@@ -932,7 +926,8 @@ RENDER_SHELL_TOP_JS = """
                           { id: 'due_collection', label: 'Customer Due Aging', label_bn: 'বাকি আদায় খাতা', icon: 'banknote', shortcut: 'G U' },
                           { id: 'purchases', label: 'Purchase Bills (GRN)', label_bn: 'ক্রয় বিল লেজার', icon: 'truck', shortcut: 'G P' },
                           { id: 'vendors', label: 'Vendor Payables & Dues', label_bn: 'পাওনাদার তালিকা', icon: 'users', shortcut: 'G V' },
-                          { id: 'customers', label: 'Customer Ledgers', label_bn: 'গ্রাহক খাতা', icon: 'user', shortcut: 'G C' }
+                          { id: 'customers', label: 'Customer Ledgers', label_bn: 'গ্রাহক খাতা', icon: 'user', shortcut: 'G C' },
+                          { id: 'customer_statement', label: 'Customer Statement', label_bn: 'গ্রাহক স্টেটমেন্ট', icon: 'fileText', shortcut: 'G A' }
                         ]
                       },
                       {
@@ -962,6 +957,7 @@ RENDER_SHELL_TOP_JS = """
                         group_bn: 'গ্রাহক ও মেম্বারশিপ',
                         items: [
                           { id: 'customers', label: 'Customer Directory', label_bn: 'গ্রাহক তালিকা', icon: 'user', shortcut: 'G C' },
+                          { id: 'customer_statement', label: 'Customer Statement', label_bn: 'গ্রাহক স্টেটমেন্ট', icon: 'fileText', shortcut: 'G A' },
                           { id: 'membership_cards', label: 'Membership Cards', label_bn: 'মেম্বারশিপ কার্ড', icon: 'idCard', shortcut: '' },
                           { id: 'messaging', label: 'WhatsApp & SMS Hub', label_bn: 'বার্তা প্রেরণ', icon: 'send', shortcut: 'G W' }
                         ]

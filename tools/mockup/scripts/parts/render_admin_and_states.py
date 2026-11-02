@@ -381,9 +381,21 @@ RENDER_ADMIN_AND_STATES_JS = """
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-3">
-                                    <span className="px-2 py-0.5 rounded-md border border-[var(--success)]/30 text-[10px] font-semibold bg-[var(--success-soft)] text-[var(--success)]">
-                                      Active
-                                    </span>
+                                    <button
+                                      type="button"
+                                      role="switch"
+                                      aria-checked={!!b.active}
+                                      title={b.active ? 'Active: click to deactivate' : 'Inactive: click to activate'}
+                                      onClick={() => {
+                                        const next = (settingsDraft.branches || []).map(x => x.id === b.id ? { ...x, active: !x.active } : x);
+                                        if (!next.some(x => x.active)) { addToast('At least one branch must stay active', 'warning'); return; }
+                                        setSettingsDraft(prev => ({ ...prev, branches: next }));
+                                        setShopSettings(prev => ({ ...prev, branches: next }));
+                                      }}
+                                      className={`w-9 h-5 rounded-full relative transition-colors cursor-pointer ${b.active ? 'bg-[var(--success)]' : 'bg-[var(--border)]'}`}
+                                    >
+                                      <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${b.active ? 'left-[18px]' : 'left-0.5'}`} />
+                                    </button>
                                     <button
                                       type="button"
                                       onClick={() => openBranchModal('edit', b)}
@@ -864,48 +876,126 @@ RENDER_ADMIN_AND_STATES_JS = """
                             </div>
 
                             <div className="p-4 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border)] space-y-3.5 text-xs">
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="text-[11px] font-semibold text-[var(--muted-foreground)]">SMS Gateway Provider</label>
-                                  <select
-                                    value={settingsDraft.smsProvider || 'ssl_wireless'}
-                                    onChange={(e) => updateDraft('smsProvider', e.target.value)}
-                                    className="mt-1 w-full h-8 px-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--foreground)]"
-                                  >
-                                    <option value="ssl_wireless">SSL Wireless (Bangladesh)</option>
-                                    <option value="greenweb">Greenweb SMS Gateway</option>
-                                    <option value="twilio">Twilio Cloud API</option>
-                                  </select>
-                                </div>
-                                <div>
-                                  <label className="text-[11px] font-semibold text-[var(--muted-foreground)]">Approved Masking / Sender ID</label>
-                                  <input
-                                    type="text"
-                                    value={settingsDraft.smsSenderId || 'DIFF-FASHION'}
-                                    onChange={(e) => updateDraft('smsSenderId', e.target.value)}
-                                    className="mt-1 w-full h-8 px-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs font-mono font-bold text-[var(--foreground)]"
-                                  />
-                                </div>
-                              </div>
+                              {(() => {
+                                const sms = settingsDraft.sms || {};
+                                const providers = [
+                                  { id: 'ssl_wireless', label: 'SSL Wireless', fields: ['apiKey', 'senderId'] },
+                                  { id: 'banglalink', label: 'Banglalink', fields: ['apiKey', 'apiSecret', 'senderId'] },
+                                  { id: 'robi_airtel', label: 'Robi / Airtel', fields: ['apiKey', 'apiSecret', 'senderId'] },
+                                  { id: 'bulksms_bd', label: 'BulkSMS BD', fields: ['apiKey', 'senderId'] },
+                                  { id: 'twilio', label: 'Twilio', fields: ['apiKey', 'apiSecret', 'senderId'] },
+                                  { id: 'custom_http', label: 'Custom HTTP', fields: ['baseUrl', 'apiKey', 'senderId'] }
+                                ];
+                                const fieldMeta = {
+                                  apiKey: { label: 'API Key / Account SID', type: 'password' },
+                                  apiSecret: { label: 'API Secret / Auth Token', type: 'password' },
+                                  senderId: { label: 'Sender ID / Masking', type: 'text' },
+                                  baseUrl: { label: 'Base URL', type: 'text' }
+                                };
+                                const current = providers.find(p => p.id === (sms.provider || 'ssl_wireless')) || providers[0];
+                                const updateSms = (patch) => updateDraft('sms', { ...sms, ...patch });
+                                const templates = sms.templates || {};
+                                const updateTemplate = (key, patch) => updateSms({ templates: { ...templates, [key]: { ...templates[key], ...patch } } });
+                                const templateList = [
+                                  { key: 'sale_completed', label: 'Sale completed', hint: '{customer} {invoice} {total} {paid} {due} {shop}' },
+                                  { key: 'payment_received', label: 'Payment received', hint: '{customer} {amount} {due} {shop}' },
+                                  { key: 'due_reminder', label: 'Due reminder', hint: '{customer} {due} {shop}' }
+                                ];
+                                const sendTestSms = () => {
+                                  const input = document.getElementById('sms-test-phone');
+                                  const phone = input ? input.value.trim() : '';
+                                  if (!/^(\\+?88)?01[3-9][0-9]{8}$/.test(phone.replace(/-/g, ''))) {
+                                    addToast('Enter a valid Bangladeshi mobile number for the test SMS', 'danger');
+                                    return;
+                                  }
+                                  const missing = current.fields.filter(f => !sms[f]);
+                                  if (missing.length) {
+                                    addToast(`Test SMS failed: ${current.label} needs ${fieldMeta[missing[0]].label}`, 'danger');
+                                    return;
+                                  }
+                                  addToast(`Test SMS sent to ${phone} via ${current.label}`, 'success');
+                                };
+                                return (
+                                  <>
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div>
+                                        <label className="text-[11px] font-semibold text-[var(--muted-foreground)]">SMS Gateway Provider</label>
+                                        <select
+                                          value={current.id}
+                                          onChange={(e) => updateSms({ provider: e.target.value })}
+                                          className="mt-1 w-full h-8 px-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--foreground)]"
+                                        >
+                                          {providers.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                                        </select>
+                                      </div>
+                                      {current.fields.map(f => (
+                                        <div key={current.id + f} className={f === 'baseUrl' ? 'col-span-2' : ''}>
+                                          <label className="text-[11px] font-semibold text-[var(--muted-foreground)]">{fieldMeta[f].label}</label>
+                                          <input
+                                            type={fieldMeta[f].type}
+                                            value={sms[f] || ''}
+                                            onChange={(e) => updateSms({ [f]: e.target.value })}
+                                            placeholder={f === 'baseUrl' ? 'https://sms.example.com/api/send' : ''}
+                                            className="mt-1 w-full h-8 px-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs font-mono text-[var(--foreground)]"
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
 
-                              <div>
-                                <label className="text-[11px] font-semibold text-[var(--muted-foreground)]">API Secret Key</label>
-                                <input
-                                  type="password"
-                                  value={settingsDraft.smsApiKey || 'ssl_live_9a8f7b6c5d4e3f2a1b'}
-                                  onChange={(e) => updateDraft('smsApiKey', e.target.value)}
-                                  className="mt-1 w-full h-8 px-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs font-mono text-[var(--foreground)]"
-                                />
-                              </div>
+                                    <div className="flex items-end gap-2">
+                                      <div className="flex-1">
+                                        <label className="text-[11px] font-semibold text-[var(--muted-foreground)]">Test phone number</label>
+                                        <input
+                                          id="sms-test-phone"
+                                          type="tel"
+                                          defaultValue=""
+                                          placeholder="01711-000000"
+                                          className="mt-1 w-full h-8 px-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs font-mono text-[var(--foreground)]"
+                                        />
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={sendTestSms}
+                                        className="h-8 px-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--primary)] text-xs font-semibold text-[var(--foreground)] flex items-center gap-1.5 cursor-pointer"
+                                      >
+                                        <Icon name="messageSquare" size={13} />
+                                        <span>Send test SMS</span>
+                                      </button>
+                                    </div>
 
-                              <button
-                                type="button"
-                                onClick={() => addToast('Dispatched test SMS to store administrator', 'success')}
-                                className="h-8 px-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--primary)] text-xs font-semibold text-[var(--foreground)] flex items-center gap-1.5 cursor-pointer"
-                              >
-                                <Icon name="messageSquare" size={13} />
-                                <span>Send Test SMS</span>
-                              </button>
+                                    <div className="pt-3 border-t border-[var(--border)] space-y-3">
+                                      <div className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Transactional messages</div>
+                                      {templateList.map(t => {
+                                        const tpl = templates[t.key] || { enabled: false, text: '' };
+                                        return (
+                                          <div key={t.key} className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] space-y-2">
+                                            <div className="flex items-center justify-between">
+                                              <span className="font-semibold text-xs text-[var(--foreground)]">{t.label}</span>
+                                              <button
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={!!tpl.enabled}
+                                                onClick={() => updateTemplate(t.key, { enabled: !tpl.enabled })}
+                                                className={`w-9 h-5 rounded-full relative transition-colors cursor-pointer ${tpl.enabled ? 'bg-[var(--primary)]' : 'bg-[var(--border)]'}`}
+                                              >
+                                                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${tpl.enabled ? 'left-[18px]' : 'left-0.5'}`} />
+                                              </button>
+                                            </div>
+                                            <textarea
+                                              rows={2}
+                                              value={tpl.text}
+                                              disabled={!tpl.enabled}
+                                              onChange={(e) => updateTemplate(t.key, { text: e.target.value })}
+                                              className="w-full px-2.5 py-1.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] disabled:opacity-60"
+                                            />
+                                            <div className="text-[10px] font-mono text-[var(--muted-foreground)]">Variables: {t.hint}</div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </>
+                                );
+                              })()}
                             </div>
                           </div>
                         )}

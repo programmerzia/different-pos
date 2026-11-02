@@ -10,7 +10,7 @@ APP_STATE_JS = """
       const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
       
       // Screen Navigation
-      // 'pos', 'sales', 'sale_detail', 'returns', 'due_collection', 'customers', 'customer_form', 'customer_profile', 'membership_cards', 'messaging', 'products', 'product_detail', 'product_form', 'stock', 'purchases', 'vendors', 'vendor_profile', 'money', 'fixed_assets', 'dashboard', 'reports', 'users', 'settings', 'backup', 'audit_log', 'super_admin', 'states_demo'
+      // 'pos', 'sales', 'sale_detail', 'returns', 'due_collection', 'customers', 'customer_form', 'customer_profile', 'customer_statement', 'membership_cards', 'messaging', 'products', 'product_detail', 'product_form', 'stock', 'purchases', 'vendors', 'vendor_profile', 'money', 'fixed_assets', 'dashboard', 'reports', 'users', 'settings', 'backup', 'audit_log', 'super_admin', 'states_demo'
       const [currentScreen, setCurrentScreen] = useState('pos');
 
       // Master Permissions Check & Navigation
@@ -26,7 +26,7 @@ APP_STATE_JS = """
           // purchases (G P), money (G M), dashboard (G D), reports (G R), settings (G ,), stock (G K), vendors (G V), fixed_assets, users, backup, audit_log, super_admin
           const cashierAllowed = [
             'pos', 'sales', 'sale_detail', 'returns', 'return_detail', 'due_collection', 
-            'customers', 'customer_profile', 'customer_form', 'membership_cards', 
+            'customers', 'customer_profile', 'customer_form', 'customer_statement', 'membership_cards', 
             'products', 'product_detail', 'messaging', 'account', 'states_demo'
           ];
           return cashierAllowed.includes(screenId);
@@ -36,7 +36,7 @@ APP_STATE_JS = """
           return stockAllowed.includes(screenId);
         }
         if (role === 'Accountant') {
-          const accAllowed = ['dashboard', 'money', 'reports', 'sales', 'sale_detail', 'returns', 'return_detail', 'due_collection', 'purchases', 'vendors', 'vendor_profile', 'fixed_assets', 'customers', 'customer_profile', 'account'];
+          const accAllowed = ['dashboard', 'money', 'reports', 'sales', 'sale_detail', 'returns', 'return_detail', 'due_collection', 'purchases', 'vendors', 'vendor_profile', 'fixed_assets', 'customers', 'customer_profile', 'customer_statement', 'account'];
           return accAllowed.includes(screenId);
         }
         return true;
@@ -567,7 +567,7 @@ APP_STATE_JS = """
         if (branchModalMode === 'edit') {
           updatedBranches = currentBranches.map(b => b.id === branchFormData.id ? { ...b, ...branchFormData } : b);
         } else {
-          updatedBranches = [...currentBranches, { ...branchFormData, id: branchFormData.code || 'DF' + (currentBranches.length + 1) }];
+          updatedBranches = [...currentBranches, { active: true, ...branchFormData, id: branchFormData.code || 'DF' + (currentBranches.length + 1) }];
         }
         setSettingsDraft(prev => ({ ...(prev || {}), branches: updatedBranches }));
         if (typeof setSettingsIsDirty === 'function') setSettingsIsDirty(true);
@@ -693,10 +693,12 @@ APP_STATE_JS = """
       const [quickCustDistrict, setQuickCustDistrict] = useState('Joypurhat');
       const [quickCustGroup, setQuickCustGroup] = useState('Retail');
       const [quickCustAddress, setQuickCustAddress] = useState('');
+      const [quickCustShop, setQuickCustShop] = useState('');
 
       // --- Full Customer Registration Form States & Validation ---
       const [custFormNameEn, setCustFormNameEn] = useState('');
       const [custFormNameBn, setCustFormNameBn] = useState('');
+      const [custFormShop, setCustFormShop] = useState('');
       const [custFormPhone, setCustFormPhone] = useState('');
       const [custFormAltPhone, setCustFormAltPhone] = useState('');
       const [custFormNid, setCustFormNid] = useState('');
@@ -732,6 +734,51 @@ APP_STATE_JS = """
       const [prodFormVatRate, setProdFormVatRate] = useState('15% Standard (NBR Mushak 6.3)');
       const [prodFormStockMain, setProdFormStockMain] = useState(25);
       const [prodFormStockB2, setProdFormStockB2] = useState(12);
+      const [prodFormSizes, setProdFormSizes] = useState([]);
+      const [prodFormColors, setProdFormColors] = useState([]);
+      const [prodFormVarEdits, setProdFormVarEdits] = useState({});
+      const [prodFormBundle, setProdFormBundle] = useState(false);
+      const [prodFormCustomSize, setProdFormCustomSize] = useState('');
+      const [prodFormCustomColor, setProdFormCustomColor] = useState('');
+
+      const toggleProdFormOption = (setter, value) => {
+        setter(prev => prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]);
+      };
+
+      const addProdFormCustomOption = (setter, value, clear) => {
+        const v = value.trim();
+        if (!v) return;
+        setter(prev => prev.includes(v) ? prev : [...prev, v]);
+        clear('');
+      };
+
+      const buildProdFormVariants = () => {
+        if (!prodFormSizes.length && !prodFormColors.length) return [];
+        const sizes = prodFormSizes.length ? prodFormSizes : [''];
+        const colors = prodFormColors.length ? prodFormColors : [''];
+        const base = (prodFormSku || 'SKU').trim();
+        const rows = [];
+        sizes.forEach(size => colors.forEach(color => {
+          const key = `${size}|${color}`;
+          const edit = prodFormVarEdits[key] || {};
+          const suffix = [size.toUpperCase(), color.replace(/[^A-Za-z]/g, '').slice(0, 2).toUpperCase()].filter(Boolean).join('-');
+          rows.push({
+            key,
+            size,
+            color,
+            sku: edit.sku != null ? edit.sku : `${base}-${suffix}`,
+            barcode: edit.barcode != null ? edit.barcode : '',
+            stock_main: edit.stock_main != null ? edit.stock_main : 0,
+            stock_b2: 0,
+            price: edit.price != null ? edit.price : (Number(prodFormPrice) || 0)
+          });
+        }));
+        return rows;
+      };
+
+      const setProdFormVarEdit = (key, field, value) => {
+        setProdFormVarEdits(prev => ({ ...prev, [key]: { ...(prev[key] || {}), [field]: value } }));
+      };
       const [prodFormImage, setProdFormImage] = useState('');
       const [prodFormErrors, setProdFormErrors] = useState({});
       const [prodFormTouched, setProdFormTouched] = useState({});
@@ -790,6 +837,10 @@ APP_STATE_JS = """
         setProdFormVatRate('15% Standard (NBR Mushak 6.3)');
         setProdFormStockMain(25);
         setProdFormStockB2(12);
+        setProdFormSizes([]);
+        setProdFormColors([]);
+        setProdFormVarEdits({});
+        setProdFormBundle(false);
         setProdFormImage('https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=600&q=80');
         setProdFormErrors({});
         setProdFormTouched({});
@@ -812,6 +863,11 @@ APP_STATE_JS = """
         setProdFormVatRate('15% Standard (NBR Mushak 6.3)');
         setProdFormStockMain(p.stock_main != null ? p.stock_main : 20);
         setProdFormStockB2(p.stock_b2 != null ? p.stock_b2 : 10);
+        const pv = p.variants || [];
+        setProdFormSizes([...new Set(pv.map(v => v.size).filter(Boolean))]);
+        setProdFormColors([...new Set(pv.map(v => v.color).filter(Boolean))]);
+        setProdFormVarEdits(Object.fromEntries(pv.map(v => [`${v.size || ''}|${v.color || ''}`, { sku: v.sku, barcode: v.barcode, stock_main: v.stock_main, price: v.price }])));
+        setProdFormBundle(!!p.sell_as_bundle);
         setProdFormImage(p.image || '');
         setProdFormErrors({});
         setProdFormTouched({});
@@ -1043,6 +1099,10 @@ APP_STATE_JS = """
           return;
         }
         setLoginAttempts(0);
+        if (activeBranches.length === 1) {
+          handleBranchSelect(activeBranches[0].name);
+          return;
+        }
         setLoginStep('branch_picker');
         addToast("Credentials verified. Please select register branch.", "info");
       };
@@ -1138,6 +1198,30 @@ APP_STATE_JS = """
       const [isCardNumberRevealed, setIsCardNumberRevealed] = useState(false);
       const [selectedBatchCardIds, setSelectedBatchCardIds] = useState(MOCK_CUSTOMERS.slice(0, 10).map(c => c.id));
       const [cardPrintSide, setCardPrintSide] = useState('both'); // 'both' | 'front' | 'back'
+      const [cardPrintJob, setCardPrintJob] = useState(null);
+      const [stmtQuery, setStmtQuery] = useState('');
+      const [stmtCustomer, setStmtCustomer] = useState(null);
+      const [stmtPeriod, setStmtPeriod] = useState('month');
+      const [stmtFrom, setStmtFrom] = useState('2026-10-01');
+      const [stmtTo, setStmtTo] = useState('2026-10-29');
+      const [cardExportOpen, setCardExportOpen] = useState(false);
+      const [cardCropMarks, setCardCropMarks] = useState(true);
+      const startCardPrint = (customers, bleed = false) => {
+        if (!customers || !customers.length) return;
+        setCardPrintJob({ customers, bleed, cropMarks: cardCropMarks });
+      };
+      window.__startCardPrint = startCardPrint;
+      useEffect(() => {
+        if (!cardPrintJob) return;
+        const t = setTimeout(() => {
+          runPrintJob(
+            cardPrintJob.bleed ? 'bleed' : 'cards',
+            cardPrintJob.bleed ? 'size: 91.6mm 60mm; margin: 0' : 'size: 85.6mm 54mm; margin: 0',
+            () => setCardPrintJob(null)
+          );
+        }, 120);
+        return () => clearTimeout(t);
+      }, [cardPrintJob]);
       const [cardA4SheetIndex, setCardA4SheetIndex] = useState(0);
       const [cardA4SheetSide, setCardA4SheetSide] = useState('front');
       const [showPrintSpecsModal, setShowPrintSpecsModal] = useState(false);
@@ -1154,7 +1238,7 @@ APP_STATE_JS = """
       // Full 15-Section Store & System Settings
       const [shopSettings, setShopSettings] = useState({
         // 1. Business Profile
-        shopName: 'Different Fashion (Main & Branch 2)',
+        shopName: 'Different Fashion',
         tradeLicense: 'TRAD/DSCC/019284/2024',
         bin: '002847192-0101',
         tin: '592817349120',
@@ -1235,6 +1319,18 @@ APP_STATE_JS = """
         smsProvider: 'ssl_wireless',
         smsSenderId: 'DIFF-FASHION',
         smsApiKey: 'ssl_live_9a8f7b6c5d4e3f2a1b',
+        sms: {
+          provider: 'ssl_wireless',
+          senderId: 'DIFF-FASHION',
+          apiKey: 'ssl_live_9a8f7b6c5d4e3f2a1b',
+          apiSecret: '',
+          baseUrl: '',
+          templates: {
+            sale_completed: { enabled: true, text: 'Thank you {customer}! Invoice {invoice} total ৳{total}, paid ৳{paid}, due ৳{due}. — {shop}' },
+            payment_received: { enabled: false, text: 'Dear {customer}, we received your payment of ৳{amount}. Remaining due ৳{due}. — {shop}' },
+            due_reminder: { enabled: false, text: 'Dear {customer}, your outstanding balance at {shop} is ৳{due}. Please settle at your earliest convenience.' }
+          }
+        },
         whatsappEnabled: true,
         whatsappBusinessNumber: '+8801711223344',
 
@@ -1273,6 +1369,8 @@ APP_STATE_JS = """
       });
 
       // Settings Draft & Dirty State Tracker
+      const activeBranches = (shopSettings.branches || []).filter(b => b.active);
+      const hasMultipleBranches = activeBranches.length > 1;
       const [settingsDraft, setSettingsDraft] = useState(shopSettings);
       const [settingsIsDirty, setSettingsIsDirty] = useState(false);
 
@@ -1289,7 +1387,7 @@ APP_STATE_JS = """
       const filteredCustomers = useMemo(() => {
         return MOCK_CUSTOMERS.filter(c => {
           const q = customerSearch.toLowerCase().trim();
-          const matchSearch = !q || c.name_en.toLowerCase().includes(q) || (c.name_bn && c.name_bn.includes(q)) || (c.phone && c.phone.includes(q)) || (c.customer_no && c.customer_no.includes(q));
+          const matchSearch = !q || c.name_en.toLowerCase().includes(q) || (c.name_bn && c.name_bn.includes(q)) || (c.phone && c.phone.includes(q)) || (c.customer_no && c.customer_no.includes(q)) || (c.shop_name && c.shop_name.toLowerCase().includes(q));
           const matchGroup = customerGroupFilter === 'all' || (c.group && c.group.toLowerCase().includes(customerGroupFilter.toLowerCase()));
           return matchSearch && matchGroup;
         });
@@ -1366,35 +1464,35 @@ APP_STATE_JS = """
       const netExchangeDiff = exchangeTotalGross - returnTotalGross;
 
       // Add to Cart helper
-      const addToCart = (product, variant = null) => {
+      const addToCart = (product, variant = null, qty = 1) => {
         if (posMode === 'return') {
           // If in return mode, scanned items are exchange items!
           setExchangeCart(prev => {
             const idx = prev.findIndex(p => p.id === product.id);
             if (idx >= 0) {
               const next = [...prev];
-              next[idx] = { ...next[idx], qty: next[idx].qty + 1 };
+              next[idx] = { ...next[idx], qty: next[idx].qty + qty };
               return next;
             }
-            return [...prev, { ...product, qty: 1 }];
+            return [...prev, { ...product, qty }];
           });
           addToast(`Added exchange item: ${product.name_en}`, 'info');
           return;
         }
 
         setCart(prev => {
-          const existingIndex = prev.findIndex(item => item.product.id === product.id && (!variant || item.variant?.id === variant?.id));
+          const existingIndex = prev.findIndex(item => item.product.id === product.id && (!variant || item.variant?.sku === variant?.sku));
           if (existingIndex >= 0) {
             const next = [...prev];
-            next[existingIndex] = { ...next[existingIndex], qty: next[existingIndex].qty + 1 };
+            next[existingIndex] = { ...next[existingIndex], qty: next[existingIndex].qty + qty };
             return next;
           }
           return [...prev, {
             product,
             variant,
-            qty: 1,
-            original_price: product.price,
-            unit_price: product.price,
+            qty,
+            original_price: variant?.price ?? product.price,
+            unit_price: variant?.price ?? product.price,
             line_discount: 0,
             discount_type: 'none',
             discount_percent: 0,
@@ -1403,6 +1501,28 @@ APP_STATE_JS = """
           }];
         });
         addToast(`Added "${product.name_en}" to cart`, 'info');
+      };
+
+      const [variantQtys, setVariantQtys] = useState({});
+
+      const openVariantPicker = (product) => {
+        setVariantQtys({});
+        setVariantPickerProduct(product);
+        setShowVariantPickerModal(true);
+      };
+
+      const confirmVariantPicker = () => {
+        const lines = (variantPickerProduct?.variants || []).filter(v => (variantQtys[v.sku] || 0) > 0);
+        if (!lines.length) {
+          addToast('Set a quantity for at least one size', 'warning');
+          return;
+        }
+        lines.forEach(v => addToCart(variantPickerProduct, v, variantQtys[v.sku]));
+        setShowVariantPickerModal(false);
+        setVariantQtys({});
+        setShowPosCatalogBrowse(false);
+        setPosSearchQuery('');
+        setTimeout(focusScanInput, 50);
       };
 
       const updateCartQty = (index, delta) => {
@@ -1519,6 +1639,29 @@ APP_STATE_JS = """
 
         MOCK_SALES.unshift(saleRecord);
         setLastCompletedSale(saleRecord);
+        const saleSms = shopSettings.sms && shopSettings.sms.templates && shopSettings.sms.templates.sale_completed;
+        if (attachedCustomer && saleSms && saleSms.enabled) {
+          const smsText = renderSmsTemplate(saleSms.text, {
+            customer: attachedCustomer.name_en,
+            invoice: saleRecord.invoice,
+            total: saleRecord.total,
+            paid: saleRecord.paid,
+            due: saleRecord.due,
+            shop: shopSettings.shopName
+          });
+          setMessageLogs(prev => [{
+            id: 'ml_' + Date.now(),
+            date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+            time: saleRecord.time,
+            recipient: attachedCustomer.name_en,
+            phone: attachedCustomer.phone,
+            channel: 'SMS',
+            snippet: smsText,
+            status: 'Delivered',
+            cost: 0.35
+          }, ...prev]);
+          addToast(`SMS sent to ${attachedCustomer.phone}`, "success");
+        }
         setShowPaymentModal(false);
         setShowReceiptModal(true);
         setCart([]);
@@ -1940,6 +2083,13 @@ APP_STATE_JS = """
             }
           }
 
+          if (e.key === '/' && !isTextInput && currentScreen === 'customer_statement') {
+            e.preventDefault();
+            const box = document.getElementById('stmt-search');
+            if (box) box.focus();
+            return;
+          }
+
           // Shortcuts overlay '?'
           if (e.key === '?' && !isTextInput) {
             e.preventDefault();
@@ -1967,6 +2117,7 @@ APP_STATE_JS = """
               if (key === 't') { navigateToScreen('returns'); return; }
               if (key === 'u') { navigateToScreen('due_collection'); return; }
               if (key === 'c') { navigateToScreen('customers'); return; }
+              if (key === 'a') { navigateToScreen('customer_statement'); return; }
               if (key === 'w') { navigateToScreen('messaging'); return; }
               if (key === 'i') { navigateToScreen('products'); return; }
               if (key === 'k') { navigateToScreen('stock'); return; }

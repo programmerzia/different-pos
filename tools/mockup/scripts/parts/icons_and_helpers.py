@@ -4,6 +4,13 @@ ICONS_AND_HELPERS_JS = """
   <script type="text/babel">
     const { useState, useEffect, useRef, useMemo } = React;
 
+    const LOGO_SRC = 'vendor/logo.jpg';
+
+    const renderSmsTemplate = (text, vars) => text.replace(/\\{(\\w+)\\}/g, (m, k) => {
+      if (vars[k] === undefined) return m;
+      return ['total', 'paid', 'due', 'amount'].includes(k) ? Math.round(vars[k]).toLocaleString('en-IN') : vars[k];
+    });
+
     // Currency & Formatter Helpers (South Asian Digit Grouping: 1,23,450.00)
     function formatMoney(amount, showSymbol = true) {
       if (amount === undefined || amount === null || isNaN(amount)) amount = 0;
@@ -422,6 +429,70 @@ ICONS_AND_HELPERS_JS = """
       URL.revokeObjectURL(url);
     }
 
+    function downloadTextFile(filename, text, mime) {
+      const blob = new Blob(["\uFEFF" + text], { type: (mime || 'text/csv') + ';charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    function buildCardDataCsv(customers) {
+      const q = (v) => '"' + String(v === undefined || v === null ? '' : v).replace(/"/g, '""') + '"';
+      const head = ['customer_no', 'name_en', 'name_bn', 'shop_name', 'phone', 'member_since', 'card_number'];
+      const rows = customers.map(c => [
+        c.customer_no, c.name_en, c.name_bn, c.shop_name || '', c.phone, c.member_since || '',
+        (c.customer_no || '').replace(/ /g, ''),
+      ].map(q).join(','));
+      return [head.join(','), ...rows].join(String.fromCharCode(10));
+    }
+
+    function runPrintJob(kind, pageCss, onDone) {
+      const style = document.createElement('style');
+      style.id = 'print-job-page';
+      style.textContent = '@page { ' + pageCss + ' }';
+      document.head.appendChild(style);
+      document.body.classList.add('print-' + kind);
+      const finish = () => {
+        window.removeEventListener('afterprint', finish);
+        document.body.classList.remove('print-' + kind);
+        style.remove();
+        if (onDone) onDone();
+      };
+      window.addEventListener('afterprint', finish);
+      window.print();
+    }
+
+    function CardPrintRoot({ job }) {
+      const bleed = !!job.bleed;
+      const marks = [];
+      if (bleed && job.cropMarks) {
+        [3, 57].forEach(y => [3, 88.6].forEach(x => {
+          marks.push({ l: x < 40 ? 0 : 89.3, t: y, w: 2.3, h: 0.1, k: 'h' + x + y });
+          marks.push({ l: x, t: y < 30 ? 0 : 57.7, w: 0.1, h: 2.3, k: 'v' + x + y });
+        }));
+      }
+      return ReactDOM.createPortal(
+        <div id="card-print-root" className="card-print-root">
+          {job.customers.map(c => ['front', 'back'].map(side => (
+            <div key={c.id + side} className="cp-page">
+              <div className="cp-fill">
+                <MembershipCard customer={c} side={side} allowFlip={false} forPrint={true} isRevealed={true} />
+              </div>
+              {marks.map(m => (
+                <div key={m.k} className="cp-mark" style={{ left: m.l + 'mm', top: m.t + 'mm', width: m.w + 'mm', height: m.h + 'mm', display: 'block' }} />
+              ))}
+            </div>
+          )))}
+        </div>,
+        document.body
+      );
+    }
+
     // =========================================================================
     // UNIFIED REUSABLE <MembershipCard> COMPONENT (CR80 ISO 7810 ID-1 SPEC)
     // Features:
@@ -563,7 +634,7 @@ ICONS_AND_HELPERS_JS = """
                 <div className="flex items-start justify-between relative z-10">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                      <img src={LOGO_SRC} alt="" className="w-5 h-5 rounded object-cover" />
                       <span className="font-serif font-black tracking-[0.18em] text-xs sm:text-sm uppercase bg-gradient-to-r from-amber-100 via-amber-200 to-yellow-400 bg-clip-text text-transparent drop-shadow-sm">
                         DIFFERENT FASHION
                       </span>

@@ -10,7 +10,7 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                   data={MOCK_CUSTOMERS}
                   keyField="id"
                   searchPlaceholder="Search name, phone, or #1000 0017... (/)"
-                  searchFields={['customer_no', 'name_en', 'name_bn', 'phone', 'district', 'city_upazila', 'group']}
+                  searchFields={['customer_no', 'name_en', 'name_bn', 'shop_name', 'phone', 'district', 'city_upazila', 'group']}
                   columns={[
                     {
                       id: 'customer_no',
@@ -33,6 +33,7 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                         <div>
                           <div className="font-semibold text-[var(--foreground)]">{c.name_en}</div>
                           <div className="text-[10px] text-[var(--muted-foreground)] font-bangla">{c.name_bn}</div>
+                          {c.shop_name && <div className="text-[10px] text-[var(--primary)] font-medium flex items-center gap-1"><Icon name="building" size={10} />{c.shop_name}</div>}
                         </div>
                       )
                     },
@@ -352,6 +353,7 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                             customer_no: nextNo,
                             name_en: cleanName,
                             name_bn: custFormNameBn.trim() || cleanName,
+                            shop_name: custFormShop.trim(),
                             phone: cleanPhone,
                             alt_phone: custFormAltPhone || '',
                             nid: custFormNid || '',
@@ -433,6 +435,17 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                             placeholder="e.g. আসিফ মাহমুদ"
                             value={custFormNameBn}
                             onChange={(e) => setCustFormNameBn(e.target.value)}
+                            className="mt-1 w-full h-8 px-2.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-semibold text-[var(--muted-foreground)]">Shop Name (দোকানের নাম)</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Rahim Garments (leave empty for retail)"
+                            value={custFormShop}
+                            onChange={(e) => setCustFormShop(e.target.value)}
                             className="mt-1 w-full h-8 px-2.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)]"
                           />
                         </div>
@@ -700,7 +713,204 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
 
                   </div>
                 </div>
-              )}{/* ================= SCREEN 8: CUSTOMER 360 PROFILE ================= */}
+              )}              {/* ================= SCREEN: CUSTOMER STATEMENT ================= */}
+              {currentScreen === 'customer_statement' && (() => {
+                const q = stmtQuery.toLowerCase().trim();
+                const qDigits = q.replace(/[^0-9]/g, '');
+                const matches = q ? MOCK_CUSTOMERS.filter(c =>
+                  c.name_en.toLowerCase().includes(q) || (c.name_bn || '').includes(stmtQuery.trim()) ||
+                  (c.shop_name || '').toLowerCase().includes(q) || (c.phone || '').includes(q) ||
+                  (qDigits && (c.customer_no || '').replace(/ /g, '').includes(qDigits))
+                ).slice(0, 8) : [];
+
+                const day = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                const ref = new Date(2026, 9, 29);
+                let from = new Date(2026, 9, 1);
+                let to = new Date(2026, 9, 31);
+                if (stmtPeriod === '7d') { from = new Date(2026, 9, 23); to = ref; }
+                if (stmtPeriod === 'last') { from = new Date(2026, 8, 1); to = new Date(2026, 8, 30); }
+                if (stmtPeriod === 'custom') {
+                  from = stmtFrom ? day(new Date(stmtFrom + 'T00:00:00')) : new Date(2000, 0, 1);
+                  to = stmtTo ? day(new Date(stmtTo + 'T00:00:00')) : new Date(2100, 0, 1);
+                }
+                const rows = stmtCustomer ? MOCK_SALES
+                  .filter(s => s.customer_no === stmtCustomer.customer_no || s.customer === stmtCustomer.name_en)
+                  .map(s => ({ ...s, _d: day(new Date(s.date)) }))
+                  .filter(s => !isNaN(s._d.getTime()) && s._d >= from && s._d <= to)
+                  .sort((a, b) => b._d - a._d) : [];
+                const counted = rows.filter(s => s.status !== 'Void');
+                const sum = (k) => counted.reduce((t, s) => t + (s[k] || 0), 0);
+                const periods = [
+                  { id: '7d', label: 'Last 7 days' },
+                  { id: 'month', label: 'This month' },
+                  { id: 'last', label: 'Last month' },
+                  { id: 'custom', label: 'Custom' },
+                ];
+                const statusCls = (st) => st === 'Paid' ? 'bg-[var(--success-soft)] text-[var(--success)]' : st === 'Void' ? 'bg-[var(--surface-sunken)] text-[var(--muted-foreground)]' : st === 'Partial' ? 'bg-[var(--warning-soft)] text-[var(--warning)]' : 'bg-[var(--danger-soft)] text-[var(--danger)]';
+                const pick = (c) => { setStmtCustomer(c); setStmtQuery(''); };
+
+                return (
+                  <div className="flex-1 flex flex-col overflow-y-auto p-4 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                      <div>
+                        <h1 className="text-lg font-bold text-[var(--foreground)]">Customer Statement</h1>
+                        <div className="text-xs text-[var(--muted-foreground)]">Sales, payments and dues of one customer for a period</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={!stmtCustomer}
+                          onClick={() => addToast(`Statement summary sent to ${stmtCustomer.phone}`, "success")}
+                          className="h-8 px-3 rounded-lg bg-[var(--success-soft)] border border-[var(--success)]/30 text-[var(--success)] text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <Icon name="send" size={14} />
+                          <span>SMS statement summary</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!stmtCustomer}
+                          onClick={() => runPrintJob('statement', 'size: A4; margin: 8mm')}
+                          className="h-8 px-3 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <Icon name="printer" size={14} />
+                          <span>Print statement</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="relative max-w-xl">
+                      <input
+                        id="stmt-search"
+                        type="text"
+                        autoFocus
+                        value={stmtQuery}
+                        onChange={(e) => setStmtQuery(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && matches[0]) pick(matches[0]);
+                          if (e.key === 'Escape') setStmtQuery('');
+                        }}
+                        placeholder="Search by card number, name, phone or shop name  ( / )"
+                        className="w-full h-9 pl-8 pr-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)]"
+                      />
+                      <Icon name="search" size={14} className="absolute left-2.5 top-2.5 text-[var(--muted-foreground)]" />
+                      {q && (
+                        <div className="absolute left-0 right-0 top-10 z-20 rounded-xl bg-[var(--surface-raised)] border border-[var(--border)] shadow-xl max-h-72 overflow-y-auto divide-y divide-[var(--border)]">
+                          {matches.length === 0 && <div className="p-3 text-xs text-[var(--muted-foreground)]">No customer found</div>}
+                          {matches.map(c => (
+                            <div key={c.id} onClick={() => pick(c)} className="p-2.5 hover:bg-[var(--surface-sunken)] cursor-pointer flex items-center justify-between">
+                              <div>
+                                <div className="text-xs font-bold text-[var(--foreground)]">{c.name_en} <span className="font-normal font-bangla text-[var(--muted-foreground)]">{c.name_bn}</span></div>
+                                {c.shop_name && <div className="text-[11px] text-[var(--primary)] font-semibold">{c.shop_name}</div>}
+                              </div>
+                              <div className="text-right text-[11px] text-[var(--muted-foreground)]">
+                                <div className="font-mono">{c.phone}</div>
+                                <div className="font-mono">#{c.customer_no}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {!stmtCustomer && (
+                      <div className="p-10 rounded-xl border border-dashed border-[var(--border)] text-center text-xs text-[var(--muted-foreground)]">
+                        <Icon name="fileText" size={28} className="mx-auto mb-2 text-[var(--muted-foreground)]" />
+                        Search and pick a customer to see the statement.
+                      </div>
+                    )}
+
+                    {stmtCustomer && (
+                      <div className="printable-area bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4 space-y-4 shadow-xs">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center font-bold text-lg">{stmtCustomer.name_en[0]}</div>
+                            <div>
+                              <div className="text-base font-bold text-[var(--foreground)]">{stmtCustomer.name_en} <span className="text-xs font-normal font-bangla text-[var(--muted-foreground)]">{stmtCustomer.name_bn}</span></div>
+                              {stmtCustomer.shop_name && <div className="text-xs font-semibold text-[var(--primary)]">{stmtCustomer.shop_name}</div>}
+                              <div className="text-xs text-[var(--muted-foreground)] flex flex-wrap gap-x-3">
+                                <span>Phone: <strong className="font-mono">{stmtCustomer.phone}</strong></span>
+                                <span>Customer no: <strong className="font-mono">{stmtCustomer.customer_no}</strong></span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <div className="text-[10px] uppercase font-bold text-[var(--muted-foreground)]">Balance</div>
+                              <div className={`text-base font-bold font-mono ${stmtCustomer.balance < 0 ? 'text-[var(--danger)]' : 'text-[var(--success)]'}`}>{formatMoney(stmtCustomer.balance)}</div>
+                            </div>
+                            <button type="button" onClick={() => setStmtCustomer(null)} className="no-print h-7 px-2.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-[11px] font-semibold cursor-pointer">Change</button>
+                          </div>
+                        </div>
+
+                        <div className="no-print flex flex-wrap items-center gap-2">
+                          {periods.map(p => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => setStmtPeriod(p.id)}
+                              className={`h-7 px-3 rounded-full text-[11px] font-semibold border cursor-pointer ${stmtPeriod === p.id ? 'bg-[var(--primary-soft)] border-[var(--primary)] text-[var(--primary)]' : 'bg-[var(--surface-sunken)] border-[var(--border)] text-[var(--muted-foreground)]'}`}
+                            >
+                              {p.label}
+                            </button>
+                          ))}
+                          {stmtPeriod === 'custom' && (
+                            <div className="flex items-center gap-1.5 text-[11px] text-[var(--muted-foreground)]">
+                              <input type="date" value={stmtFrom} onChange={(e) => setStmtFrom(e.target.value)} className="h-7 px-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-[11px] text-[var(--foreground)]" />
+                              <span>to</span>
+                              <input type="date" value={stmtTo} onChange={(e) => setStmtTo(e.target.value)} className="h-7 px-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-[11px] text-[var(--foreground)]" />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="text-left text-[10px] uppercase tracking-wider text-[var(--muted-foreground)] border-b border-[var(--border)]">
+                                <th className="py-2 pr-3">Date</th>
+                                <th className="py-2 pr-3">Invoice</th>
+                                <th className="py-2 pr-3 text-right">Items</th>
+                                <th className="py-2 pr-3 text-right">Total</th>
+                                <th className="py-2 pr-3 text-right">Paid</th>
+                                <th className="py-2 pr-3 text-right">Due</th>
+                                <th className="py-2">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--border)]">
+                              {rows.length === 0 && (
+                                <tr><td colSpan={7} className="py-8 text-center text-[var(--muted-foreground)]">No sales in this period</td></tr>
+                              )}
+                              {rows.map(s => (
+                                <tr key={s.id} className={s.status === 'Void' ? 'opacity-50 line-through' : ''}>
+                                  <td className="py-2 pr-3 whitespace-nowrap">{s.date}</td>
+                                  <td className="py-2 pr-3 font-mono">{s.invoice}</td>
+                                  <td className="py-2 pr-3 text-right font-mono">{s.items_count}</td>
+                                  <td className="py-2 pr-3 text-right font-mono">{formatMoney(s.total)}</td>
+                                  <td className="py-2 pr-3 text-right font-mono">{formatMoney(s.paid)}</td>
+                                  <td className="py-2 pr-3 text-right font-mono">{formatMoney(s.due)}</td>
+                                  <td className="py-2"><span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${statusCls(s.status)}`}>{s.status}</span></td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            {rows.length > 0 && (
+                              <tfoot>
+                                <tr className="border-t-2 border-[var(--border)] font-bold text-[var(--foreground)]">
+                                  <td className="py-2 pr-3" colSpan={3}>Total ({counted.length} sales)</td>
+                                  <td className="py-2 pr-3 text-right font-mono">{formatMoney(sum('total'))}</td>
+                                  <td className="py-2 pr-3 text-right font-mono">{formatMoney(sum('paid'))}</td>
+                                  <td className="py-2 pr-3 text-right font-mono">{formatMoney(sum('due'))}</td>
+                                  <td></td>
+                                </tr>
+                              </tfoot>
+                            )}
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* ================= SCREEN 8: CUSTOMER 360 PROFILE ================= */}
               {currentScreen === 'customer_profile' && selectedCustomer && (
                 <div className="flex-1 flex flex-col overflow-y-auto p-4 space-y-4">
                   {/* Customer Banner Header */}
@@ -720,6 +930,12 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                             {selectedCustomer.group}
                           </span>
                         </div>
+                        {selectedCustomer.shop_name && (
+                          <div className="text-xs font-semibold text-[var(--primary)] flex items-center gap-1 mt-0.5">
+                            <Icon name="building" size={12} />
+                            <span>{selectedCustomer.shop_name}</span>
+                          </div>
+                        )}
                         <div className="text-xs text-[var(--muted-foreground)] flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
                           <span>Card: <strong className="font-mono">{selectedCustomer.customer_no}</strong></span>
                           <span>·</span>
@@ -753,15 +969,70 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                       </button>
                       <button
                         onClick={() => {
-                          setCardCustomer(selectedCustomer);
-                          setShowCustomerCardModal(true);
+                          setAttachedCustomer(selectedCustomer);
+                          setIsGroupDiscountRemoved(false);
+                          setPosMode('sale');
+                          if (navigateToScreen('pos')) addToast(`${selectedCustomer.name_en} attached to a new sale`, "success");
                         }}
-                        className="h-8 px-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs font-semibold flex items-center gap-1.5 hover:border-[var(--primary)]"
-                        title="View & Print Customer Card"
+                        className="h-9 px-4 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--primary-foreground)] text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer"
+                        title="Start a new sale for this customer"
                       >
-                        <Icon name="idCard" size={14} />
-                        <span>View Card</span>
+                        <Icon name="shoppingCart" size={15} />
+                        <span>New sale</span>
                       </button>
+                    </div>
+                  </div>
+
+                  {/* Membership card, shown by default */}
+                  <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col md:flex-row gap-5 items-start shadow-xs">
+                    <div className="w-full md:w-80 shrink-0">
+                      <MembershipCard customer={selectedCustomer} side="front" allowFlip={true} isRevealed={isCardNumberRevealed} />
+                    </div>
+                    <div className="flex-1 space-y-3 text-xs">
+                      <div className="flex items-center justify-between">
+                        <h2 className="font-bold text-[var(--foreground)] uppercase tracking-wider text-xs">Membership Card</h2>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReissueTargetCustomer(selectedCustomer);
+                            setReissueOldCardNumber(selectedCustomer.customer_no);
+                            setCardViewTab('single');
+                            setCurrentScreen('membership_cards');
+                          }}
+                          className="text-[11px] font-semibold text-[var(--primary)] hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <span>Open card studio</span>
+                          <Icon name="arrowRight" size={11} />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[var(--muted-foreground)]">
+                        <span>Card number</span><span className="font-mono font-bold text-[var(--foreground)]">{selectedCustomer.customer_no}</span>
+                        <span>Status</span><span className="font-semibold text-[var(--success)]">{selectedCustomer.card_status || 'Active'}</span>
+                        <span>Member since</span><span className="font-semibold text-[var(--foreground)]">{selectedCustomer.member_since || 'Today'}</span>
+                      </div>
+                      <div className="text-[10px] text-[var(--muted-foreground)]">Click the card to flip. Printing outputs one CR80 page (85.6 × 54 mm) per side.</div>
+                      <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => { startCardPrint([selectedCustomer]); addToast(`Printing CR80 card for ${selectedCustomer.name_en}...`, "success"); }}
+                          className="h-8 px-3 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer hover:bg-[var(--primary-hover)]"
+                        >
+                          <Icon name="printer" size={14} />
+                          <span>Print Card</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReissueTargetCustomer(selectedCustomer);
+                            setReissueOldCardNumber(selectedCustomer.customer_no);
+                            setShowReissueCardModal(true);
+                          }}
+                          className="h-8 px-3 rounded-lg bg-[var(--warning-soft)] text-[var(--warning)] font-bold flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Icon name="refresh" size={13} />
+                          <span>Report Lost → Reissue</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -1037,7 +1308,7 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                         <button
                           type="button"
                           onClick={() => {
-                            window.print();
+                            if (cardViewTab === 'single') startCardPrint([activeCust]); else window.print();
                             addToast(
                               cardViewTab === 'single'
                                 ? `Printing CR80 PVC card for ${activeCust.name_en}...`
@@ -1050,6 +1321,60 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                           <Icon name="printer" size={14} />
                           <span>{cardViewTab === 'single' ? 'Print Card' : (cardViewTab === 'a4_10' ? 'Print A4 Sheet' : 'Print Batch')}</span>
                         </button>
+
+                        {/* Export for printing press */}
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setCardExportOpen(o => !o)}
+                            className="h-8 px-3 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-raised)] border border-[var(--border)] text-xs font-semibold text-[var(--foreground)] flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Icon name="download" size={14} />
+                            <span>Export for printing press</span>
+                            <Icon name="chevronDown" size={12} />
+                          </button>
+                          {cardExportOpen && (
+                            <div className="absolute right-0 top-9 z-30 w-80 p-2 rounded-xl bg-[var(--surface-raised)] border border-[var(--border)] shadow-xl space-y-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCardExportOpen(false);
+                                  const list = selectedBatchCardIds.length > 0
+                                    ? MOCK_CUSTOMERS.filter(c => selectedBatchCardIds.includes(c.id))
+                                    : (cardViewTab === 'single' ? [activeCust] : MOCK_CUSTOMERS.filter(c => c.card_status === 'Active'));
+                                  startCardPrint(list, true);
+                                  addToast(`Print-ready layout for ${list.length} card(s): choose "Save as PDF" in the print dialog`, "info");
+                                }}
+                                className="w-full text-left px-3 py-2 rounded-lg hover:bg-[var(--surface-sunken)] cursor-pointer"
+                              >
+                                <div className="text-xs font-semibold text-[var(--foreground)]">Print-ready PDF (CR80 + 3 mm bleed)</div>
+                                <div className="text-[10px] text-[var(--muted-foreground)]">91.6 × 60 mm pages, front and back on separate pages. Save as PDF from the print dialog.</div>
+                              </button>
+                              <label className="flex items-center gap-2 px-3 py-1 text-[11px] text-[var(--muted-foreground)] cursor-pointer">
+                                <input type="checkbox" checked={cardCropMarks} onChange={(e) => setCardCropMarks(e.target.checked)} />
+                                <span>Add crop marks</span>
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCardExportOpen(false);
+                                  const list = selectedBatchCardIds.length > 0
+                                    ? MOCK_CUSTOMERS.filter(c => selectedBatchCardIds.includes(c.id))
+                                    : MOCK_CUSTOMERS.filter(c => c.card_status === 'Active');
+                                  downloadTextFile('membership-cards-data.csv', buildCardDataCsv(list));
+                                  addToast(`Card data CSV downloaded (${list.length} customers)`, "success");
+                                }}
+                                className="w-full text-left px-3 py-2 rounded-lg hover:bg-[var(--surface-sunken)] cursor-pointer"
+                              >
+                                <div className="text-xs font-semibold text-[var(--foreground)]">Download data CSV</div>
+                                <div className="text-[10px] text-[var(--muted-foreground)]">{selectedBatchCardIds.length > 0 ? `${selectedBatchCardIds.length} selected customers` : 'All customers with an Active card'} for variable-data printing.</div>
+                              </button>
+                              <div className="px-3 pt-1 pb-1 text-[10px] text-[var(--muted-foreground)] border-t border-[var(--border)]">
+                                Press-ready: 300 dpi, CMYK, CR80 85.6×54 mm with 3 mm bleed; variable data from the CSV.
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -1189,7 +1514,7 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                                 isRevealed={isCardNumberRevealed}
                                 showActions={true}
                                 onPrintSingle={() => {
-                                  window.print();
+                                  startCardPrint([activeCust]);
                                   addToast(`Printing CR80 card for ${activeCust.name_en}...`, "success");
                                 }}
                               />
@@ -1199,7 +1524,7 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                           <div className="w-full pt-3 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                             <div className="flex items-center gap-2 text-[var(--muted-foreground)]">
                               <Icon name="info" size={13} className="text-[var(--primary)] shrink-0" />
-                              <span>Click card to 3D flip. Hover over number to unmask digits.</span>
+                              <span>Click card to 3D flip. Prints exactly one CR80 page per side (85.6 × 54 mm).</span>
                             </div>
 
                             <div className="flex items-center gap-2">
@@ -1207,7 +1532,7 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                                 type="button"
                                 onClick={() => {
                                   setCardPrintSide('both');
-                                  window.print();
+                                  startCardPrint([activeCust]);
                                   addToast("Sending duplex CR80 card to printer...", "info");
                                 }}
                                 className="h-8 px-3 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-bold flex items-center gap-1.5 shadow-xs cursor-pointer hover:bg-[var(--primary-hover)]"

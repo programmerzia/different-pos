@@ -4,12 +4,14 @@ RENDER_ALL_MODALS_JS = """
           {/* ================= ALL MODALS & OVERLAYS ================= */}
 
           {/* 1. CUSTOMER ATTACH MODAL (F4) */}
+          {cardPrintJob && <CardPrintRoot job={cardPrintJob} />}
+
           {showCustomerAttachModal && (
             <Modal
               isOpen={showCustomerAttachModal}
               onClose={() => setShowCustomerAttachModal(false)}
               title="Attach Customer / Member (F4)"
-              subtitle="Search by phone, name, or #1000 0017"
+              subtitle="Search by phone, name, shop, or #1000 0017"
               icon="user"
               size="lg"
             >
@@ -37,7 +39,7 @@ RENDER_ALL_MODALS_JS = """
               <div className="max-h-80 overflow-y-auto divide-y divide-[var(--border)] mt-2">
                 {MOCK_CUSTOMERS.filter(c => {
                   const q = customerSearchQuery.toLowerCase();
-                  return !q || c.name_en.toLowerCase().includes(q) || c.phone.includes(q) || c.customer_no.includes(q);
+                  return !q || c.name_en.toLowerCase().includes(q) || (c.name_bn || '').includes(q) || (c.shop_name || '').toLowerCase().includes(q) || c.phone.includes(q) || c.customer_no.includes(q);
                 }).map(cust => (
                   <div
                     key={cust.id}
@@ -51,6 +53,7 @@ RENDER_ALL_MODALS_JS = """
                   >
                     <div>
                       <div className="font-bold text-xs text-[var(--foreground)]">{cust.name_en}</div>
+                      {cust.shop_name && <div className="text-[11px] font-semibold text-[var(--primary)]">{cust.shop_name}</div>}
                       <div className="text-[11px] text-[var(--muted-foreground)] flex items-center gap-2">
                         <span>{cust.phone}</span>
                         <span>·</span>
@@ -106,6 +109,17 @@ RENDER_ALL_MODALS_JS = """
                         <span>{quickCustErrors.name}</span>
                       </div>
                     )}
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-[11px] text-[var(--muted-foreground)]">Shop Name</label>
+                    <input
+                      type="text"
+                      value={quickCustShop}
+                      onChange={(e) => setQuickCustShop(e.target.value)}
+                      placeholder="e.g. Rahim Garments (optional)"
+                      className="mt-1 w-full h-8 px-2.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)]"
+                    />
                   </div>
 
                   <div>
@@ -214,6 +228,7 @@ RENDER_ALL_MODALS_JS = """
                         customer_no: nextNo,
                         name_en: cleanName,
                         name_bn: cleanName,
+                        shop_name: (quickCustShop || '').trim(),
                         phone: cleanPhone,
                         group: quickCustGroup,
                         group_discount: quickCustGroup === 'VIP Wholesale' ? 10 : quickCustGroup === 'Corporate' ? 5 : 0,
@@ -239,6 +254,7 @@ RENDER_ALL_MODALS_JS = """
                       setShowQuickNewCustomerModal(false);
                       setQuickCustName('');
                       setQuickCustPhone('');
+                      setQuickCustShop('');
                       setQuickCustAddress('');
                       addToast(`Registered & Attached ${newCust.name_en} (${newCust.customer_no})!`, "success");
                     }}
@@ -3033,6 +3049,7 @@ RENDER_ALL_MODALS_JS = """
                     { id: 'p_return_detail', label: 'Return Voucher Details', subtitle: 'Credit notes, VAT adjustments & restocking memo', shortcut: '', screen: 'return_detail', icon: 'fileText' },
                     { id: 'p_due', label: 'Customer Due Collection', subtitle: 'Collect pending receivables & dues', shortcut: 'G U', screen: 'due_collection', icon: 'banknote' },
                     { id: 'p_cust', label: 'Customer Directory', subtitle: 'Customer profiles, cards & credit limits', shortcut: 'G C', screen: 'customers', icon: 'users' },
+                    { id: 'p_cust_stmt', label: 'Customer Statement', subtitle: 'Period-wise sales, paid and due statement of a customer', shortcut: 'G A', screen: 'customer_statement', icon: 'fileText' },
                     { id: 'p_membership', label: 'Membership Cards Designer', subtitle: 'CR80 & A4 10-up card print studio & reissue queue', shortcut: '', screen: 'membership_cards', icon: 'creditCard' },
                     { id: 'p_messaging', label: 'SMS & WhatsApp Messaging', subtitle: 'Marketing composer, templates, automations & logs', shortcut: '', screen: 'messaging', icon: 'messageSquare' },
                     { id: 'p_prod', label: 'Product Catalog', subtitle: 'Inventory items, prices & barcodes', shortcut: 'G I', screen: 'products', icon: 'package' },
@@ -3536,7 +3553,7 @@ RENDER_ALL_MODALS_JS = """
                   <button
                     type="button"
                     onClick={() => {
-                      window.print();
+                      startCardPrint([cardCustomer || selectedCustomer || attachedCustomer || MOCK_CUSTOMERS[0]]);
                       addToast(`Printing membership card for ${cardCustomer?.name_en || 'Customer'}...`, "success");
                     }}
                     className="h-8 px-4 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer hover:bg-[var(--primary-hover)]"
@@ -3987,7 +4004,7 @@ RENDER_ALL_MODALS_JS = """
               isOpen={showVariantPickerModal}
               onClose={() => setShowVariantPickerModal(false)}
               size="lg"
-              title={`Select Size & Colour Variant — ${variantPickerProduct.name_en || variantPickerProduct.name}`}
+              title={`Select Sizes — ${variantPickerProduct.name_en || variantPickerProduct.name}`}
             >
               <div className="space-y-4 text-xs">
                 {/* Header info */}
@@ -4009,92 +4026,100 @@ RENDER_ALL_MODALS_JS = """
                   </div>
                 </div>
 
-                {/* Size × Colour 2D Grid */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-[var(--foreground)]">Variant Matrix (Stock per Cell)</span>
-                    <span className="text-[11px] text-[var(--muted-foreground)]">Click any cell to add that variant to current sale</span>
-                  </div>
+                {(() => {
+                  const vList = variantPickerProduct.variants || [];
+                  const totalPcs = vList.reduce((sum, v) => sum + (variantQtys[v.sku] || 0), 0);
+                  const totalAmt = vList.reduce((sum, v) => sum + (variantQtys[v.sku] || 0) * (v.price ?? variantPickerProduct.price), 0);
+                  const groups = vList.reduce((acc, v) => {
+                    const key = v.color || 'Standard';
+                    (acc[key] = acc[key] || []).push(v);
+                    return acc;
+                  }, {});
+                  const setQty = (v, next) => {
+                    const max = v.stock_main || 0;
+                    const n = Math.max(0, Math.min(max, Number.isFinite(next) ? next : 0));
+                    setVariantQtys(prev => ({ ...prev, [v.sku]: n }));
+                  };
+                  return (
+                    <div
+                      className="space-y-3"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+                          e.preventDefault();
+                          confirmVariantPicker();
+                        }
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[var(--foreground)]">Sizes by colour (stock at this branch)</span>
+                        <span className="num font-bold text-[var(--primary)]" aria-live="polite">
+                          {totalPcs} pcs · {formatMoney(totalAmt)}
+                        </span>
+                      </div>
 
-                  <div className="overflow-x-auto border border-[var(--border)] rounded-xl">
-                    <table className="w-full text-center border-collapse">
-                      <thead className="bg-[var(--surface-sunken)] text-[11px] text-[var(--muted-foreground)] font-semibold border-b border-[var(--border)]">
-                        <tr>
-                          <th className="py-2.5 px-3 text-left">Colour / Size</th>
-                          {['38 (S)', '40 (M)', '42 (L)', '44 (XL)', '46 (XXL)'].map(sz => (
-                            <th key={sz} className="py-2.5 px-3 font-mono font-bold">{sz}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border)] text-xs">
-                        {[
-                          { name: 'Maroon', hex: '#800000' },
-                          { name: 'Navy Blue', hex: '#000080' },
-                          { name: 'Forest Green', hex: '#228B22' },
-                          { name: 'Ivory White', hex: '#FFFFF0' },
-                          { name: 'Jet Black', hex: '#000000' }
-                        ].map((col, rowIdx) => (
-                          <tr key={col.name} className="hover:bg-[var(--surface-sunken)]/50 transition-colors">
-                            <td className="py-2.5 px-3 text-left font-semibold text-[var(--foreground)] flex items-center gap-2">
-                              <span className="w-3.5 h-3.5 rounded-full border border-black/20 shrink-0" style={{ backgroundColor: col.hex }}></span>
-                              <span>{col.name}</span>
-                            </td>
-                            {['38', '40', '42', '44', '46'].map((szNum, colIdx) => {
-                              const cellStock = (rowIdx === 2 && colIdx === 4) ? 0 : ((rowIdx * 3 + colIdx * 5 + 4) % 14) + 1;
-                              const variantSku = `${variantPickerProduct.sku}-${szNum}-${col.name.slice(0, 3).toUpperCase()}`;
-                              const isOutOfStock = cellStock === 0;
-
-                              return (
-                                <td key={szNum} className="p-1.5">
-                                  <button
-                                    type="button"
-                                    disabled={isOutOfStock}
-                                    onClick={() => {
-                                      addToCart({
-                                        ...variantPickerProduct,
-                                        name: `${variantPickerProduct.name_en || variantPickerProduct.name} (${col.name}, Size ${szNum})`,
-                                        sku: variantSku,
-                                        variant: `${col.name} / ${szNum}`
-                                      });
-                                      setShowVariantPickerModal(false);
-                                      addToast(`Added ${variantPickerProduct.name_en || variantPickerProduct.name} (${col.name}, ${szNum}) to cart`, "success");
-                                    }}
-                                    className={`w-full py-2 px-1.5 rounded-lg border text-center transition-all ${
-                                      isOutOfStock
-                                        ? 'bg-[var(--surface-sunken)] border-[var(--border)] text-[var(--muted-foreground)] opacity-40 cursor-not-allowed'
-                                        : 'bg-[var(--surface)] border-[var(--border)] hover:border-[var(--primary)] hover:bg-[var(--primary-soft)] cursor-pointer group shadow-xs'
-                                    }`}
-                                  >
-                                    <div className="font-mono font-bold text-xs group-hover:text-[var(--primary)]">
-                                      {isOutOfStock ? '0' : `${cellStock} pcs`}
+                      <div className="max-h-[48vh] overflow-y-auto space-y-2.5">
+                        {Object.entries(groups).map(([colour, rows], gi) => (
+                          <div key={colour} className="border border-[var(--border)] rounded-xl overflow-hidden">
+                            <div className="px-3 py-1.5 bg-[var(--surface-sunken)] border-b border-[var(--border)] font-semibold text-[var(--foreground)]">{colour}</div>
+                            <div className="divide-y divide-[var(--border)]">
+                              {rows.map((v, ri) => {
+                                const qty = variantQtys[v.sku] || 0;
+                                const soldOut = (v.stock_main || 0) <= 0;
+                                return (
+                                  <div key={v.sku} className={`px-3 py-2 grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 ${soldOut ? 'opacity-50' : ''}`}>
+                                    <div className="min-w-0">
+                                      <div className="font-mono font-bold text-[var(--foreground)]">{v.size} <span className="font-sans font-normal text-[var(--muted-foreground)]">· {v.color}</span></div>
+                                      <div className="text-[10px] font-mono text-[var(--muted-foreground)] truncate">{v.sku}</div>
                                     </div>
-                                    <div className="text-[10px] text-[var(--muted-foreground)]">
-                                      {isOutOfStock ? 'Sold out' : 'In stock'}
+                                    <div className={`text-[11px] font-mono ${v.stock_main <= 2 ? 'text-[var(--danger)]' : 'text-[var(--muted-foreground)]'}`}>{soldOut ? 'Sold out' : `${v.stock_main} in stock`}</div>
+                                    <div className="num font-semibold text-[var(--foreground)] w-16 text-right">{formatMoney(v.price ?? variantPickerProduct.price)}</div>
+                                    <div className="flex items-center gap-1">
+                                      <button type="button" disabled={soldOut || qty <= 0} onClick={() => setQty(v, qty - 1)} aria-label={`Decrease ${v.size} ${v.color}`} className="w-8 h-8 rounded-md border border-[var(--border)] bg-[var(--surface)] font-bold disabled:opacity-40 cursor-pointer">-</button>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max={v.stock_main}
+                                        disabled={soldOut}
+                                        autoFocus={gi === 0 && ri === 0}
+                                        value={qty}
+                                        aria-label={`Quantity ${v.size} ${v.color}`}
+                                        onChange={(e) => setQty(v, parseInt(e.target.value, 10))}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'ArrowUp') { e.preventDefault(); setQty(v, qty + 1); }
+                                          if (e.key === 'ArrowDown') { e.preventDefault(); setQty(v, qty - 1); }
+                                        }}
+                                        className="w-12 h-8 rounded-md bg-[var(--surface-sunken)] border border-[var(--border)] text-center font-mono font-bold text-[var(--foreground)]"
+                                      />
+                                      <button type="button" disabled={soldOut || qty >= v.stock_main} onClick={() => setQty(v, qty + 1)} aria-label={`Increase ${v.size} ${v.color}`} className="w-8 h-8 rounded-md border border-[var(--border)] bg-[var(--surface)] font-bold disabled:opacity-40 cursor-pointer">+</button>
                                     </div>
-                                  </button>
-                                </td>
-                              );
-                            })}
-                          </tr>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                      </div>
 
-                <div className="pt-2 flex justify-between items-center">
-                  <div className="text-[11px] text-[var(--muted-foreground)] flex items-center gap-1.5">
-                    <Icon name="info" size={13} />
-                    <span>Real-time stock synced with central branch warehouse</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowVariantPickerModal(false)}
-                    className="h-8 px-4 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] font-semibold text-xs"
-                  >
-                    Close
-                  </button>
-                </div>
+                      <div className="pt-1 flex justify-end items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => { setShowVariantPickerModal(false); setVariantQtys({}); }}
+                          className="h-9 px-4 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] font-semibold text-xs cursor-pointer"
+                        >
+                          Cancel <kbd className="ml-1 text-[10px] font-mono">Esc</kbd>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={totalPcs === 0}
+                          onClick={confirmVariantPicker}
+                          className="h-9 px-4 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold text-xs shadow-xs disabled:opacity-50 cursor-pointer"
+                        >
+                          Add to bill <kbd className="ml-1 text-[10px] font-mono">Enter</kbd>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </Modal>
           )}

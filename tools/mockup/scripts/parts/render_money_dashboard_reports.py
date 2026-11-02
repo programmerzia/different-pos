@@ -336,7 +336,7 @@ RENDER_MONEY_DASHBOARD_REPORTS_JS = """
                         )}
 
                         {/* Branch Selector */}
-                        <div className="flex items-center gap-1">
+                        {hasMultipleBranches && <div className="flex items-center gap-1">
                           <span className="text-[11px] font-medium text-[var(--muted-foreground)]">Branch:</span>
                           <select
                             value={dashBranch}
@@ -348,7 +348,7 @@ RENDER_MONEY_DASHBOARD_REPORTS_JS = """
                             <option value="df2">Dhanmondi [DF2]</option>
                             <option value="df3">Uttara [DF3]</option>
                           </select>
-                        </div>
+                        </div>}
 
                         <button
                           type="button"

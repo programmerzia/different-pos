@@ -347,7 +347,7 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                             { label: 'Edit Product', action: () => openEditProductForm(p) },
                             { label: 'Check Branch Stock', action: () => { setStockCheckQuery(p.sku); setShowStockCheckModal(true); } },
                             { label: 'Stock Adjustment (Damaged/Audit)', action: () => { setSelectedProduct(p); setShowStockAdjustmentModal(true); } },
-                            { label: 'Transfer to Branch 2', action: () => { setSelectedProduct(p); setShowStockTransferModal(true); } },
+                            ...(hasMultipleBranches ? [{ label: 'Transfer to Branch 2', action: () => { setSelectedProduct(p); setShowStockTransferModal(true); } }] : []),
                             { label: 'Print Barcode Labels', action: () => { setSelectedProduct(p); setShowBarcodeLabelModal(true); } }
                           ]);
                         }}
@@ -550,7 +550,10 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                             wholesale_price: Number(prodFormWholesale) || Math.round(cost * 1.2),
                             stock_main: Number(prodFormStockMain) || 0,
                             stock_b2: Number(prodFormStockB2) || 0,
-                            total_stock: (Number(prodFormStockMain) || 0) + (Number(prodFormStockB2) || 0)
+                            total_stock: (Number(prodFormStockMain) || 0) + (Number(prodFormStockB2) || 0),
+                            sell_as_bundle: prodFormBundle,
+                            variants: buildProdFormVariants().map(({ key, ...v }) => v),
+                            has_variants: buildProdFormVariants().length > 0
                           };
 
                           if (selectedProduct) {
@@ -865,32 +868,127 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                         </div>
                       </div>
 
-                      {/* Clickable Size Variant Chips */}
                       <div>
                         <label className="text-[11px] font-semibold text-[var(--muted-foreground)]">Applicable Sizes</label>
                         <div className="flex flex-wrap gap-1.5 mt-1">
-                          {['S', 'M', 'L', 'XL', 'XXL', '28', '30', '32', '34', '36', '38', '40'].map(sz => (
+                          {[...['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'], ...prodFormSizes.filter(x => !['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'].includes(x))].map(opt => (
                             <button
-                              key={sz}
+                              key={opt}
                               type="button"
-                              className="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-[var(--surface-sunken)] border border-[var(--border)] hover:border-[var(--primary)] focus:bg-[var(--primary)] focus:text-white transition-colors"
+                              aria-pressed={prodFormSizes.includes(opt)}
+                              onClick={() => toggleProdFormOption(setProdFormSizes, opt)}
+                              className={`px-2.5 py-1 min-h-8 rounded-md text-xs font-mono font-bold border transition-colors cursor-pointer ${
+                                prodFormSizes.includes(opt)
+                                  ? 'bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)]'
+                                  : 'bg-[var(--surface-sunken)] border-[var(--border)] hover:border-[var(--primary)]'
+                              }`}
                             >
-                              {sz}
+                              {opt}
                             </button>
                           ))}
                         </div>
+                        <div className="flex gap-1.5 mt-1.5">
+                          <input
+                            type="text"
+                            value={prodFormCustomSize}
+                            onChange={(e) => setProdFormCustomSize(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addProdFormCustomOption(setProdFormSizes, prodFormCustomSize, setProdFormCustomSize); } }}
+                            placeholder="Add size"
+                            className="flex-1 h-8 px-2.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => addProdFormCustomOption(setProdFormSizes, prodFormCustomSize, setProdFormCustomSize)}
+                            className="h-8 px-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs font-semibold cursor-pointer"
+                          >
+                            Add
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Color Variant Chips */}
                       <div>
                         <label className="text-[11px] font-semibold text-[var(--muted-foreground)]">Applicable Colors</label>
                         <div className="flex flex-wrap gap-1.5 mt-1">
-                          {['White', 'Navy Blue', 'Black', 'Maroon', 'Olive Green', 'Pastel Pink', 'Royal Blue'].map(col => (
-                            <span key={col} className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-[var(--surface-sunken)] border border-[var(--border)]">
-                              {col}
-                            </span>
+                          {[...['White', 'Navy Blue', 'Black', 'Maroon', 'Olive Green', 'Pastel Pink', 'Royal Blue'], ...prodFormColors.filter(x => !['White', 'Navy Blue', 'Black', 'Maroon', 'Olive Green', 'Pastel Pink', 'Royal Blue'].includes(x))].map(opt => (
+                            <button
+                              key={opt}
+                              type="button"
+                              aria-pressed={prodFormColors.includes(opt)}
+                              onClick={() => toggleProdFormOption(setProdFormColors, opt)}
+                              className={`px-2.5 py-1 min-h-8 rounded-md text-xs font-bold border transition-colors cursor-pointer ${
+                                prodFormColors.includes(opt)
+                                  ? 'bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)]'
+                                  : 'bg-[var(--surface-sunken)] border-[var(--border)] hover:border-[var(--primary)]'
+                              }`}
+                            >
+                              {opt}
+                            </button>
                           ))}
                         </div>
+                        <div className="flex gap-1.5 mt-1.5">
+                          <input
+                            type="text"
+                            value={prodFormCustomColor}
+                            onChange={(e) => setProdFormCustomColor(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addProdFormCustomOption(setProdFormColors, prodFormCustomColor, setProdFormCustomColor); } }}
+                            placeholder="Add colour"
+                            className="flex-1 h-8 px-2.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => addProdFormCustomOption(setProdFormColors, prodFormCustomColor, setProdFormCustomColor)}
+                            className="h-8 px-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs font-semibold cursor-pointer"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Generated Variant Grid */}
+                      <div className="pt-1 border-t border-[var(--border)] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-semibold text-[var(--muted-foreground)]">Variants ({buildProdFormVariants().length})</span>
+                          <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--foreground)] cursor-pointer">
+                            <input type="checkbox" checked={prodFormBundle} onChange={(e) => setProdFormBundle(e.target.checked)} />
+                            <span>Sell as bundle</span>
+                          </label>
+                        </div>
+                        {buildProdFormVariants().length > 0 ? (
+                          <div className="overflow-x-auto border border-[var(--border)] rounded-lg">
+                            <table className="w-full text-xs">
+                              <thead className="bg-[var(--surface-sunken)] text-[10px] text-[var(--muted-foreground)] uppercase">
+                                <tr>
+                                  <th className="p-1.5 text-left">Size</th>
+                                  <th className="p-1.5 text-left">Colour</th>
+                                  <th className="p-1.5 text-left">SKU</th>
+                                  <th className="p-1.5 text-left">Barcode</th>
+                                  <th className="p-1.5 text-right">Stock</th>
+                                  <th className="p-1.5 text-right">Price</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-[var(--border)]">
+                                {buildProdFormVariants().map(row => (
+                                  <tr key={row.key}>
+                                    <td className="p-1.5 font-mono font-bold">{row.size || '-'}</td>
+                                    <td className="p-1.5">{row.color || '-'}</td>
+                                    <td className="p-1"><input type="text" value={row.sku} onChange={(e) => setProdFormVarEdit(row.key, 'sku', e.target.value)} aria-label={`SKU ${row.size} ${row.color}`} className="w-32 h-7 px-1.5 rounded bg-[var(--surface-sunken)] border border-[var(--border)] font-mono" /></td>
+                                    <td className="p-1"><input type="text" value={row.barcode} onChange={(e) => setProdFormVarEdit(row.key, 'barcode', e.target.value)} aria-label={`Barcode ${row.size} ${row.color}`} className="w-24 h-7 px-1.5 rounded bg-[var(--surface-sunken)] border border-[var(--border)] font-mono" /></td>
+                                    <td className="p-1"><input type="number" min="0" value={row.stock_main} onChange={(e) => setProdFormVarEdit(row.key, 'stock_main', Number(e.target.value) || 0)} aria-label={`Opening stock ${row.size} ${row.color}`} className="w-14 h-7 px-1.5 rounded bg-[var(--surface-sunken)] border border-[var(--border)] font-mono text-right" /></td>
+                                    <td className="p-1"><input type="number" min="0" value={row.price} onChange={(e) => setProdFormVarEdit(row.key, 'price', Number(e.target.value) || 0)} aria-label={`Price ${row.size} ${row.color}`} className="w-16 h-7 px-1.5 rounded bg-[var(--surface-sunken)] border border-[var(--border)] font-mono text-right" /></td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-[var(--muted-foreground)]">Pick sizes and colours to generate variants.</div>
+                        )}
+                        {prodFormBundle && (
+                          <div className="text-[11px] text-[var(--muted-foreground)] flex items-center gap-1.5">
+                            <Icon name="info" size={13} />
+                            <span>One bill line per selected size; the picker lets the cashier choose several sizes at once.</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Branch Initial Stock Allocation */}
@@ -905,7 +1003,7 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                             className="mt-1 w-full h-8 px-2.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs font-mono font-bold text-right text-[var(--foreground)]"
                           />
                         </div>
-                        <div>
+                        {hasMultipleBranches && <div>
                           <label className="text-[11px] font-semibold text-[var(--muted-foreground)]">Branch 2 Stock</label>
                           <input
                             type="number"
@@ -914,7 +1012,7 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                             onChange={(e) => setProdFormStockB2(Number(e.target.value) || 0)}
                             className="mt-1 w-full h-8 px-2.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs font-mono font-bold text-right text-[var(--foreground)]"
                           />
-                        </div>
+                        </div>}
                       </div>
                     </div>
                   </div>
@@ -1160,7 +1258,7 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                   }}
                   onRowContextMenu={(p, e) => {
                     openContextMenu(e, p.name_en, [
-                      { label: 'Inter-Branch Transfer', action: () => { setSelectedProduct(p); setShowStockTransferModal(true); } },
+                      ...(hasMultipleBranches ? [{ label: 'Inter-Branch Transfer', action: () => { setSelectedProduct(p); setShowStockTransferModal(true); } }] : []),
                       { label: 'Stock Adjustment (Damaged/Audit)', action: () => { setSelectedProduct(p); setShowStockAdjustmentModal(true); } },
                       { label: 'Check Branch Stock', action: () => { setStockCheckQuery(p.sku); setShowStockCheckModal(true); } }
                     ]);
@@ -1331,7 +1429,7 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                         }
                       ]}
                       filterChips={[
-                        {
+                        ...(hasMultipleBranches ? [{
                           id: 'branch',
                           label: 'Branch',
                           options: [
@@ -1339,7 +1437,7 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                             { label: 'Main Branch [DF1]', value: 'Main' },
                             { label: 'Branch 2 [DF2]', value: 'Branch 2' }
                           ]
-                        }
+                        }] : [])
                       ]}
                       moreFilters={[
                         {
@@ -1366,7 +1464,7 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                       savedViews={[
                         { id: 'default', label: 'Default (All Purchases)' },
                         { id: 'unpaid', label: 'Unpaid Vendor Bills', filters: { due_status: 'due' } },
-                        { id: 'b2', label: 'Branch 2 Deliveries', filters: { branch: 'Branch 2' } }
+                        ...(hasMultipleBranches ? [{ id: 'b2', label: 'Branch 2 Deliveries', filters: { branch: 'Branch 2' } }] : [])
                       ]}
                       bulkActions={[
                         {

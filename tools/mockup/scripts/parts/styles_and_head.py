@@ -279,6 +279,8 @@ HEAD_HTML = """<!DOCTYPE html>
     }
     .animate-shake { animation: shake 0.35s ease-in-out; }
 
+    .card-print-root { display: none; }
+    .cp-mark { display: none; }
     /* Print Isolation Styles: Hide app shell and print ONLY designated .printable-area with 100% color fidelity */
     @media print {
       *, *::before, *::after {
@@ -316,24 +318,36 @@ HEAD_HTML = """<!DOCTYPE html>
       .card-number-masked { display: none !important; }
       .card-number-unmasked { display: inline-block !important; }
 
-      /* Direct CR80 PVC Card Printer Profile */
-      @page cr80 {
-        size: 85.6mm 53.98mm;
+      /* Card print job: only #card-print-root is rendered, one CR80 (or bleed) page per card side */
+      body.print-cards > *:not(#card-print-root),
+      body.print-bleed > *:not(#card-print-root) { display: none !important; }
+      body.print-cards, body.print-bleed {
+        display: block !important;
+        width: auto !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: #fff !important;
+      }
+      body.print-cards #card-print-root, body.print-bleed #card-print-root { display: block !important; }
+      #card-print-root, #card-print-root * { visibility: visible !important; }
+      #card-print-root .cp-page {
+        position: relative;
+        width: 85.6mm;
+        height: 54mm;
+        overflow: hidden;
         margin: 0;
-      }
-      .cr80-page {
-        page: cr80;
-        width: 85.6mm !important;
-        height: 53.98mm !important;
-        max-width: 85.6mm !important;
-        max-height: 53.98mm !important;
-        page-break-after: always;
+        padding: 0;
         break-after: page;
-        margin: 0 auto !important;
-        border-radius: 0 !important;
-        border: none !important;
-        box-shadow: none !important;
+        page-break-after: always;
       }
+      #card-print-root .cp-page:last-child { break-after: auto; page-break-after: auto; }
+      body.print-bleed #card-print-root .cp-page { width: 91.6mm; height: 60mm; }
+      #card-print-root .cp-page [class*="rounded"] { border-radius: 0 !important; }
+      #card-print-root .cp-page [class*="aspect-"] { aspect-ratio: auto !important; height: 100% !important; border: none !important; box-shadow: none !important; }
+      #card-print-root .cp-fill, #card-print-root .cp-fill > div, #card-print-root .cp-fill > div > div { width: 100%; height: 100%; }
+      #card-print-root .cp-mark { position: absolute; background: #fff; mix-blend-mode: difference; }
+
+      .cr80-page { border-radius: 0 !important; box-shadow: none !important; }
       
       /* A4 10-Up Sheet Page Profile */
       @page a4sheet {

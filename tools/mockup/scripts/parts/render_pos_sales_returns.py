@@ -346,19 +346,20 @@ RENDER_POS_SALES_RETURNS_JS = """
                               <div
                                 key={product.id}
                                 onClick={() => {
-                                  const isParentWithVariants = product.has_variants || ['panjabi', 'shirt', 'saree'].includes(product.category);
-                                  if (isParentWithVariants) {
-                                    setVariantPickerProduct(product);
-                                    setShowVariantPickerModal(true);
+                                  if (product.variants?.length > 0) {
+                                    openVariantPicker(product);
                                   } else {
                                     addToCart(product);
                                     addToast(`Added: ${product.name_en}`, "success");
+                                    setShowPosCatalogBrowse(false);
+                                    setPosSearchQuery('');
+                                    setTimeout(focusScanInput, 50);
                                   }
                                 }}
                                 onContextMenu={(e) => {
                                   openContextMenu(e, product.name_en, [
                                     { label: 'Product Details', action: () => { setSelectedProduct(product); setCurrentScreen('product_detail'); } },
-                                    { label: 'Select Variants (Size × Colour)', action: () => { setVariantPickerProduct(product); setShowVariantPickerModal(true); } },
+                                    { label: 'Select Variants (Size × Colour)', action: () => openVariantPicker(product) },
                                     { label: posMode === 'return' ? 'Add as Exchange Item' : 'Add to Bill', shortcut: 'Enter', action: () => addToCart(product) },
                                     { label: 'Check Branch Stock', action: () => { setStockCheckQuery(product.sku); setShowStockCheckModal(true); } }
                                   ]);
@@ -517,7 +518,13 @@ RENDER_POS_SALES_RETURNS_JS = """
                                           {lang === 'bn' ? item.product.name_bn : item.product.name_en}
                                         </div>
                                         <div className="text-[10px] text-[var(--muted-foreground)] flex items-center gap-1.5 mt-0.5">
-                                          <span className="font-mono text-[var(--primary)] font-semibold">{item.product.sku}</span>
+                                          <span className="font-mono text-[var(--primary)] font-semibold">{item.variant?.sku || item.product.sku}</span>
+                                          {item.variant && (
+                                            <>
+                                              <span>·</span>
+                                              <span className="font-semibold text-[var(--foreground)]">{item.variant.size} / {item.variant.color}</span>
+                                            </>
+                                          )}
                                           <span>·</span>
                                           <span className="capitalize">{item.product.category}</span>
                                           {item.salesman && (
@@ -907,6 +914,7 @@ RENDER_POS_SALES_RETURNS_JS = """
                               </div>
                               <div className="truncate">
                                 <div className="font-bold text-xs text-[var(--foreground)] truncate">{attachedCustomer.name_en}</div>
+                                {attachedCustomer.shop_name && <div className="text-[10px] font-semibold text-[var(--foreground)] truncate">{attachedCustomer.shop_name}</div>}
                                 <div className="text-[10px] text-[var(--muted-foreground)] font-mono">{attachedCustomer.phone}</div>
                               </div>
                             </div>
@@ -956,13 +964,17 @@ RENDER_POS_SALES_RETURNS_JS = """
                       ) : (
                         <button 
                           onClick={() => setShowCustomerAttachModal(true)}
-                          className="w-full h-10 rounded-lg border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)] bg-[var(--surface-sunken)] hover:bg-[var(--primary-soft)]/20 text-xs font-semibold text-[var(--muted-foreground)] hover:text-[var(--primary)] flex items-center justify-between px-3 transition-colors cursor-pointer"
+                          className="w-full h-11 rounded-lg border-2 border-[var(--warning)] bg-[var(--warning-soft)] hover:brightness-95 text-xs font-bold text-[var(--warning-text)] flex items-center justify-between px-3 transition-colors cursor-pointer"
                         >
                           <div className="flex items-center gap-2">
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--warning)] opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--warning)]"></span>
+                            </span>
                             <Icon name="user" size={15} />
-                            <span>Attach Customer / Member</span>
+                            <span>Walk-in Customer · Attach customer (F4)</span>
                           </div>
-                          <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--border)]">F4</kbd>
+                          <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--warning)]">F4</kbd>
                         </button>
                       )}
                     </div>
