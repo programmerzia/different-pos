@@ -8,6 +8,7 @@ use App\Enums\AdjustmentReason;
 use App\Models\Concerns\BelongsToBranch;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasUuid;
+use App\Models\Concerns\LogsTenantActivity;
 use Database\Factories\StockAdjustmentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -32,7 +33,7 @@ use Illuminate\Support\Carbon;
  */
 final class StockAdjustment extends Model
 {
-    use BelongsToBranch, BelongsToTenant, HasUuid;
+    use BelongsToBranch, BelongsToTenant, HasUuid, LogsTenantActivity;
 
     /** @use HasFactory<StockAdjustmentFactory> */
     use HasFactory;

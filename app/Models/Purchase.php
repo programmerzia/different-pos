@@ -10,6 +10,7 @@ use App\Enums\PurchaseStatus;
 use App\Models\Concerns\BelongsToBranch;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasUuid;
+use App\Models\Concerns\LogsTenantActivity;
 use App\Support\Money\Money;
 use Database\Factories\PurchaseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -50,7 +51,7 @@ use Illuminate\Support\Carbon;
  */
 final class Purchase extends Model
 {
-    use BelongsToBranch, BelongsToTenant, HasUuid, SoftDeletes;
+    use BelongsToBranch, BelongsToTenant, HasUuid, LogsTenantActivity, SoftDeletes;
 
     /** @use HasFactory<PurchaseFactory> */
     use HasFactory;

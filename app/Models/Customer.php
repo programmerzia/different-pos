@@ -8,6 +8,7 @@ use App\Casts\MoneyCast;
 use App\Enums\Gender;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasUuid;
+use App\Models\Concerns\LogsTenantActivity;
 use App\Models\Concerns\Syncable;
 use App\Support\Money\Money;
 use Database\Factories\CustomerFactory;
@@ -67,7 +68,7 @@ use Illuminate\Support\Carbon;
  */
 final class Customer extends Model
 {
-    use BelongsToTenant, HasUuid, SoftDeletes, Syncable;
+    use BelongsToTenant, HasUuid, LogsTenantActivity, SoftDeletes, Syncable;
 
     /** @use HasFactory<CustomerFactory> */
     use HasFactory;

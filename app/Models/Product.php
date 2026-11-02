@@ -9,6 +9,7 @@ use App\Casts\QuantityCast;
 use App\Enums\ProductType;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasUuid;
+use App\Models\Concerns\LogsTenantActivity;
 use App\Models\Concerns\Syncable;
 use App\Support\Money\Money;
 use App\Support\Quantity\Quantity;
@@ -61,7 +62,7 @@ use Illuminate\Support\Carbon;
  */
 final class Product extends Model
 {
-    use BelongsToTenant, HasUuid, SoftDeletes, Syncable;
+    use BelongsToTenant, HasUuid, LogsTenantActivity, SoftDeletes, Syncable;
 
     /** @use HasFactory<ProductFactory> */
     use HasFactory;

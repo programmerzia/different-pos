@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Exceptions\Tenancy\CrossTenantWrite;
 use App\Models\Concerns\HasUuid;
+use App\Models\Concerns\LogsTenantActivity;
 use App\Support\Tenancy\TenantContext;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -56,7 +57,7 @@ use Spatie\Permission\Traits\HasRoles;
 final class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, HasUuid, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
+    use HasFactory, HasRoles, HasUuid, LogsTenantActivity, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
 
     protected $fillable = ['name', 'username', 'email', 'phone', 'password', 'preferences'];
 

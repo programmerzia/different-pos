@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Support\Audit\Audit;
 use App\Support\Sync\SyncVersionRecorder;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Spatie\Activitylog\Actions\LogActivityAction;
 
 final class AppServiceProvider extends ServiceProvider
 {
@@ -31,6 +33,7 @@ final class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        LogActivityAction::beforeLogging(Audit::prepare(...));
     }
 
     /**

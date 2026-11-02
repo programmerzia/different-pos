@@ -66,6 +66,27 @@ return [
             ]) : [],
         ],
 
+        // Read-only source for `php artisan legacy:import` (ADR 0002). Use a read-only DB user in
+        // production; the session is also put into READ ONLY mode so a write fails loudly.
+        'legacy' => [
+            'driver' => 'mysql',
+            'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
+            'port' => env('LEGACY_DB_PORT', '3306'),
+            'database' => env('LEGACY_DB_DATABASE', 'legacy'),
+            'username' => env('LEGACY_DB_USERNAME', 'legacy_ro'),
+            'password' => env('LEGACY_DB_PASSWORD', ''),
+            'unix_socket' => '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => false, // legacy rows hold 0000-00-00 dates
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? [
+                Mysql::ATTR_INIT_COMMAND => 'SET SESSION TRANSACTION READ ONLY',
+            ] : [],
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

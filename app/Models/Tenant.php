@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\HasUuid;
+use App\Models\Concerns\LogsTenantActivity;
 use App\Services\Crypto\PinSealer;
 use Database\Factories\TenantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -40,7 +41,7 @@ use Illuminate\Support\Carbon;
 final class Tenant extends Model
 {
     /** @use HasFactory<TenantFactory> */
-    use HasFactory, HasUuid;
+    use HasFactory, HasUuid, LogsTenantActivity;
 
     public const string STATUS_ACTIVE = 'active';
 

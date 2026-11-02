@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasUuid;
+use App\Models\Concerns\LogsTenantActivity;
 use Database\Factories\BranchFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -35,7 +36,7 @@ use Illuminate\Support\Carbon;
  */
 final class Branch extends Model
 {
-    use BelongsToTenant, HasUuid, SoftDeletes;
+    use BelongsToTenant, HasUuid, LogsTenantActivity, SoftDeletes;
 
     /** @use HasFactory<BranchFactory> */
     use HasFactory;

@@ -12,6 +12,7 @@ use App\Enums\SaleStatus;
 use App\Models\Concerns\BelongsToBranch;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasUuid;
+use App\Models\Concerns\LogsTenantActivity;
 use App\Support\Money\Money;
 use Database\Factories\SaleFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -74,7 +75,7 @@ use Illuminate\Support\Carbon;
  */
 final class Sale extends Model
 {
-    use BelongsToBranch, BelongsToTenant, HasUuid;
+    use BelongsToBranch, BelongsToTenant, HasUuid, LogsTenantActivity;
 
     /** @use HasFactory<SaleFactory> */
     use HasFactory;

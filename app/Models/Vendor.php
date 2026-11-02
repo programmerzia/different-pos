@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Casts\MoneyCast;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasUuid;
+use App\Models\Concerns\LogsTenantActivity;
 use App\Support\Money\Money;
 use Database\Factories\VendorFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -37,7 +38,7 @@ use Illuminate\Support\Carbon;
  */
 final class Vendor extends Model
 {
-    use BelongsToTenant, HasUuid, SoftDeletes;
+    use BelongsToTenant, HasUuid, LogsTenantActivity, SoftDeletes;
 
     /** @use HasFactory<VendorFactory> */
     use HasFactory;

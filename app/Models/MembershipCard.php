@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\CardPrintLayout;
 use App\Enums\CardStatus;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\LogsTenantActivity;
 use App\Models\Concerns\Syncable;
 use Database\Factories\MembershipCardFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -38,7 +39,7 @@ use Illuminate\Support\Carbon;
  */
 final class MembershipCard extends Model
 {
-    use BelongsToTenant, Syncable;
+    use BelongsToTenant, LogsTenantActivity, Syncable;
 
     /** @use HasFactory<MembershipCardFactory> */
     use HasFactory;

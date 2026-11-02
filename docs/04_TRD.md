@@ -125,7 +125,8 @@ pos-rewrite/
 │  ├─ Pos/Pricing/PriceCalculator.php     # PHP twin of the TS pricing engine (§3.9.4)
 │  ├─ Services/{Pdf/PdfRenderer, Numbering/DocumentNumberer, Membership/CustomerNumber (Luhn), Membership/CardRenderer, Crypto/PinSealer, Sync/{PullService,PushService}}
 │  ├─ Support/{Money,Quantity,Tenancy}/
-│  └─ Console/Commands/{IntegrityCheck, Legacy/ImportLegacyCommand, Geo/ImportGeoCommand}
+│  ├─ Legacy/ (Importer, Steps/* one per 05_Schema §12 step, Transform/*; throwaway, removed after cut-over; reads the read-only `legacy` DB connection, maps in config/legacy.php)
+│  └─ Console/Commands/{IntegrityCheck, LegacyImport, Geo/ImportGeoCommand}
 ├─ database/{migrations, factories, seeders (Roles, Geo, DemoTenant)} · database/data/geo/*.json (BD reference data)
 ├─ resources/
 │  ├─ css/app.css (tokens + schemes)
@@ -170,6 +171,7 @@ Single DB, shared schema.
 - **FIFO by batch.** Sales split allocation across batches → `sale_item_batches` → COGS. Branch setting `batch_selection=auto|manual` (legacy `is_use_stock_invoice`).
 - **Locking order:** `document_sequences` → `branch_stocks` (ORDER BY product_id) FOR UPDATE → `stock_batches` (ORDER BY received_at,id) FOR UPDATE → party rows (`customers`/`vendors` balance, by id) → **`tenants.sync_counter` last**, immediately before commit. Holding the counter lock until commit makes `sync_version` values visible in commit order, so a pull cursor can never skip a row. Bulk writers reserve one range per chunk (ADR 0001 D6).
 - Negative stock: online sales are blocked unless `allow_negative_stock`. **Synced offline sales are always accepted.** A shortfall is costed at `products.cost_price` and the movement is flagged `is_backorder`. The sale is flagged `oversold`.
+- `App\Support\Stock\StockLedger` is the only writer of `branch_stocks`/`stock_batches`/`stock_movements` (`lock`, `receive`, `issue`/`issueMany` with optional forced batch for `batch_selection=manual`, `reverse`). A purchase can be cancelled only while all its batches are untouched and nothing is paid on it; batch unit cost = landed line total (net + tax ± prorated shipping/order discount) ÷ qty.
 
 ### 3.6 Numbering
 - Back-office documents: `DocumentNumberer::next(type, branch)` with FOR UPDATE: `{BR}-{TYPE}-{YY}{seq6}`.
