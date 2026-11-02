@@ -31,7 +31,7 @@ trait Syncable
         static::saved($record);
         static::deleted($record);
         if (in_array(SoftDeletes::class, class_uses_recursive(static::class), true)) {
-            static::restored($record);
+            static::registerModelEvent('restored', $record);
         }
     }
 }

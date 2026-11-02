@@ -2,6 +2,8 @@
 
 > Engine: MySQL 8.4, InnoDB, `utf8mb4_0900_ai_ci`. Migrations in `database/migrations` are the executable form of this document. **If they disagree, fix one of them in the same PR.**
 
+> **Phase D notes (2026-11-03):** every `sync_version` column is nullable (the recorder fills it right after the insert) and exists on all Syncable tables (categories, brands, units, tax_rates, variant_options/values, payment_methods too), each with `INDEX(tenant_id, sync_version)`. Every enum column also has a CHECK on its allowed values. `products` has CHECKs `barcode NOT LIKE 'MC%'` and `sale_price/cost_price >= 0`. `document_sequences.type` is a free string (`customer`, `invoice`, `expense`...), `prefix` defaults to `''`, `current_year` is nullable, and the table has no timestamps. The six line tables (`*_items`, `sale_item_batches`, `payment_allocations`) and `legacy_id_maps` have no `tenant_id` and no tenant scope. One active card per customer is a virtual `active_guard` column with a UNIQUE index.
+
 ## 0. Conventions (apply to every table unless stated)
 
 | Rule | Detail |
@@ -181,13 +183,14 @@ customers [tenant] SD
   id, uuid UNIQUE, tenant_id, customer_group_id NULL FK→customer_groups
   customer_no INT UNSIGNED NULL            -- 8 digits = 7-digit seq + Luhn check; NULL only while an offline-created
                                            -- customer awaits sync; never reused, never changed
-  name VARCHAR(150), shop_name VARCHAR(200) NULL
+  name VARCHAR(150), name_bn VARCHAR(150) NULL, shop_name VARCHAR(150) NULL   -- shop_name: the buyer's business (wholesale)
   phone VARCHAR(20) NULL                   -- E.164-normalised (+8801…)
   alt_phone VARCHAR(20) NULL, email VARCHAR(150) NULL
   gender VARCHAR(8) NULL                   -- male|female|other
   dob DATE NULL, anniversary_date DATE NULL     -- legacy "marriage_date"
   vat_bin VARCHAR(20) NULL                 -- B2B buyer BIN, printed on invoice
   -- structured location (§3a geo tables; all optional except as tenant setting requires)
+  -- Phase D: the four geo id columns exist WITHOUT foreign keys; the FKs arrive with the geo tables
   geo_division_id SMALLINT UNSIGNED NULL FK→geo_divisions
   geo_district_id SMALLINT UNSIGNED NULL FK→geo_districts
   geo_upazila_id  SMALLINT UNSIGNED NULL FK→geo_upazilas      -- upazila | metro thana | city corporation
@@ -303,7 +306,8 @@ stock_movements [tenant][B]                -- APPEND-ONLY ledger (no updates, no
 stock_adjustments [tenant][B]
   id, uuid UNIQUE, tenant_id, branch_id, number VARCHAR(30)
   reason VARCHAR(24)                       -- damage|loss|found|opening|correction|stocktake|other
-  stocktake_id NULL FK→stocktakes, note TEXT NULL, adjusted_at TIMESTAMP
+  stocktake_id BIGINT UNSIGNED NULL        -- FK→stocktakes once they exist (Phase D: plain column)
+  note TEXT NULL, adjusted_at TIMESTAMP
   created_by, created_at, updated_at
   UNIQUE(tenant_id, number)
 stock_adjustment_items
@@ -422,7 +426,7 @@ sales [tenant][B]
   buyer_vat_bin VARCHAR(20) NULL           -- snapshot of customer BIN at sale time
   -- offline / device provenance
   origin VARCHAR(8) DEFAULT 'device'       -- device|web|import
-  device_id NULL FK→devices
+  device_id BIGINT UNSIGNED NULL           -- FK→devices once devices exist (Phase D: plain column)
   device_created_at TIMESTAMP NULL         -- device clock at commit (sold_at uses it; server receipt time = created_at)
   synced_at TIMESTAMP NULL
   member_auth VARCHAR(16) DEFAULT 'none'   -- none|pin_online|pin_offline_ok|pin_offline_failed|override|no_pin_policy
@@ -462,7 +466,7 @@ sale_item_batches                          -- FIFO allocation trace
 payment_methods [tenant]
   id, tenant_id, name VARCHAR(60)
   type VARCHAR(16)                         -- cash|card|mobile_wallet|bank|customer_credit|exchange_credit
-  account_id NULL FK→accounts              -- where money lands
+  account_id BIGINT UNSIGNED NULL          -- where money lands; FK→accounts once §7 exists (Phase D: plain column)
   requires_reference BOOL DEFAULT 0, sort_order INT, is_active BOOL DEFAULT 1, timestamps
   -- seeded: Cash, Card, bKash, Nagad, Rocket, Bank transfer, Customer credit, Exchange credit (system, no account)
 
@@ -470,7 +474,7 @@ payments [tenant][B]                        -- one money movement (in from custo
   id, uuid UNIQUE, tenant_id, branch_id, number VARCHAR(30)
   direction VARCHAR(4)                     -- in|out
   party_type VARCHAR(16), party_id BIGINT UNSIGNED   -- customer|vendor
-  payment_method_id FK→payment_methods, account_id FK→accounts
+  payment_method_id FK→payment_methods, account_id BIGINT UNSIGNED NULL   -- FK→accounts once §7 exists (Phase D: plain nullable column)
   amount BIGINT                            -- > 0
   reference VARCHAR(100) NULL              -- bKash TrxID, card slip…
   register_id NULL FK→registers            -- POS tender payments
@@ -553,7 +557,15 @@ fixed_assets [tenant] SD
 ## 8. Messaging & misc
 
 ```sql
--- (SMS tables intentionally absent: SMS is deferred, PRD §5.1)
+messages [tenant]                          -- SMS log (un-deferred, ADR 0007)
+  id, tenant_id, customer_id NULL FK→customers
+  phone VARCHAR(20), body TEXT, driver VARCHAR(32)
+  status VARCHAR(32) DEFAULT 'queued'      -- queued|sent|failed  CHECK
+  provider_ref VARCHAR(100) NULL, error VARCHAR(500) NULL, sent_at TIMESTAMP NULL
+  event VARCHAR(40), related_type VARCHAR(64) NULL, related_id BIGINT UNSIGNED NULL
+  created_at, updated_at
+  INDEX(tenant_id, status), INDEX(tenant_id, customer_id, created_at), INDEX(related_type, related_id)
+
 -- Laravel `notifications` table (+ tenant_id) powers the top-bar bell; types listed in 02_AppFlow §1.1.
 
 exports [tenant]
