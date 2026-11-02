@@ -253,7 +253,7 @@ RENDER_ALL_MODALS_JS = """
           {/* 3. CUSTOMER PIN PAD MODAL */}
           {showCustomerPinPadModal && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-              <div className="w-full max-w-xs bg-[var(--surface-raised)] border border-[var(--border)] rounded-2xl shadow-2xl p-4 text-center space-y-3">
+              <div className="w-full max-w-xs bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl shadow-2xl p-4 text-center space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
                   <span className="font-bold text-xs text-[var(--foreground)]">Security PIN Verification</span>
                   <button onClick={() => setShowCustomerPinPadModal(false)}><Icon name="x" size={14} /></button>
@@ -262,7 +262,7 @@ RENDER_ALL_MODALS_JS = """
                   Customer: <strong>{attachedCustomer?.name_en || 'Customer'}</strong>
                 </div>
 
-                <div className="h-10 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border)] flex items-center justify-center gap-3">
+                <div className="h-10 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] flex items-center justify-center gap-3">
                   {[0, 1, 2, 3].map(i => (
                     <span key={i} className={`w-3.5 h-3.5 rounded-full transition-all ${
                       pinDigits.length > i ? 'bg-[var(--primary)] scale-110' : 'bg-[var(--border)]'
@@ -298,7 +298,7 @@ RENDER_ALL_MODALS_JS = """
                           }
                         }
                       }}
-                      className="h-11 rounded-xl bg-[var(--surface-sunken)] hover:bg-[var(--border)] text-sm font-bold font-mono text-[var(--foreground)] flex items-center justify-center transition-colors"
+                      className="h-11 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-raised)] border border-[var(--border)] active:scale-95 text-sm font-bold font-mono text-[var(--foreground)] flex items-center justify-center transition-all shadow-xs"
                     >
                       {btn}
                     </button>
@@ -381,7 +381,7 @@ RENDER_ALL_MODALS_JS = """
                   </div>
 
                   {/* Right: Due Auto-Calculation & Credit Limit Meter */}
-                  <div className="p-4 rounded-xl bg-[var(--surface-sunken)] flex flex-col justify-between space-y-3">
+                  <div className="p-4 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] flex flex-col justify-between space-y-3">
                     <div className="space-y-2 text-xs">
                       <div className="flex justify-between text-[var(--muted-foreground)]">
                         <span>Total Payable:</span>
@@ -394,7 +394,7 @@ RENDER_ALL_MODALS_JS = """
 
                       {/* DUE / PARTIAL PAYMENT NOTICE (Target: automatic remainder becomes due in amber) */}
                       {tenderDue > 0 ? (
-                        <div className="p-2.5 rounded-xl bg-[var(--warning-soft)] border border-[var(--warning)]/30 text-[var(--warning)] text-[var(--warning)] space-y-1">
+                        <div className="p-2.5 rounded-lg bg-[var(--warning-soft)] border border-[var(--warning)]/30 text-[var(--warning)] space-y-1">
                           <div className="flex items-center justify-between font-bold text-xs">
                             <span className="flex items-center gap-1">
                               <Icon name="alertTriangle" size={13} />
@@ -403,7 +403,7 @@ RENDER_ALL_MODALS_JS = """
                             <span>Due: {formatMoney(tenderDue)}</span>
                           </div>
                           {totalTendered === 0 && (
-                            <div className="text-[10px] font-bold text-[var(--warning)] text-[var(--warning)]">Full credit sale (৳0 paid)</div>
+                            <div className="text-[10px] font-bold text-[var(--warning)]">Full credit sale (৳0 paid)</div>
                           )}
 
                           {/* Customer Required for Due Sale */}
@@ -412,7 +412,7 @@ RENDER_ALL_MODALS_JS = """
                               <span className="text-[10px] text-[var(--danger)] font-bold">Attach customer to sell on due (F4)</span>
                               <button
                                 onClick={() => setShowCustomerAttachModal(true)}
-                                className="h-6 px-2 rounded bg-[var(--warning)] text-white font-bold text-[10px]"
+                                className="h-6 px-2 rounded-md bg-[var(--warning)] text-white font-bold text-[10px]"
                               >
                                 Attach (F4)
                               </button>
@@ -432,14 +432,14 @@ RENDER_ALL_MODALS_JS = """
                               </div>
 
                               {isCreditLimitExceeded && (
-                                <div className="p-1.5 rounded bg-[var(--danger-soft)] border border-[var(--danger)]/30 text-[10px] text-[var(--danger)] font-bold flex items-center justify-between mt-1">
+                                <div className="p-1.5 rounded-md bg-[var(--danger-soft)] border border-[var(--danger)]/30 text-[10px] text-[var(--danger)] font-bold flex items-center justify-between mt-1">
                                   <span>Limit Exceeded! Manager PIN:</span>
                                   <input
                                     type="password"
                                     placeholder="••••"
                                     value={dueManagerPinOverride}
                                     onChange={(e) => setDueManagerPinOverride(e.target.value)}
-                                    className="w-16 h-6 px-1 rounded bg-[var(--surface)] border text-center font-mono"
+                                    className="w-16 h-6 px-1 rounded-md bg-[var(--surface)] border text-center font-mono"
                                   />
                                 </div>
                               )}
@@ -447,11 +447,11 @@ RENDER_ALL_MODALS_JS = """
                               <div className="grid grid-cols-2 gap-1.5 pt-1 text-[10px]">
                                 <div>
                                   <span className="text-[var(--muted-foreground)]">Promise Date:</span>
-                                  <input type="date" value={duePromiseDate} onChange={(e) => setDuePromiseDate(e.target.value)} className="w-full h-6 px-1 rounded bg-[var(--surface)] border text-[10px]" />
+                                  <input type="date" value={duePromiseDate} onChange={(e) => setDuePromiseDate(e.target.value)} className="w-full h-6 px-1 rounded-md bg-[var(--surface)] border text-[10px]" />
                                 </div>
                                 <div>
                                   <span className="text-[var(--muted-foreground)]">Customer PIN:</span>
-                                  <input type="password" placeholder="••••" value={dueCustomerPin} onChange={(e) => setDueCustomerPin(e.target.value)} className="w-full h-6 px-1 rounded bg-[var(--surface)] border text-[10px] font-mono" />
+                                  <input type="password" placeholder="••••" value={dueCustomerPin} onChange={(e) => setDueCustomerPin(e.target.value)} className="w-full h-6 px-1 rounded-md bg-[var(--surface)] border text-[10px] font-mono" />
                                 </div>
                               </div>
                             </div>
@@ -474,7 +474,7 @@ RENDER_ALL_MODALS_JS = """
                     <button
                       onClick={() => completeSale('split')}
                       disabled={(tenderDue > 0 && (!attachedCustomer || isOfflineMode || (isCreditLimitExceeded && dueManagerPinOverride !== '1234' && dueManagerPinOverride !== '9999')))}
-                      className="w-full h-12 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs font-bold transition-colors shadow-md disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full h-11 rounded-lg bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs font-bold transition-all shadow-sm active:translate-y-0.5 disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <span>{tenderDue > 0 ? 'Confirm Partial / Due Sale' : 'Complete Sale & Print Receipt'}</span>
                       <kbd className="px-1.5 py-0.5 rounded bg-black/25 text-white text-[10px] font-mono">F10</kbd>
@@ -487,7 +487,125 @@ RENDER_ALL_MODALS_JS = """
           {/* 5. 80MM THERMAL RECEIPT MODAL (Includes Struck-through Discounts & Previous + Current Due) */}
           {showReceiptModal && lastCompletedSale && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-              <div className="printable-area printable-receipt w-full max-w-sm bg-white text-black rounded-xl shadow-2xl p-5 flex flex-col max-h-[90vh] overflow-y-auto">
+              <div className="printable-area printable-receipt w-full max-w-sm bg-white text-black rounded-lg border border-slate-200 shadow-2xl p-5 flex flex-col max-h-[90vh] overflow-y-auto">
+                <div className="text-center space-y-1 pb-3 border-b border-dashed border-[var(--input)]">
+                  <div className="font-extrabold text-sm tracking-widest uppercase">DIFFERENT FASHION</div>
+                  <div className="text-[10px] text-[var(--muted-foreground)]">Uttara Sector 3, Dhaka-1230</div>
+                  <div className="text-[10px] font-mono text-[var(--muted-foreground)]">BIN: 002847192-0101 · Mushak 6.3</div>
+                  <div className="text-[10px] text-[var(--muted-foreground)]">Tel: 01711-223344</div>
+                </div>
+
+                <div className="py-2.5 text-[10px] space-y-0.5 border-b border-dashed border-[var(--input)]">
+                  <div className="flex justify-between">
+                    <span>Invoice: <strong className="font-mono">{lastCompletedSale.invoice}</strong></span>
+                    <span>{lastCompletedSale.time}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Cashier: {lastCompletedSale.cashier}</span>
+                    <span>{lastCompletedSale.date || 'Today'}</span>
+                  </div>
+                  <div>Customer: {lastCompletedSale.customer} ({lastCompletedSale.customer_no})</div>
+                </div>
+
+                {/* Items with Line Discounts */}
+                <div className="py-2.5 space-y-1 text-[10px] border-b border-dashed border-[var(--input)]">
+                  {(lastCompletedSale.items || []).map((it, idx) => (
+                    <div key={idx} className="flex justify-between">
+                      <div className="flex-1 truncate">
+                        <div>{it.product?.name_en || 'Product'}</div>
+                        <div className="text-[var(--muted-foreground)] font-mono">
+                          {it.qty} × {formatMoney(it.original_price)}
+                          {it.line_discount > 0 && <span className="text-[var(--danger)] ml-1">(-{formatMoney(it.line_discount)})</span>}
+                        </div>
+                      </div>
+                      <span className="num font-bold">{formatMoney(((it.original_price || 1450) - (it.line_discount || 0)) * it.qty)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Financials & Discounts */}
+                <div className="py-2.5 text-[10px] space-y-1 border-b border-dashed border-[var(--input)]">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span className="num">{formatMoney(lastCompletedSale.subtotal || lastCompletedSale.total)}</span>
+                  </div>
+                  {lastCompletedSale.totalDiscount > 0 && (
+                    <div className="flex justify-between text-[var(--danger)] font-semibold">
+                      <span>Total Discounts:</span>
+                      <span className="num">−{formatMoney(lastCompletedSale.totalDiscount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>VAT (15%):</span>
+                    <span className="num">{formatMoney(lastCompletedSale.vatAmount || 0)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-xs pt-1 border-t border-[var(--border)]">
+                    <span>TOTAL:</span>
+                    <span className="num">{formatMoney(lastCompletedSale.total)}</span>
+                  </div>
+                  <div className="flex justify-between text-[var(--subtle-foreground)]">
+                    <span>Tendered ({lastCompletedSale.paymentMethod}):</span>
+                    <span className="num">{formatMoney(lastCompletedSale.tendered)}</span>
+                  </div>
+                  {lastCompletedSale.change > 0 && (
+                    <div className="flex justify-between font-bold text-[var(--success)]">
+                      <span>Change:</span>
+                      <span className="num">{formatMoney(lastCompletedSale.change)}</span>
+                    </div>
+                  )}
+
+                  {/* DUE BREAKDOWN ON RECEIPT (Target: This bill due · Previous due · TOTAL DUE) */}
+                  {lastCompletedSale.due > 0 && (
+                    <div className="pt-1.5 border-t border-dashed border-[var(--input)] space-y-0.5 text-[var(--danger)] font-bold">
+                      <div className="flex justify-between">
+                        <span>This Bill Due:</span>
+                        <span className="num">{formatMoney(lastCompletedSale.due)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Previous Due:</span>
+                        <span className="num">{formatMoney(lastCompletedSale.previous_due || 1200)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs pt-0.5 border-t border-[var(--border)]">
+                        <span>TOTAL DUE:</span>
+                        <span className="num">{formatMoney((lastCompletedSale.previous_due || 1200) + lastCompletedSale.due)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer & Barcode */}
+                <div className="pt-3 text-center space-y-2">
+                  <div className="text-[9px] text-[var(--muted-foreground)] leading-tight font-bangla">
+                    পণ্য পরিবর্তনের ক্ষেত্রে ৭ দিনের মধ্যে মূল ক্যাশ মেমো সহ যোগাযোগ করুন।<br />
+                    Thank you for shopping at Different Fashion!
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="h-6 w-32 flex items-center justify-between">
+                      {[2,1,3,1,2,3,1,2,1,3,2,1,2,3].map((w, i) => (
+                        <span key={i} style={{ width: `${w}px` }} className="h-full bg-black"></span>
+                      ))}
+                    </div>
+                    <span className="text-[8px] font-mono tracking-widest mt-0.5">{lastCompletedSale.invoice}</span>
+                  </div>
+                </div>
+
+                <div className="no-print mt-4 pt-3 border-t border-[var(--border)] flex gap-2">
+                  <button onClick={() => setShowReceiptModal(false)} className="flex-1 h-8 rounded-md bg-[var(--surface-sunken)] border border-[var(--border)] hover:bg-[var(--surface-raised)] text-xs font-semibold text-[var(--foreground)] cursor-pointer">
+                    Close (Esc)
+                  </button>
+                  <button onClick={() => { window.print(); addToast("Printing 80mm receipt...", "success"); }} className="flex-1 h-8 rounded-md bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xs font-semibold flex items-center justify-center gap-1 cursor-pointer">
+                    <Icon name="printer" size={12} />
+                    <span>Print 80mm</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 6. A4 TAX INVOICE MODAL */}
+          {showA4InvoiceModal && lastCompletedSale && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+              <div className="printable-area printable-receipt w-full max-w-2xl bg-white text-black rounded-lg border border-slate-200 shadow-2xl p-6 flex flex-col max-h-[90vh] overflow-y-auto space-y-4">
                 <div className="text-center space-y-1 pb-3 border-b border-dashed border-[var(--input)]">
                   <div className="font-extrabold text-sm tracking-widest uppercase">DIFFERENT FASHION</div>
                   <div className="text-[10px] text-[var(--muted-foreground)]">Uttara Sector 3, Dhaka-1230</div>
@@ -1203,7 +1321,7 @@ RENDER_ALL_MODALS_JS = """
           {showReminderModal && reminderCustomer && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
               <div className="fixed inset-0 z-40" onClick={() => setShowReminderModal(false)}></div>
-              <div className="relative z-50 w-full max-w-md bg-[var(--surface-raised)] border border-[var(--border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col text-xs">
+              <div className="relative z-50 w-full max-w-md bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl shadow-2xl overflow-hidden flex flex-col text-xs">
                 {/* Authentic WhatsApp Green Top Bar */}
                 <div className="bg-[#075E54] text-white p-3.5 flex items-center justify-between shadow-xs">
                   <div className="flex items-center gap-2.5">
@@ -1273,15 +1391,15 @@ RENDER_ALL_MODALS_JS = """
 
                 {/* WhatsApp Chat Background & Editable Message Bubble */}
                 <div className="p-4 bg-[#E5DDD5] dark:bg-[#0B141A] min-h-[160px] flex flex-col justify-end">
-                  <div className="self-end w-full bg-[#DCF8C6] dark:bg-[#005C4B] rounded-2xl rounded-tr-none p-3 shadow-md border border-[var(--success)]/30 border-[var(--success)]/30">
+                  <div className="self-end w-full bg-[#DCF8C6] dark:bg-[#005C4B] rounded-lg rounded-tr-none p-3 shadow-sm border border-[var(--success)]/20">
                     <textarea
                       rows={4}
                       value={editableMsgText !== '' ? editableMsgText : `প্রিয় ${reminderCustomer.name_en}, ডিফারেন্ট ফ্যাশনে আপনার পূর্বের বকেয়া ${formatMoney(Math.abs(reminderCustomer.balance))} টাকা পরিশোধের জন্য বিনীত অনুরোধ জানানো হচ্ছে। ধন্যবাদ, ডিফারেন্ট ফ্যাশন (01711-223344)।`}
                       onChange={(e) => setEditableMsgText(e.target.value)}
                       placeholder="Type WhatsApp reminder message..."
-                      className="w-full bg-transparent border-0 resize-none text-xs text-[var(--foreground)] text-[var(--foreground)] font-sans focus:outline-hidden leading-relaxed"
+                      className="w-full bg-transparent border-0 resize-none text-xs text-slate-900 dark:text-emerald-50 font-sans focus:outline-hidden leading-relaxed"
                     />
-                    <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-[var(--muted-foreground)] text-[var(--success)]">
+                    <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-500 dark:text-emerald-300">
                       <span>11:45 AM</span>
                       <span className="text-[var(--success)] text-[var(--success)] font-bold">✓✓</span>
                     </div>
@@ -1939,7 +2057,7 @@ RENDER_ALL_MODALS_JS = """
           {showNewPurchaseModal && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
               <div className="fixed inset-0 z-40" onClick={() => setShowNewPurchaseModal(false)}></div>
-              <div className="relative z-50 w-full max-w-4xl bg-[var(--surface-raised)] border border-[var(--border)] rounded-2xl shadow-2xl p-5 space-y-4 text-xs max-h-[92vh] overflow-y-auto flex flex-col">
+              <div className="relative z-50 w-full max-w-4xl bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl shadow-2xl p-5 space-y-4 text-xs max-h-[92vh] overflow-y-auto flex flex-col">
                 
                 {/* Modal Header */}
                 <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
@@ -3332,164 +3450,156 @@ RENDER_ALL_MODALS_JS = """
               isOpen={showCustomerCardModal}
               onClose={() => setShowCustomerCardModal(false)}
               title="Customer Membership Card — CR80 Standard"
-              subtitle="Barcode & Member details ready for CR80 card or PVC printer"
+              subtitle="Dual-sided luxury privilege card with scannable Code 128 barcode & security masking"
               icon="creditCard"
               size="2xl"
               printable={true}
             >
+              {(() => {
+                const c = cardCustomer || selectedCustomer || attachedCustomer || MOCK_CUSTOMERS[0];
+                return (
+                  <div className="space-y-4">
+                    {/* Information Strip */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] gap-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[var(--foreground)]">{c.name_en}</span>
+                        <span className="text-[var(--muted-foreground)]">({c.customer_no})</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                          {(c.group || '').includes('VIP') ? 'Platinum VIP' : 'Gold Privilege'}
+                        </span>
+                      </div>
 
-                {/* Printable Isolated Card Body */}
-                <div className="p-6 bg-[var(--surface-sunken)] flex flex-col items-center justify-center">
-                  <div id="printable-card-area" className="printable-area w-full max-w-lg space-y-4">
-                    {(() => {
-                      const c = cardCustomer || selectedCustomer || attachedCustomer || MOCK_CUSTOMERS[0];
-                      return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* FRONT OF CARD */}
-                          <div
-                            style={{
-                              background: 'linear-gradient(135deg, #0f172a 0%, #064e3b 50%, #022c22 100%)',
-                              WebkitPrintColorAdjust: 'exact',
-                              printColorAdjust: 'exact',
-                              color: '#ffffff'
-                            }}
-                            className="w-full aspect-[85.6/54] rounded-2xl p-4 flex flex-col justify-between text-white shadow-xl relative overflow-hidden border border-[var(--primary)]/30"
-                          >
-                            {/* Watermark / Pattern */}
-                            <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full border border-[var(--primary)]/20 pointer-events-none"></div>
-                            <div className="absolute right-6 -top-6 w-24 h-24 rounded-full border border-[var(--primary)]/20 pointer-events-none"></div>
+                      <div className="flex items-center gap-2 text-[var(--muted-foreground)]">
+                        <Icon name="info" size={13} className="text-[var(--primary)]" />
+                        <span>Hover over card number to unmask digits</span>
+                      </div>
+                    </div>
 
-                            {/* Card Top */}
-                            <div className="flex items-start justify-between relative z-10">
-                              <div>
-                                <div className="font-extrabold text-xs tracking-widest uppercase">DIFFERENT FASHION</div>
-                                <div className="text-[9px] text-[var(--primary-soft)] tracking-wider font-semibold">PREMIUM PRIVILEGE CLUB</div>
-                              </div>
-                              <div className="px-2 py-0.5 rounded-full bg-[var(--warning)] text-[var(--foreground)] font-black text-[9px] tracking-wider uppercase shadow-xs">
-                                {c.group || 'VIP GOLD'}
-                              </div>
-                            </div>
-
-                            {/* Chip & Contactless */}
-                            <div className="flex items-center gap-3 relative z-10 my-1">
-                              <div
-                                style={{
-                                  background: 'linear-gradient(135deg, #fcd34d 0%, #d97706 100%)',
-                                  WebkitPrintColorAdjust: 'exact',
-                                  printColorAdjust: 'exact'
-                                }}
-                                className="w-8 h-6 rounded border border-[var(--warning)]/30 flex items-center justify-center shadow-inner"
-                              >
-                                <div className="w-5 h-3.5 border border-[var(--warning)]/40 rounded-xs"></div>
-                              </div>
-                              <Icon name="wifi" size={14} className="text-[var(--primary-soft)] rotate-90" />
-                            </div>
-
-                            {/* Card Bottom Details */}
-                            <div className="relative z-10 space-y-1">
-                              <div className="font-mono text-sm tracking-widest text-[var(--primary-soft)] font-bold drop-shadow-xs">
-                                {c.customer_no || '1000 0017'}
-                              </div>
-                              <div className="flex justify-between items-end">
-                                <div>
-                                  <div className="font-bold text-xs text-white truncate max-w-[140px]">{c.name_en}</div>
-                                  <div className="text-[9px] text-[var(--primary)]">{c.name_bn || 'সম্মানিত গ্রাহক'}</div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-[8px] text-[var(--primary)] font-mono uppercase">EXP: 04/29</div>
-                                  <div className="text-[9px] font-mono text-white font-semibold">BIN 002847192</div>
-                                </div>
-                              </div>
-                            </div>
+                    {/* Dual Sided Card Showcase (Front & Back Side-by-Side) */}
+                    <div id="printable-card-area" className="printable-area w-full cr80-page p-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                        {/* Front Side */}
+                        <div className="space-y-1.5">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] text-center no-print">
+                            Front Side (CR80)
                           </div>
-
-                          {/* BACK OF CARD */}
-                          <div
-                            style={{
-                              background: 'linear-gradient(to bottom, #f8fafc 0%, #e2e8f0 100%)',
-                              WebkitPrintColorAdjust: 'exact',
-                              printColorAdjust: 'exact',
-                              color: '#1e293b'
-                            }}
-                            className="w-full aspect-[85.6/54] rounded-2xl flex flex-col justify-between shadow-xl relative overflow-hidden border border-[var(--border)]"
-                          >
-                            {/* Magnetic Stripe */}
-                            <div
-                              style={{
-                                background: '#0f172a',
-                                WebkitPrintColorAdjust: 'exact',
-                                printColorAdjust: 'exact'
-                              }}
-                              className="w-full h-8 mt-3"
-                            ></div>
-
-                            {/* Signature Panel */}
-                            <div className="px-4 py-1">
-                              <div className="flex items-center justify-between text-[8px] text-[var(--muted-foreground)] font-semibold mb-0.5">
-                                <span>AUTHORIZED SIGNATURE</span>
-                                <span>NOT TRANSFERABLE</span>
-                              </div>
-                              <div className="h-6 w-full bg-white border border-[var(--border)] rounded flex items-center px-2 font-serif italic text-xs text-[var(--subtle-foreground)]">
-                                {c.name_en}
-                              </div>
-                            </div>
-
-                            {/* Barcode & Terms */}
-                            <div className="px-4 pb-3 flex items-center justify-between">
-                              <div className="text-[7.5px] text-[var(--muted-foreground)] max-w-[130px] leading-tight">
-                                This card is property of Different Fashion. Valid at all branches in Bangladesh. Helpline: +880 1711-223344
-                              </div>
-                              <div className="text-center">
-                                <div className="h-6 w-24 flex items-center justify-between mx-auto">
-                                  {[2,1,3,1,1,2,1,3,2,1,2,1,3,1].map((w, i) => (
-                                    <span key={i} style={{ width: `${w}px` }} className="h-full bg-black"></span>
-                                  ))}
-                                </div>
-                                <span className="font-mono text-[7px] text-[var(--subtle-foreground)] block">MC{c.customer_no?.replace(/[ ]+/g, '') || '10000017'}01</span>
-                              </div>
-                            </div>
-                          </div>
+                          <MembershipCard
+                            customer={c}
+                            side="front"
+                            allowFlip={false}
+                            isRevealed={isCardNumberRevealed}
+                            showActions={false}
+                          />
                         </div>
-                      );
-                    })()}
-                  </div>
-                </div>
 
-                {/* Modal Footer Controls */}
-                <div className="no-print p-3.5 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3">
+                        {/* Back Side */}
+                        <div className="space-y-1.5">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] text-center no-print">
+                            Back Side (Barcode & Magnetic Stripe)
+                          </div>
+                          <MembershipCard
+                            customer={c}
+                            side="back"
+                            allowFlip={false}
+                            isRevealed={true}
+                            showActions={false}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Modal Footer Controls */}
+              <div className="no-print p-3.5 border-t border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-3 -mx-4 -mb-4 mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCustomerCardModal(false);
+                    setCurrentScreen('membership_cards');
+                  }}
+                  className="h-8 px-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] font-semibold text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Icon name="layers" size={14} />
+                  <span>Go to Bulk Card Center (F8)</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomerCardModal(false)}
+                    className="h-8 px-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] font-medium text-xs text-[var(--foreground)]"
+                  >
+                    Close
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
-                      setShowCustomerCardModal(false);
-                      setCurrentScreen('membership_cards');
+                      window.print();
+                      addToast(`Printing membership card for ${cardCustomer?.name_en || 'Customer'}...`, "success");
                     }}
-                    className="h-8 px-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] font-semibold text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] flex items-center gap-1.5 cursor-pointer"
+                    className="h-8 px-4 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer hover:bg-[var(--primary-hover)]"
                   >
-                    <Icon name="layers" size={14} />
-                    <span>Go to Bulk Card Center (F8)</span>
+                    <Icon name="printer" size={14} />
+                    <span>Print Card</span>
                   </button>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowCustomerCardModal(false)}
-                      className="h-8 px-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] font-medium text-xs text-[var(--foreground)]"
-                    >
-                      Close
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        window.print();
-                        addToast(`Printing membership card for ${cardCustomer?.name_en || 'Customer'}...`, "success");
-                      }}
-                      className="h-8 px-4 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
-                    >
-                      <Icon name="printer" size={14} />
-                      <span>Print Card</span>
-                    </button>
-                  </div>
                 </div>
+              </div>
+            </Modal>
+          )}
+
+          {/* 25C. MEMBERSHIP CARD HARDWARE & PRINT SPECIFICATIONS GUIDE MODAL */}
+          {showPrintSpecsModal && (
+            <Modal
+              isOpen={showPrintSpecsModal}
+              onClose={() => setShowPrintSpecsModal(false)}
+              title="Card Printer Hardware & Production Specifications Guide"
+              subtitle="Standards for ISO/IEC 7810 ID-1 (CR80) PVC printing & laser barcode scanners"
+              icon="info"
+              size="lg"
+            >
+              <div className="space-y-4 text-xs">
+                {/* 1. PVC Card Stock Requirements */}
+                <div className="p-3.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border)] space-y-2">
+                  <div className="font-bold text-[var(--foreground)] flex items-center gap-1.5">
+                    <Icon name="creditCard" size={14} className="text-[var(--primary)]" />
+                    <span>Recommended Physical Cardstock (CR80 Standard)</span>
+                  </div>
+                  <ul className="list-disc list-inside space-y-1 text-[var(--muted-foreground)] leading-relaxed">
+                    <li><strong>Dimension:</strong> 85.60 mm × 53.98 mm (3.370 × 2.125 inches), corner radius 3.18 mm.</li>
+                    <li><strong>Thickness:</strong> 30 mil (0.76 mm) standard PVC or Composite PET-G for luxury durability.</li>
+                    <li><strong>Finish:</strong> Glossy or Frosted Matte (Matte Obsidian recommended for Platinum VIP).</li>
+                  </ul>
+                </div>
+
+                {/* 2. Direct-to-Card Printer Hardware */}
+                <div className="p-3.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border)] space-y-2">
+                  <div className="font-bold text-[var(--foreground)] flex items-center gap-1.5">
+                    <Icon name="printer" size={14} className="text-[var(--primary)]" />
+                    <span>Compatible Thermal Card Printers</span>
+                  </div>
+                  <ul className="list-disc list-inside space-y-1 text-[var(--muted-foreground)] leading-relaxed">
+                    <li><strong>Zebra:</strong> ZC100 (Single-sided), ZC300 (Dual-sided auto-duplex, 300 DPI).</li>
+                    <li><strong>Evolis:</strong> Zenius, Primacy 2 (High-speed dye sublimation & resin thermal transfer).</li>
+                    <li><strong>Magicard:</strong> Magicard 300 / 600 (Equipped with HoloKote anti-counterfeit watermark).</li>
+                    <li><strong>Ribbon Type:</strong> YMCKO ribbon (Full color front, resin black for sharp barcode back, clear overlay).</li>
+                  </ul>
+                </div>
+
+                {/* 3. Barcode & Counter Scanning Specifications */}
+                <div className="p-3.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border)] space-y-2">
+                  <div className="font-bold text-[var(--foreground)] flex items-center gap-1.5">
+                    <Icon name="barcode" size={14} className="text-[var(--primary)]" />
+                    <span>POS Counter Scanner Compatibility</span>
+                  </div>
+                  <ul className="list-disc list-inside space-y-1 text-[var(--muted-foreground)] leading-relaxed">
+                    <li><strong>Encoding:</strong> Code 128 Subset B format (e.g. <code>DF10000017</code>).</li>
+                    <li><strong>Scanner:</strong> Compatible with any 1D/2D laser or imaging scanner (Honeywell Voyager, Zebra DS2208, Datalogic).</li>
+                    <li><strong>Instant Lookup:</strong> Scanning the back barcode at POS automatically attaches the member to the billing register!</li>
+                  </ul>
+                </div>
+              </div>
             </Modal>
           )}
 
@@ -3757,7 +3867,7 @@ RENDER_ALL_MODALS_JS = """
           {showBulkBarcodeModal && (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
               <div className="fixed inset-0 z-40" onClick={() => setShowBulkBarcodeModal(false)}></div>
-              <div className="relative z-50 w-full max-w-2xl bg-[var(--surface-raised)] border border-[var(--border)] rounded-2xl shadow-2xl p-5 space-y-4 text-xs max-h-[90vh] overflow-y-auto">
+              <div className="relative z-50 w-full max-w-2xl bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl shadow-2xl p-5 space-y-4 text-xs max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between pb-2 border-b border-[var(--border)] font-bold">
                   <div className="flex items-center gap-2 text-sm">
                     <Icon name="barcode" size={16} className="text-[var(--primary)]" />
@@ -4065,7 +4175,7 @@ RENDER_ALL_MODALS_JS = """
                           <div className="font-bold text-xs text-[var(--foreground)]">{returnWizardInvoiceQuery || 'DF1-R1-26000412'}</div>
                           <div className="text-[11px] text-[var(--muted-foreground)]">Customer: Rahim Uddin (1000 0017) · Sold on Today 11:42 AM</div>
                         </div>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--success-soft)] text-[var(--success)]">
+                        <span className="px-2 py-0.5 rounded-md border border-[var(--success)]/30 text-[10px] font-semibold bg-[var(--success-soft)] text-[var(--success)]">
                           Completed Sale
                         </span>
                       </div>
@@ -4889,7 +4999,7 @@ RENDER_ALL_MODALS_JS = """
                         <div className="text-[10px] text-[var(--muted-foreground)]">48 KB · {importFileRowsCount} records detected</div>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--success-soft)] text-[var(--success)]">
+                    <span className="px-2 py-0.5 rounded-md border border-[var(--success)]/30 text-[10px] font-semibold bg-[var(--success-soft)] text-[var(--success)]">
                       Ready to Map
                     </span>
                   </div>
@@ -5012,10 +5122,10 @@ RENDER_ALL_MODALS_JS = """
                       <div className="text-[11px] text-[var(--muted-foreground)]">Review valid records and per-row error flags before committing</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--success-soft)] text-[var(--success)]">
+                      <span className="px-2 py-0.5 rounded-md border border-[var(--success)]/30 text-[10px] font-semibold bg-[var(--success-soft)] text-[var(--success)]">
                         {importDryRunPreview.filter(r => r.status === 'valid').length} Valid
                       </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--danger-soft)] text-[var(--danger)]">
+                      <span className="px-2 py-0.5 rounded-md border border-[var(--danger)]/30 text-[10px] font-semibold bg-[var(--danger-soft)] text-[var(--danger)]">
                         {importDryRunPreview.filter(r => r.status === 'error').length} Errors
                       </span>
                     </div>

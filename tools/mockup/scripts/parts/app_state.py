@@ -165,6 +165,7 @@ APP_STATE_JS = """
       // --- POS Register State ---
       const [posCategory, setPosCategory] = useState('all');
       const [posSearchQuery, setPosSearchQuery] = useState('');
+      const [showPosCatalogBrowse, setShowPosCatalogBrowse] = useState(false);
       const [posSelectedTileIndex, setPosSelectedTileIndex] = useState(0);
       const posScanInputRef = useRef(null);
 
@@ -731,6 +732,7 @@ APP_STATE_JS = """
       const [prodFormVatRate, setProdFormVatRate] = useState('15% Standard (NBR Mushak 6.3)');
       const [prodFormStockMain, setProdFormStockMain] = useState(25);
       const [prodFormStockB2, setProdFormStockB2] = useState(12);
+      const [prodFormImage, setProdFormImage] = useState('');
       const [prodFormErrors, setProdFormErrors] = useState({});
       const [prodFormTouched, setProdFormTouched] = useState({});
 
@@ -788,6 +790,7 @@ APP_STATE_JS = """
         setProdFormVatRate('15% Standard (NBR Mushak 6.3)');
         setProdFormStockMain(25);
         setProdFormStockB2(12);
+        setProdFormImage('https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=600&q=80');
         setProdFormErrors({});
         setProdFormTouched({});
         setCurrentScreen('product_form');
@@ -809,6 +812,7 @@ APP_STATE_JS = """
         setProdFormVatRate('15% Standard (NBR Mushak 6.3)');
         setProdFormStockMain(p.stock_main != null ? p.stock_main : 20);
         setProdFormStockB2(p.stock_b2 != null ? p.stock_b2 : 10);
+        setProdFormImage(p.image || '');
         setProdFormErrors({});
         setProdFormTouched({});
         setCurrentScreen('product_form');
@@ -1123,11 +1127,22 @@ APP_STATE_JS = """
       const [newOptOutReason, setNewOptOutReason] = useState('Customer preference');
 
       // ================= PART 4: MEMBERSHIP CARDS PREVIEW & REISSUE STATES =================
+      const [cardViewTab, setCardViewTab] = useState('single'); // 'single' | 'gallery' | 'a4_10' | 'cr80_pvc'
       const [cardPreviewSide, setCardPreviewSide] = useState('front'); // 'front' | 'back'
       const [reissueTargetCustomer, setReissueTargetCustomer] = useState(MOCK_CUSTOMERS[0]);
       const [reissueReason, setReissueReason] = useState('Lost Card');
       const [reissueOldCardNumber, setReissueOldCardNumber] = useState(MOCK_CUSTOMERS[0]?.customer_no || '1000 0017');
       const [reissueNewCardNumber, setReissueNewCardNumber] = useState('1000 0380');
+      const [cardTierFilter, setCardTierFilter] = useState('all'); // 'all' | 'vip' | 'gold' | 'corporate'
+      const [cardMemberSearch, setCardMemberSearch] = useState('');
+      const [isCardNumberRevealed, setIsCardNumberRevealed] = useState(false);
+      const [selectedBatchCardIds, setSelectedBatchCardIds] = useState(MOCK_CUSTOMERS.slice(0, 10).map(c => c.id));
+      const [cardPrintSide, setCardPrintSide] = useState('both'); // 'both' | 'front' | 'back'
+      const [cardA4SheetIndex, setCardA4SheetIndex] = useState(0);
+      const [cardA4SheetSide, setCardA4SheetSide] = useState('front');
+      const [showPrintSpecsModal, setShowPrintSpecsModal] = useState(false);
+      const [cardScanTestInput, setCardScanTestInput] = useState('');
+      const [cardScanTestResult, setCardScanTestResult] = useState(null);
 
       // Dashboard Filter & Computation States
       const [dashPeriod, setDashPeriod] = useState('today'); // 'today' | 'yesterday' | '7d' | '30d' | 'this_month' | 'custom'
@@ -1865,6 +1880,41 @@ APP_STATE_JS = """
             e.preventDefault();
             openModal('price_check');
             return;
+          }
+
+          // Quick Tender Alt+C (Cash), Alt+B (bKash), Alt+K (Card)
+          if (e.altKey && !e.ctrlKey && !e.metaKey) {
+            const k = e.key.toLowerCase();
+            if (k === 'c') {
+              e.preventDefault();
+              if (cart.length > 0) {
+                setTenderTally({ cash: totalPayable, card: 0, bkash: 0, nagad: 0, rocket: 0, bank: 0 });
+                openModal('payment');
+              } else {
+                addToast("Cart is empty!", "danger");
+              }
+              return;
+            }
+            if (k === 'b') {
+              e.preventDefault();
+              if (cart.length > 0) {
+                setTenderTally({ cash: 0, card: 0, bkash: totalPayable, nagad: 0, rocket: 0, bank: 0 });
+                openModal('payment');
+              } else {
+                addToast("Cart is empty!", "danger");
+              }
+              return;
+            }
+            if (k === 'k') {
+              e.preventDefault();
+              if (cart.length > 0) {
+                setTenderTally({ cash: 0, card: totalPayable, bkash: 0, nagad: 0, rocket: 0, bank: 0 });
+                openModal('payment');
+              } else {
+                addToast("Cart is empty!", "danger");
+              }
+              return;
+            }
           }
 
           // PAY (F9)

@@ -94,6 +94,32 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                         searchFields={['sku', 'barcode', 'name_en', 'name_bn', 'category']}
                         columns={[
                           {
+                            id: 'image',
+                            header: 'Item',
+                            sortable: false,
+                            width: '52px',
+                            className: 'w-[52px] text-center',
+                            cell: p => (
+                              <div className="w-9 h-9 rounded-md border border-[var(--border)] overflow-hidden bg-[var(--surface-sunken)] flex items-center justify-center shrink-0 shadow-2xs group-hover:border-[var(--primary)] transition-colors">
+                                {p.image ? (
+                                  <img
+                                    src={p.image}
+                                    alt={p.name_en}
+                                    className="w-full h-full object-cover object-top"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
+                                    }}
+                                  />
+                                ) : null}
+                                <div className={`w-full h-full flex items-center justify-center text-[var(--muted-foreground)] ${p.image ? 'hidden' : ''}`}>
+                                  <Icon name={p.category === 'saree' ? 'saree' : p.category === 'panjabi' ? 'panjabi' : p.category === 'shirt' ? 'shirt' : 'tag'} size={15} />
+                                </div>
+                              </div>
+                            )
+                          },
+                          {
                             id: 'sku',
                             header: 'SKU',
                             sortable: true,
@@ -205,12 +231,12 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                             cell: p => {
                               const st = p.stock_main <= 0 ? 'Out of Stock' : p.stock_main <= 5 ? 'Low Stock' : 'In Stock';
                               return (
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                <span className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold ${
                                   st === 'Out of Stock'
-                                    ? 'bg-[var(--danger-soft)] text-[var(--danger)]'
+                                    ? 'bg-[var(--danger-soft)] text-[var(--danger)] border-[var(--danger)]/30'
                                     : st === 'Low Stock'
-                                      ? 'bg-[var(--warning-soft)] text-[var(--warning)]'
-                                      : 'bg-[var(--success-soft)] text-[var(--success)]'
+                                      ? 'bg-[var(--warning-soft)] text-[var(--warning)] border-[var(--warning)]/30'
+                                      : 'bg-[var(--success-soft)] text-[var(--success)] border-[var(--success)]/30'
                                 }`}>
                                   {st}
                                 </span>
@@ -343,7 +369,7 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                                   <div className="text-xs text-[var(--muted-foreground)] font-bangla">{cat.name_bn}</div>
                                   <div className="text-[10px] font-mono text-[var(--primary)] mt-1">Slug: {cat.id}</div>
                                 </div>
-                                <span className="px-2 py-0.5 rounded-full bg-[var(--surface-sunken)] border text-xs font-mono font-bold text-[var(--foreground)]">
+                                <span className="px-2 py-0.5 rounded-md bg-[var(--surface-sunken)] border border-[var(--border)] text-xs font-mono font-bold text-[var(--foreground)]">
                                   {count} SKUs
                                 </span>
                               </div>
@@ -517,6 +543,7 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                             unit: prodFormUnit,
                             sku: cleanSku,
                             barcode: prodFormBarcode || ('894' + Math.floor(100000000 + Math.random() * 900000000)),
+                            image: prodFormImage || (selectedProduct?.image || ''),
                             cost: cost,
                             cost_price: cost,
                             price: price,
@@ -693,6 +720,63 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                           </div>
                         </div>
                       </div>
+
+                      {/* Product Visual Asset / Photo */}
+                      <div className="pt-2 border-t border-[var(--border)]">
+                        <label className="text-[11px] font-semibold text-[var(--muted-foreground)] flex items-center justify-between">
+                          <span>Apparel Catalog Image URL</span>
+                          <span className="text-[10px] text-[var(--primary)] font-normal">HD Product Photography</span>
+                        </label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="w-12 h-12 rounded-lg border border-[var(--border)] overflow-hidden bg-[var(--surface-sunken)] shrink-0 flex items-center justify-center">
+                            {prodFormImage ? (
+                              <img
+                                src={prodFormImage}
+                                alt="Preview"
+                                className="w-full h-full object-cover object-top"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <Icon name="tag" size={18} className="text-[var(--muted-foreground)]" />
+                            )}
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <input
+                              type="text"
+                              value={prodFormImage}
+                              onChange={(e) => setProdFormImage(e.target.value)}
+                              placeholder="https://images.unsplash.com/..."
+                              className="w-full h-8 px-2.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)]"
+                            />
+                            <div className="flex items-center gap-1.5 text-[10px]">
+                              <span className="text-[var(--muted-foreground)]">Presets:</span>
+                              <button
+                                type="button"
+                                onClick={() => setProdFormImage('https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=600&q=80')}
+                                className="px-1.5 py-0.5 rounded bg-[var(--surface-sunken)] hover:bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                              >
+                                Panjabi
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setProdFormImage('https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=600&q=80')}
+                                className="px-1.5 py-0.5 rounded bg-[var(--surface-sunken)] hover:bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                              >
+                                Saree
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setProdFormImage('https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=600&q=80')}
+                                className="px-1.5 py-0.5 rounded bg-[var(--surface-sunken)] hover:bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                              >
+                                Shirt
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Panel 2: Pricing, VAT & Size Variants */}
@@ -848,6 +932,32 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                   searchPlaceholder="Search product SKU, name, barcode... (/)"
                   searchFields={['sku', 'name_en', 'name_bn', 'barcode', 'category']}
                   columns={[
+                    {
+                      id: 'image',
+                      header: 'Item',
+                      sortable: false,
+                      width: '52px',
+                      className: 'w-[52px] text-center',
+                      cell: p => (
+                        <div className="w-9 h-9 rounded-md border border-[var(--border)] overflow-hidden bg-[var(--surface-sunken)] flex items-center justify-center shrink-0 shadow-2xs group-hover:border-[var(--primary)] transition-colors">
+                          {p.image ? (
+                            <img
+                              src={p.image}
+                              alt={p.name_en}
+                              className="w-full h-full object-cover object-top"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div className={`w-full h-full flex items-center justify-center text-[var(--muted-foreground)] ${p.image ? 'hidden' : ''}`}>
+                            <Icon name={p.category === 'saree' ? 'saree' : p.category === 'panjabi' ? 'panjabi' : p.category === 'shirt' ? 'shirt' : 'tag'} size={15} />
+                          </div>
+                        </div>
+                      )
+                    },
                     {
                       id: 'sku',
                       header: 'SKU',
@@ -1576,6 +1686,64 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                     </div>
                   </div>
 
+                  {/* Product Visual Identity Hero Card */}
+                  <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col md:flex-row items-start md:items-center gap-4 shadow-2xs">
+                    <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-lg border border-[var(--border)] overflow-hidden bg-[var(--surface-sunken)] shrink-0 shadow-xs group">
+                      {selectedProduct?.image ? (
+                        <img
+                          src={selectedProduct.image}
+                          alt={selectedProduct.name_en}
+                          className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div className={`w-full h-full flex flex-col items-center justify-center text-[var(--muted-foreground)] ${selectedProduct?.image ? 'hidden' : ''}`}>
+                        <Icon name={selectedProduct?.category === 'saree' ? 'saree' : selectedProduct?.category === 'panjabi' ? 'panjabi' : selectedProduct?.category === 'shirt' ? 'shirt' : 'tag'} size={32} />
+                        <span className="text-[10px] mt-1 font-mono uppercase">{selectedProduct?.category || 'apparel'}</span>
+                      </div>
+                      <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-xs text-[9px] font-mono font-bold text-white uppercase tracking-wider">
+                        {selectedProduct?.category || 'Apparel'}
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-md bg-[var(--primary-soft)] text-[var(--primary)] font-bold text-xs uppercase tracking-wider border border-[var(--primary)]/20">
+                          {selectedProduct?.brand || 'Different Fashion Signature'}
+                        </span>
+                        <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-[var(--surface-sunken)] border border-[var(--border)] text-[var(--muted-foreground)]">
+                          SKU: <strong className="text-[var(--foreground)]">{selectedProduct?.sku}</strong>
+                        </span>
+                        <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-[var(--surface-sunken)] border border-[var(--border)] text-[var(--muted-foreground)]">
+                          Barcode: <strong className="text-[var(--foreground)]">{selectedProduct?.barcode}</strong>
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-[var(--success-soft)] text-[var(--success)] font-semibold text-xs border border-[var(--success)]/20">
+                          Active In-Store & Online
+                        </span>
+                      </div>
+
+                      <h2 className="text-xl font-bold text-[var(--foreground)] tracking-tight">
+                        {selectedProduct?.name_en}
+                      </h2>
+                      <div className="text-sm font-bangla text-[var(--muted-foreground)]">
+                        {selectedProduct?.name_bn}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-[var(--muted-foreground)]">
+                        <div>Vendor: <strong className="text-[var(--foreground)]">{selectedProduct?.vendor || 'Dhaka Textile Consortium'}</strong></div>
+                        <div>•</div>
+                        <div>Fabric / Material: <strong className="text-[var(--foreground)]">100% Pure Combed Cotton</strong></div>
+                        <div>•</div>
+                        <div>Unit: <strong className="text-[var(--foreground)]">{selectedProduct?.unit || 'Pieces (Pcs)'}</strong></div>
+                        <div>•</div>
+                        <div>NBR VAT: <strong className="text-[var(--foreground)]">15% Mushak 6.3 Standard</strong></div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Top Product Summary KPI Banner */}
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
@@ -1743,8 +1911,8 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                                 <td className="py-2.5 px-3 text-center font-mono font-bold text-[var(--foreground)]">{b.rem} pcs</td>
                                 <td className="py-2.5 px-3 text-right font-sans font-bold tabular-nums num text-[var(--foreground)]">{formatMoney(b.rem * b.cost)}</td>
                                 <td className="py-2.5 px-3 text-center">
-                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                    b.rem > 0 ? 'bg-[var(--success-soft)] text-[var(--success)]' : 'bg-[var(--surface-sunken)] text-[var(--muted-foreground)]'
+                                  <span className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold ${
+                                    b.rem > 0 ? 'bg-[var(--success-soft)] text-[var(--success)] border-[var(--success)]/30' : 'bg-[var(--surface-sunken)] text-[var(--muted-foreground)] border-[var(--border)]'
                                   }`}>
                                     {b.status}
                                   </span>
@@ -1790,8 +1958,8 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                               <tr key={idx} className="hover:bg-[var(--surface-sunken)]/50">
                                 <td className="py-2.5 px-3 text-[var(--muted-foreground)] font-mono">{m.date}</td>
                                 <td className="py-2.5 px-3">
-                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                    m.delta > 0 ? 'bg-[var(--success-soft)] text-[var(--success)]' : 'bg-[var(--danger-soft)] text-[var(--danger)]'
+                                  <span className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold ${
+                                    m.delta > 0 ? 'bg-[var(--success-soft)] text-[var(--success)] border-[var(--success)]/30' : 'bg-[var(--danger-soft)] text-[var(--danger)] border-[var(--danger)]/30'
                                   }`}>
                                     {m.type}
                                   </span>
@@ -2211,8 +2379,8 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                                   {formatMoney(p.due)}
                                 </td>
                                 <td className="py-2.5 px-3 text-center">
-                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                    p.status === 'Fully Paid' ? 'bg-[var(--success-soft)] text-[var(--success)]' : 'bg-[var(--warning-soft)] text-[var(--warning)]'
+                                  <span className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold ${
+                                    p.status === 'Fully Paid' ? 'bg-[var(--success-soft)] text-[var(--success)] border-[var(--success)]/30' : 'bg-[var(--warning-soft)] text-[var(--warning)] border-[var(--warning)]/30'
                                   }`}>
                                     {p.status}
                                   </span>
@@ -2296,7 +2464,7 @@ RENDER_CATALOG_STOCK_PURCHASES_JS = """
                                 <td className="py-2.5 px-3 text-[var(--foreground)]">{d.reason}</td>
                                 <td className="py-2.5 px-3 text-right font-sans font-bold tabular-nums num text-[var(--danger)]">−{formatMoney(d.amt)}</td>
                                 <td className="py-2.5 px-3 text-center">
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--success-soft)] text-[var(--success)]">
+                                  <span className="px-2 py-0.5 rounded-md border border-[var(--success)]/30 text-[10px] font-semibold bg-[var(--success-soft)] text-[var(--success)]">
                                     {d.status}
                                   </span>
                                 </td>

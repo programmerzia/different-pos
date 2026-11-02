@@ -45,10 +45,12 @@ ICONS_AND_HELPERS_JS = """
     // IMPORTANT: All child SVG elements are wrapped inside <g> tags for Babel compatibility
     function Icon({ name, size = 18, className = "" }) {
       const icons = {
-        shoppingCart: <g><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z M3 6h18 M16 10a4 4 0 0 1-8 0" /></g>,
+        shoppingCart: <g><circle cx="8" cy="21" r="1" /><circle cx="19" cy="21" r="1" /><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" /></g>,
+        shoppingBag: <g><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" /></g>,
         search: <g><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></g>,
         barcode: <g><path d="M3 5v14 M8 5v14 M12 5v14 M17 5v14 M21 5v14" /></g>,
         check: <g><polyline points="20 6 9 17 4 12" /></g>,
+        checkCircle: <g><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></g>,
         x: <g><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></g>,
         user: <g><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></g>,
         users: <g><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></g>,
@@ -62,6 +64,7 @@ ICONS_AND_HELPERS_JS = """
         chevronRight: <g><polyline points="9 18 15 12 9 6" /></g>,
         chevronUp: <g><polyline points="18 15 12 9 6 15" /></g>,
         plus: <g><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></g>,
+        plusCircle: <g><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></g>,
         minus: <g><line x1="5" y1="12" x2="19" y2="12" /></g>,
         trash: <g><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></g>,
         tag: <g><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></g>,
@@ -69,40 +72,62 @@ ICONS_AND_HELPERS_JS = """
         creditCard: <g><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></g>,
         banknote: <g><rect width="20" height="12" x="2" y="6" rx="2" /><circle cx="12" cy="12" r="2" /><path d="M6 12h.01M18 12h.01" /></g>,
         smartphone: <g><rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" /></g>,
+        alertCircle: <g><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></g>,
         alertTriangle: <g><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></g>,
+        info: <g><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></g>,
+        helpCircle: <g><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></g>,
         printer: <g><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect width="12" height="8" x="6" y="14" /></g>,
+        receipt: <g><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><line x1="8" y1="7" x2="16" y2="7" /><line x1="8" y1="11" x2="16" y2="11" /><line x1="8" y1="15" x2="12" y2="15" /></g>,
         lock: <g><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></g>,
         unlock: <g><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 9.9-1" /></g>,
         command: <g><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" /></g>,
         package: <g><line x1="16.5" y1="9.4" x2="7.5" y2="4.21" /><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></g>,
         barChart: <g><line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" /></g>,
         layers: <g><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></g>,
-        settings: <g><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></g>,
+        settings: <g><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></g>,
+        sliders: <g><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></g>,
         copy: <g><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></g>,
         externalLink: <g><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></g>,
         fileText: <g><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></g>,
         idCard: <g><rect width="20" height="14" x="2" y="5" rx="2" /><circle cx="9" cy="12" r="2" /><path d="M15 11h2M15 14h2" /></g>,
         key: <g><path d="m21 2-2 2m-1.5 1.5L16 7l-2-2-1.5 1.5 2 2L13 10l-1.5-1.5-2 2 1.5 1.5L9 14l-1.5-1.5L6 14a6 6 0 1 0 8.5 8.5l9-9Z" /></g>,
+        keyboard: <g><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="6" y1="9" x2="6.01" y2="9" /><line x1="10" y1="9" x2="10.01" y2="9" /><line x1="14" y1="9" x2="14.01" y2="9" /><line x1="18" y1="9" x2="18.01" y2="9" /><line x1="6" y1="13" x2="6.01" y2="13" /><line x1="18" y1="13" x2="18.01" y2="13" /><line x1="10" y1="13" x2="14" y2="13" /></g>,
+        laptop: <g><rect width="18" height="12" x="3" y="4" rx="2" /><line x1="2" y1="20" x2="22" y2="20" /></g>,
         database: <g><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /></g>,
         shield: <g><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></g>,
+        shieldCheck: <g><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" /></g>,
         send: <g><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></g>,
         truck: <g><rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></g>,
         dollarSign: <g><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></g>,
         arrowRight: <g><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></g>,
         arrowLeft: <g><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></g>,
+        arrowLeftRight: <g><polyline points="8 4 4 8 8 12" /><polyline points="16 20 20 16 16 12" /><line x1="4" y1="8" x2="20" y2="8" /><line x1="4" y1="16" x2="20" y2="16" /></g>,
         arrowUpRight: <g><line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" /></g>,
         arrowDownLeft: <g><line x1="17" y1="7" x2="7" y2="17" /><polyline points="17 17 7 17 7 7" /></g>,
+        arrowUpDown: <g><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></g>,
         eye: <g><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></g>,
+        eyeOff: <g><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" y1="2" x2="22" y2="22" /></g>,
         edit: <g><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></g>,
         filter: <g><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></g>,
         calendar: <g><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></g>,
         phone: <g><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></g>,
         mapPin: <g><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></g>,
         percent: <g><line x1="19" y1="5" x2="5" y2="19" /><circle cx="6.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="17.5" r="2.5" /></g>,
-        helpCircle: <g><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></g>,
-download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></g>,
+        download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></g>,
         columns: <g><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7m0-18H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7m0-18v18" /></g>,
-        arrowUpDown: <g><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></g>,
+        grid: <g><rect width="7" height="7" x="3" y="3" rx="1.5" /><rect width="7" height="7" x="14" y="3" rx="1.5" /><rect width="7" height="7" x="14" y="14" rx="1.5" /><rect width="7" height="7" x="3" y="14" rx="1.5" /></g>,
+        sparkles: <g><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z" /></g>,
+        menu: <g><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="6" x2="20" y2="6" /><line x1="4" y1="18" x2="20" y2="18" /></g>,
+        logOut: <g><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></g>,
+        messageSquare: <g><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></g>,
+        bank: <g><line x1="3" y1="21" x2="21" y2="21" /><line x1="6" y1="18" x2="6" y2="11" /><line x1="10" y1="18" x2="10" y2="11" /><line x1="14" y1="18" x2="14" y2="11" /><line x1="18" y1="18" x2="18" y2="11" /><polygon points="12 2 20 7 4 7" /></g>,
+        building: <g><rect width="16" height="20" x="4" y="2" rx="2" ry="2" /><path d="M9 22v-4h6v4" /><path d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01" /></g>,
+        history: <g><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><polyline points="12 7 12 12 15 15" /></g>,
+        trendingUp: <g><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></g>,
+        trendingDown: <g><polyline points="22 17 13.5 8.5 8.5 13.5 2 7" /><polyline points="16 17 22 17 22 11" /></g>,
+        panjabi: <g><path d="M8 2h8l-1 5a3 3 0 0 1-6 0L8 2z" /><path d="M6 7 3 11l3 2 1-3" /><path d="M18 7l3 4-3 2-1-3" /><path d="M7 11v11h10V11" /><path d="M12 7v6" /></g>,
+        saree: <g><path d="M4 4c4 2 8 2 12 0l4 3-2 13H6L4 4z" /><path d="M9 4v16" /><path d="M14 5v15" /></g>,
+        shirt: <g><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" /></g>,
       };
 
       return (
@@ -118,7 +143,7 @@ download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline poi
           strokeLinejoin="round"
           className={className}
         >
-          {icons[name] || <circle cx="12" cy="12" r="10" />}
+          {icons[name] || <circle cx="12" cy="12" r="1.5" fill="currentColor" />}
         </svg>
       );
     }
@@ -233,7 +258,7 @@ download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline poi
 
       return (
         <div
-          className={`fixed inset-0 bg-black/60 backdrop-blur-xs flex ${size === 'drawer' ? 'items-stretch justify-end p-0' : 'items-center justify-center p-4'} z-50 animate-in fade-in duration-100`}
+          className={`fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex ${size === 'drawer' ? 'items-stretch justify-end p-0' : 'items-center justify-center p-4'} z-50 animate-in fade-in duration-150`}
           onClick={handleBackdrop}
           onKeyDown={handleKey}
           id={id ? `modal-${id}` : undefined}
@@ -242,22 +267,22 @@ download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline poi
             ref={modalRef}
             role="dialog"
             aria-modal="true"
-            className={`w-full ${sizeMap[size] || sizeMap.md} bg-[var(--surface-raised)] border border-[var(--border)] ${size === 'drawer' ? 'rounded-none shadow-2xl h-full' : 'rounded-2xl shadow-2xl'} overflow-hidden flex flex-col text-xs animate-in ${size === 'drawer' ? 'slide-in-from-right duration-200' : 'zoom-in-95 duration-100'} ${className} ${printable ? 'printable-area' : ''}`}
+            className={`w-full ${sizeMap[size] || sizeMap.md} bg-[var(--surface-raised)] border border-[var(--border)] ${size === 'drawer' ? 'rounded-none shadow-2xl h-full' : 'rounded-xl shadow-xl shadow-slate-950/20'} overflow-hidden flex flex-col text-xs animate-in ${size === 'drawer' ? 'slide-in-from-right duration-200' : 'zoom-in-95 duration-150'} ${className} ${printable ? 'printable-area' : ''}`}
           >
             {/* Modal Header */}
             {(title || showClose) && (
-              <div className="no-print p-3.5 border-b border-[var(--border)] bg-[var(--surface-sunken)] flex items-center justify-between shrink-0 select-none">
-                <div className="flex items-center gap-2">
+              <div className="no-print px-4 py-3 border-b border-[var(--border)] bg-[var(--surface)] flex items-center justify-between shrink-0 select-none">
+                <div className="flex items-center gap-2.5">
                   {icon && (
-                    <div className="w-6 h-6 rounded-lg bg-[var(--primary-soft)] text-[var(--primary)] flex items-center justify-center">
-                      <Icon name={icon} size={14} />
+                    <div className="w-6 h-6 rounded-md bg-[var(--primary-soft)] text-[var(--primary)] flex items-center justify-center shrink-0">
+                      <Icon name={icon} size={13} />
                     </div>
                   )}
                   <div>
-                    <div className="font-bold text-sm text-[var(--foreground)] flex items-center gap-2">
+                    <div className="font-semibold text-xs text-[var(--foreground)] flex items-center gap-2">
                       <span>{title}</span>
                       {badge && (
-                        <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-[var(--primary-soft)] text-[var(--primary)]">
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-medium bg-[var(--surface-sunken)] border border-[var(--border)] text-[var(--muted-foreground)]">
                           {badge}
                         </span>
                       )}
@@ -266,22 +291,25 @@ download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline poi
                   </div>
                 </div>
                 {showClose && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (preventBackdropClose && onDiscardConfirm) {
-                        if (window.confirm("Discard current changes / input?")) {
-                          onClose();
+                  <div className="flex items-center gap-1.5">
+                    <kbd className="hidden sm:inline-block text-[9px]">Esc</kbd>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (preventBackdropClose && onDiscardConfirm) {
+                          if (window.confirm("Discard current changes / input?")) {
+                            onClose();
+                          }
+                          return;
                         }
-                        return;
-                      }
-                      onClose();
-                    }}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors cursor-pointer"
-                    title="Close (Esc)"
-                  >
-                    <Icon name="x" size={16} />
-                  </button>
+                        onClose();
+                      }}
+                      className="w-6 h-6 rounded-md flex items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--surface-sunken)] transition-colors cursor-pointer"
+                      title="Close (Esc)"
+                    >
+                      <Icon name="x" size={14} />
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -392,6 +420,398 @@ download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline poi
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+    }
+
+    // =========================================================================
+    // UNIFIED REUSABLE <MembershipCard> COMPONENT (CR80 ISO 7810 ID-1 SPEC)
+    // Features:
+    // 1. Luxury Gold/Platinum/Corporate retail privilege card design with anti-counterfeit Guilloche lines
+    // 2. High-security card number masking by default (•••• •••• •••• 0017) with instant hover-to-reveal & eye toggle
+    // 3. Crisp scannable Code 128 barcode + QR code on the back
+    // 4. Smooth 3D flip card interaction
+    // 5. Optimized for PVC card printers (Zebra, Evolis) and A4 10-up batch print
+    // =========================================================================
+    function MembershipCard({
+      customer,
+      side = 'front', // 'front' | 'back'
+      allowFlip = true,
+      onFlip,
+      forPrint = false,
+      isRevealed = false,
+      onToggleReveal,
+      className = '',
+      showActions = false,
+      onPrintSingle,
+      onReissue,
+    }) {
+      const [internalSide, setInternalSide] = useState(side);
+      const [isHovered, setIsHovered] = useState(false);
+      const [localRevealed, setLocalRevealed] = useState(false);
+
+      useEffect(() => {
+        setInternalSide(side);
+      }, [side]);
+
+      const activeSide = onFlip ? side : internalSide;
+      const handleFlip = () => {
+        if (!allowFlip) return;
+        const nextSide = activeSide === 'front' ? 'back' : 'front';
+        if (onFlip) onFlip(nextSide);
+        else setInternalSide(nextSide);
+      };
+
+      const cust = customer || {
+        id: 'c1',
+        name_en: 'Rahim Uddin',
+        name_bn: 'রহিম উদ্দিন',
+        customer_no: '1000 0017',
+        group: 'Retail',
+        phone: '01711-223344',
+        loyalty_points: 1450,
+        balance: 0,
+      };
+
+      const isVip = (cust.group || '').toLowerCase().includes('vip');
+      const isCorporate = (cust.group || '').toLowerCase().includes('corporate');
+
+      const rawNo = (cust.customer_no || '1000 0017').replace(/\\D/g, '');
+      const formattedNo = rawNo.length === 8 ? `${rawNo.slice(0, 4)} ${rawNo.slice(4)}` : (cust.customer_no || '1000 0017');
+      const maskedNo = `••••  ••••  ••••  ${rawNo.slice(-4)}`;
+
+      // Reveal number if forPrint, or prop isRevealed, or localRevealed, or hovered
+      const showPlainNumber = forPrint || isRevealed || localRevealed || isHovered;
+
+      // Tier-based luxury styling
+      let theme = {
+        tierName: 'GOLD PRIVILEGE',
+        tierBn: 'গোল্ড প্রিভিলেজ',
+        gradient: 'radial-gradient(135% 135% at 85% 15%, #064e3b 0%, #022c22 55%, #011c15 100%)',
+        foilText: 'from-amber-200 via-yellow-100 to-amber-300',
+        borderColor: 'border-amber-400/40',
+        accentText: 'text-amber-300',
+        badgeBg: 'bg-gradient-to-r from-amber-500/20 to-yellow-500/30 border border-amber-400/50 text-amber-200',
+        glowColor: 'rgba(245, 158, 11, 0.25)',
+      };
+
+      if (isVip) {
+        theme = {
+          tierName: 'PLATINUM VIP',
+          tierBn: 'প্লাটিনাম ভিআইপি',
+          gradient: 'radial-gradient(135% 135% at 85% 15%, #27272a 0%, #18181b 55%, #09090b 100%)',
+          foilText: 'from-amber-100 via-yellow-200 to-amber-400',
+          borderColor: 'border-amber-400/50',
+          accentText: 'text-amber-200',
+          badgeBg: 'bg-gradient-to-r from-amber-400/25 to-yellow-600/30 border border-amber-300/60 text-amber-100',
+          glowColor: 'rgba(217, 119, 6, 0.35)',
+        };
+      } else if (isCorporate) {
+        theme = {
+          tierName: 'CORPORATE ELITE',
+          tierBn: 'কর্পোরেট এলিট',
+          gradient: 'radial-gradient(135% 135% at 85% 15%, #1e3a8a 0%, #0f172a 55%, #020617 100%)',
+          foilText: 'from-blue-200 via-sky-100 to-slate-200',
+          borderColor: 'border-cyan-400/40',
+          accentText: 'text-cyan-300',
+          badgeBg: 'bg-gradient-to-r from-cyan-500/20 to-blue-500/30 border border-cyan-400/50 text-cyan-200',
+          glowColor: 'rgba(56, 189, 248, 0.25)',
+        };
+      }
+
+      return (
+        <div
+          className={`flex flex-col items-center ${className}`}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          {/* Card Physical Representation with 3D Flip */}
+          <div
+            onClick={allowFlip ? handleFlip : undefined}
+            style={{
+              cursor: allowFlip ? 'pointer' : 'default',
+              perspective: '1200px',
+            }}
+            className="w-full relative group"
+            title={allowFlip ? "Click card to flip between Front and Back" : ""}
+          >
+            {activeSide === 'front' ? (
+              /* ================= FRONT SIDE ================= */
+              <div
+                style={{
+                  background: theme.gradient,
+                  WebkitPrintColorAdjust: 'exact',
+                  printColorAdjust: 'exact',
+                  boxShadow: forPrint ? 'none' : `0 16px 32px -8px ${theme.glowColor}, 0 2px 6px rgba(0,0,0,0.5)`,
+                }}
+                className={`w-full aspect-[85.6/54] rounded-2xl p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden border ${theme.borderColor} select-none transition-all duration-300`}
+              >
+                {/* Guilloche Anti-Counterfeit Background Pattern */}
+                <svg className="absolute inset-0 w-full h-full opacity-10 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <pattern id={`guilloche-${cust.id || 'card'}`} width="36" height="36" patternUnits="userSpaceOnUse">
+                      <path d="M0 18 Q9 0 18 18 T36 18" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-amber-200" />
+                      <path d="M0 18 Q9 36 18 18 T36 18" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-amber-200" />
+                      <circle cx="18" cy="18" r="9" fill="none" stroke="currentColor" strokeWidth="0.3" className="text-amber-200" />
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill={`url(#guilloche-${cust.id || 'card'})`} />
+                </svg>
+
+                {/* Metallic Sheen Flare */}
+                <div className="absolute -top-24 -right-24 w-60 h-60 bg-gradient-to-br from-white/15 via-white/5 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+                {/* Header: Brand & Tier Badge */}
+                <div className="flex items-start justify-between relative z-10">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                      <span className="font-serif font-black tracking-[0.18em] text-xs sm:text-sm uppercase bg-gradient-to-r from-amber-100 via-amber-200 to-yellow-400 bg-clip-text text-transparent drop-shadow-sm">
+                        DIFFERENT FASHION
+                      </span>
+                    </div>
+                    <div className="text-[7.5px] sm:text-[8.5px] tracking-[0.16em] font-semibold text-amber-200/80 uppercase">
+                      HAUTE COUTURE · PRIVILEGE CLUB
+                    </div>
+                  </div>
+
+                  <div className={`px-2 py-0.5 rounded-full ${theme.badgeBg} shadow-xs flex items-center gap-1 backdrop-blur-xs`}>
+                    <Icon name="sparkles" size={10} className="text-amber-300" />
+                    <span className="font-mono font-black text-[8.5px] sm:text-[9.5px] tracking-wider uppercase">
+                      {theme.tierName}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Middle: EMV Microchip & Contactless Waves */}
+                <div className="flex items-center justify-between relative z-10 my-auto py-0.5">
+                  <div className="flex items-center gap-2.5">
+                    {/* Realistic Gold EMV Microchip */}
+                    <div className="w-8 h-6 sm:w-9 sm:h-7 rounded-md bg-gradient-to-br from-amber-200 via-amber-400 to-yellow-600 p-0.5 shadow-md border border-amber-200/70 relative">
+                      <div className="w-full h-full border border-amber-700/40 rounded-xs flex flex-col justify-between p-0.5">
+                        <div className="flex justify-between h-1.5">
+                          <div className="w-2 border-r border-amber-800/40"></div>
+                          <div className="w-2 border-l border-amber-800/40"></div>
+                        </div>
+                        <div className="w-full h-1 border-y border-amber-800/40 rounded-xs bg-amber-300/30"></div>
+                        <div className="flex justify-between h-1.5">
+                          <div className="w-2 border-r border-amber-800/40"></div>
+                          <div className="w-2 border-l border-amber-800/40"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Contactless Radio Waves */}
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-amber-200/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M6 9a7 7 0 0 1 0 6" />
+                      <path d="M10 6a11 11 0 0 1 0 12" />
+                      <path d="M14 3a16 16 0 0 1 0 18" />
+                    </svg>
+                  </div>
+
+                  {/* Security Hologram Disc */}
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-tr from-amber-300 via-emerald-300 to-purple-400 p-0.5 shadow-inner opacity-85 border border-white/40 flex items-center justify-center">
+                    <span className="text-[6px] font-black text-black/80 font-mono tracking-tighter">DF</span>
+                  </div>
+                </div>
+
+                {/* Card Number Row: Security Masked by default, unmasks on hover or eye click */}
+                <div className="relative z-10 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[7px] sm:text-[7.5px] uppercase tracking-widest font-bold text-amber-200/70">
+                      Card Number
+                    </span>
+                    <div className="flex items-center gap-1.5 no-print">
+                      {showPlainNumber ? (
+                        <span className="text-[7.5px] sm:text-[8px] font-mono font-semibold px-1.5 py-0.2 rounded bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 flex items-center gap-1 animate-in fade-in duration-150">
+                          <Icon name="eye" size={9} />
+                          <span>Revealed</span>
+                        </span>
+                      ) : (
+                        <span className="text-[7.5px] sm:text-[8px] font-mono font-semibold px-1.5 py-0.2 rounded bg-white/10 border border-white/20 text-white/70 flex items-center gap-1">
+                          <Icon name="lock" size={9} />
+                          <span>Hover to reveal</span>
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onToggleReveal) onToggleReveal();
+                          else setLocalRevealed(prev => !prev);
+                        }}
+                        className="p-1 rounded hover:bg-white/15 text-white/80 hover:text-white transition-colors cursor-pointer"
+                        title={showPlainNumber ? "Click to mask" : "Click to pin unmasked"}
+                      >
+                        <Icon name={showPlainNumber ? "eyeOff" : "eye"} size={11} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Embossed Card Number Typography */}
+                  <div
+                    className="font-mono text-sm sm:text-base md:text-lg font-extrabold tracking-[0.2em] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-2 group/num"
+                  >
+                    {/* Web view: switches between masked and full */}
+                    <span className="no-print font-bold">
+                      {showPlainNumber ? formattedNo : maskedNo}
+                    </span>
+                    {/* Print view: always prints full unmasked */}
+                    <span className="hidden print:inline-block font-bold">
+                      {formattedNo}
+                    </span>
+                  </div>
+
+                  {/* Cardholder Information & Validity Footer */}
+                  <div className="flex items-end justify-between pt-1 border-t border-white/10">
+                    <div>
+                      <div className="text-[7px] uppercase tracking-wider text-amber-200/70 font-semibold">Cardholder</div>
+                      <div className="text-[11px] sm:text-xs font-black tracking-wide text-white uppercase drop-shadow-xs truncate max-w-[150px] sm:max-w-[190px]">
+                        {cust.name_en}
+                      </div>
+                      <div className="text-[8.5px] sm:text-[9.5px] text-amber-200/80 font-bangla">
+                        {cust.name_bn || 'সম্মানিত সদস্য'}
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-[7px] uppercase tracking-wider text-amber-200/70 font-semibold">Valid Thru</div>
+                      <div className="text-[10px] sm:text-[11px] font-mono font-bold text-white tracking-widest">
+                        10/29
+                      </div>
+                      <div className="text-[7.5px] sm:text-[8px] font-mono text-amber-300/80">
+                        PTS: {cust.loyalty_points || 0}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* ================= BACK SIDE ================= */
+              <div
+                style={{
+                  background: '#0f172a',
+                  WebkitPrintColorAdjust: 'exact',
+                  printColorAdjust: 'exact',
+                  boxShadow: forPrint ? 'none' : '0 16px 32px -8px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.5)',
+                }}
+                className={`w-full aspect-[85.6/54] rounded-2xl flex flex-col justify-between relative overflow-hidden border border-slate-700 text-white select-none transition-all duration-300`}
+              >
+                {/* 3000 Oe HiCo Black Magnetic Stripe */}
+                <div className="w-full h-7 sm:h-8 bg-[#111111] mt-2.5 sm:mt-3 border-y border-black shadow-inner flex items-center px-4 justify-between">
+                  <span className="text-[6px] font-mono text-white/25 tracking-widest uppercase">
+                    3-TRACK HICO 3000 OE MAGNETIC STRIPE
+                  </span>
+                </div>
+
+                {/* Signature Strip & Security CVV Box */}
+                <div className="px-4 py-0.5 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-6 sm:h-7 bg-white text-black px-2.5 rounded flex items-center justify-between border border-gray-300 shadow-inner overflow-hidden relative">
+                      <div className="absolute inset-0 opacity-10 flex items-center justify-around pointer-events-none text-[5.5px] font-mono font-bold tracking-tighter text-gray-600">
+                        <span>DIFFERENT FASHION</span>
+                        <span>DIFFERENT FASHION</span>
+                      </div>
+                      <span className="text-[6.5px] text-gray-500 font-sans uppercase font-bold relative z-10">
+                        AUTHORIZED SIGNATURE
+                      </span>
+                      <span className="font-serif italic text-xs text-gray-900 font-semibold relative z-10">
+                        {cust.name_en}
+                      </span>
+                    </div>
+
+                    <div className="w-9 h-6 sm:h-7 bg-white text-black rounded flex flex-col items-center justify-center border border-gray-300 shadow-inner">
+                      <span className="text-[5.5px] text-gray-400 font-mono font-bold">CID</span>
+                      <span className="font-mono font-bold text-[10px] sm:text-xs tracking-wider">
+                        {rawNo.slice(-3) || '849'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Scannable Code 128 Barcode & QR Code */}
+                  <div className="flex items-center justify-between gap-2.5 bg-white p-1.5 sm:p-2 rounded-lg border border-gray-300 text-black shadow-xs">
+                    <div className="flex-1 text-center">
+                      <svg className="w-full h-6 sm:h-7 mx-auto" viewBox="0 0 180 28" preserveAspectRatio="none">
+                        <rect x="0" y="0" width="180" height="28" fill="#ffffff" />
+                        <g fill="#000000">
+                          <rect x="5" y="0" width="2" height="24" /><rect x="9" y="0" width="1" height="24" /><rect x="13" y="0" width="3" height="24" />
+                          <rect x="18" y="0" width="1" height="24" /><rect x="21" y="0" width="2" height="24" /><rect x="25" y="0" width="3" height="24" />
+                          <rect x="31" y="0" width="1" height="24" /><rect x="34" y="0" width="1" height="24" /><rect x="38" y="0" width="2" height="24" />
+                          <rect x="42" y="0" width="3" height="24" /><rect x="47" y="0" width="1" height="24" /><rect x="50" y="0" width="2" height="24" />
+                          <rect x="55" y="0" width="2" height="24" /><rect x="59" y="0" width="3" height="24" /><rect x="64" y="0" width="1" height="24" />
+                          <rect x="67" y="0" width="1" height="24" /><rect x="71" y="0" width="2" height="24" /><rect x="75" y="0" width="3" height="24" />
+                          <rect x="80" y="0" width="1" height="24" /><rect x="83" y="0" width="1" height="24" /><rect x="87" y="0" width="2" height="24" />
+                          <rect x="91" y="0" width="3" height="24" /><rect x="96" y="0" width="1" height="24" /><rect x="99" y="0" width="2" height="24" />
+                          <rect x="104" y="0" width="2" height="24" /><rect x="108" y="0" width="3" height="24" /><rect x="113" y="0" width="1" height="24" />
+                          <rect x="116" y="0" width="1" height="24" /><rect x="120" y="0" width="2" height="24" /><rect x="124" y="0" width="3" height="24" />
+                          <rect x="129" y="0" width="2" height="24" /><rect x="133" y="0" width="1" height="24" /><rect x="137" y="0" width="2" height="24" />
+                          <rect x="141" y="0" width="3" height="24" /><rect x="146" y="0" width="1" height="24" /><rect x="149" y="0" width="2" height="24" />
+                          <rect x="154" y="0" width="1" height="24" /><rect x="157" y="0" width="3" height="24" /><rect x="162" y="0" width="2" height="24" />
+                          <rect x="167" y="0" width="2" height="24" /><rect x="171" y="0" width="3" height="24" /><rect x="176" y="0" width="1" height="24" />
+                        </g>
+                      </svg>
+                      <div className="font-mono text-[7.5px] sm:text-[8.5px] font-bold text-gray-800 tracking-wider">
+                        * DF{formattedNo.replace(/\\s+/g, '')} *
+                      </div>
+                    </div>
+
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 bg-white p-0.5 rounded border border-gray-200 flex flex-col items-center justify-center shrink-0">
+                      <svg className="w-8 h-8 sm:w-9 sm:h-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <rect width="6" height="6" x="3" y="3" rx="1" fill="#000" />
+                        <rect width="6" height="6" x="15" y="3" rx="1" fill="#000" />
+                        <rect width="6" height="6" x="3" y="15" rx="1" fill="#000" />
+                        <rect x="5" y="5" width="2" height="2" fill="#fff" />
+                        <rect x="17" y="5" width="2" height="2" fill="#fff" />
+                        <rect x="5" y="17" width="2" height="2" fill="#fff" />
+                        <path d="M14 14h3v3h-3z M19 14h2v2h-2z M14 19h2v2h-2z M18 18h3v3h-3z M10 8h4v2h-4z M10 14h2v2h-2z" fill="#000" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Legal Disclaimer & Location */}
+                <div className="px-4 pb-2.5 pt-0.5 space-y-0.5">
+                  <div className="text-[6px] sm:text-[6.5px] text-slate-400 leading-tight">
+                    1. Non-transferable. Property of Different Fashion Ltd. 2. Scan barcode at checkout to earn/redeem 5% loyalty reward points. 3. Settle dues within 30 days. Report lost cards immediately.
+                  </div>
+                  <div className="flex items-center justify-between text-[6px] sm:text-[7px] text-amber-200/90 border-t border-slate-800 pt-0.5">
+                    <span>Helpline: +880 1711-223344</span>
+                    <span>Uttara Flagship · Sector 3</span>
+                    <span className="font-mono">BIN: 002847192-0101</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Under Card Quick Action Controls (When showActions is true and not printing) */}
+          {showActions && !forPrint && (
+            <div className="w-full mt-2.5 flex items-center justify-between gap-2 px-1 text-xs">
+              <button
+                type="button"
+                onClick={handleFlip}
+                className="h-7 px-2.5 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--foreground)] font-semibold flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                title="Flip to opposite side"
+              >
+                <Icon name="refresh" size={12} />
+                <span>Side: {activeSide.toUpperCase()}</span>
+              </button>
+
+              <div className="flex items-center gap-1.5">
+                {onPrintSingle && (
+                  <button
+                    type="button"
+                    onClick={() => onPrintSingle(cust)}
+                    className="h-7 px-2.5 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-bold flex items-center gap-1 shadow-xs hover:bg-[var(--primary-hover)] cursor-pointer"
+                    title="Print single CR80 card"
+                  >
+                    <Icon name="printer" size={12} />
+                    <span>Print Card</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
     }
 
     // =========================================================================
@@ -791,7 +1211,7 @@ download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline poi
           </div>
 
           {/* Controls Bar: Search + Filter Chips + Saved Views + More Filters */}
-          <div className="p-2.5 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-wrap items-center justify-between gap-2 shrink-0">
+          <div className="p-2.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-xs">
             <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
               {/* Search Box */}
               <div className="relative flex-1 min-w-[200px] max-w-sm">
@@ -808,7 +1228,7 @@ download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline poi
                     if (e.key === 'Escape') searchInputRef.current?.blur();
                   }}
                   placeholder={searchPlaceholder}
-                  className="w-full h-8 pl-8 pr-7 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] focus:border-[var(--primary)] focus:outline-none"
+                  className="w-full h-8 pl-8 pr-7 rounded-md bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] focus:border-[var(--primary)] focus:outline-none"
                 />
                 <Icon name="search" size={13} className="absolute left-2.5 top-2.5 text-[var(--muted-foreground)] pointer-events-none" />
                 {searchQuery ? (
@@ -855,7 +1275,7 @@ download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline poi
                       setCurrentPage(1);
                       setHighlightedIndex(0);
                     }}
-                    className="h-8 px-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] font-medium focus:border-[var(--primary)] cursor-pointer"
+                    className="h-8 px-2 rounded-md bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] font-medium focus:border-[var(--primary)] cursor-pointer"
                   >
                     {savedViews.map(v => (
                       <option key={v.id} value={v.id}>{v.label}</option>
@@ -875,7 +1295,7 @@ download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline poi
                       setCurrentPage(1);
                       setHighlightedIndex(0);
                     }}
-                    className="h-8 px-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] font-medium focus:border-[var(--primary)] cursor-pointer"
+                    className="h-8 px-2 rounded-md bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] font-medium focus:border-[var(--primary)] cursor-pointer"
                   >
                     {datePresets.map(preset => (
                       <option key={preset} value={preset}>{preset}</option>
@@ -887,14 +1307,14 @@ download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline poi
                         type="date"
                         value={customStartDate}
                         onChange={(e) => { setCustomStartDate(e.target.value); setCurrentPage(1); }}
-                        className="h-8 px-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)]"
+                        className="h-8 px-2 rounded-md bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)]"
                       />
                       <span className="text-[10px] text-[var(--muted-foreground)]">to</span>
                       <input
                         type="date"
                         value={customEndDate}
                         onChange={(e) => { setCustomEndDate(e.target.value); setCurrentPage(1); }}
-                        className="h-8 px-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)]"
+                        className="h-8 px-2 rounded-md bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)]"
                       />
                     </div>
                   )}
@@ -915,9 +1335,9 @@ download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline poi
                           setCurrentPage(1);
                           setHighlightedIndex(0);
                         }}
-                        className={`h-7 px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                        className={`h-7 px-2.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                           isSelected
-                            ? 'bg-[var(--primary)] text-[var(--primary-foreground)] font-bold shadow-xs'
+                            ? 'bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold shadow-xs'
                             : 'bg-[var(--surface-sunken)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                         }`}
                       >
@@ -934,9 +1354,9 @@ download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline poi
               <button
                 type="button"
                 onClick={() => setShowMoreFiltersDrawer(true)}
-                className={`h-8 px-3 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`h-8 px-3 rounded-md border text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
                   activeFilterCount > 0
-                    ? 'bg-[var(--primary-soft)] border-[var(--primary)] text-[var(--primary)] font-bold'
+                    ? 'bg-[var(--primary-soft)] border-[var(--primary)] text-[var(--primary)] font-semibold'
                     : 'bg-[var(--surface-sunken)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
                 }`}
                 title="Open More Filters Drawer"
@@ -957,12 +1377,12 @@ download: <g><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline poi
             ref={tableContainerRef}
             tabIndex={0}
             onKeyDown={handleTableKeyDown}
-            className="flex-1 rounded-xl bg-[var(--surface)] border border-[var(--border)] overflow-hidden flex flex-col shadow-xs focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            className="flex-1 rounded-lg bg-[var(--surface)] border border-[var(--border)] overflow-hidden flex flex-col shadow-xs focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
           >
             <div className="flex-1 overflow-y-auto overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 {/* Header */}
-                <thead className="bg-[var(--surface-sunken)] sticky top-0 border-b border-[var(--border)] select-none text-[var(--muted-foreground)] font-semibold z-10">
+                <thead className="bg-[var(--surface-sunken)] sticky top-0 border-b border-[var(--border)] select-none text-[var(--muted-foreground)] font-semibold text-[11px] uppercase tracking-wider z-10">
                   <tr>
                     {/* Row Select Checkbox Column */}
                     <th className="py-2.5 px-3 w-8">

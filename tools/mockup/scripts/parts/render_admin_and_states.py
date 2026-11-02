@@ -40,7 +40,7 @@ RENDER_ADMIN_AND_STATES_JS = """
                             <tr key={user.id} className="hover:bg-[var(--surface-sunken)] transition-colors">
                               <td className="py-2.5 px-3 font-semibold text-[var(--foreground)]">{user.name}</td>
                               <td className="py-2.5 px-3">
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--primary-soft)] text-[var(--primary)]">
+                                <span className="px-2 py-0.5 rounded-md border border-[var(--primary)]/30 text-[10px] font-semibold bg-[var(--primary-soft)] text-[var(--primary)]">
                                   {user.role}
                                 </span>
                               </td>
@@ -381,7 +381,7 @@ RENDER_ADMIN_AND_STATES_JS = """
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-3">
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--success-soft)] text-[var(--success)]">
+                                    <span className="px-2 py-0.5 rounded-md border border-[var(--success)]/30 text-[10px] font-semibold bg-[var(--success-soft)] text-[var(--success)]">
                                       Active
                                     </span>
                                     <button
@@ -840,20 +840,16 @@ RENDER_ADMIN_AND_STATES_JS = """
                               </div>
 
                               {/* Card Preview */}
-                              <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex justify-center">
-                                <div className="w-72 h-44 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] text-white p-4 flex flex-col justify-between shadow-xl">
-                                  <div className="flex justify-between items-start">
-                                    <div>
-                                      <div className="text-xs font-bold tracking-wider">DIFFERENT FASHION</div>
-                                      <div className="text-[9px] opacity-80">PRIVILEGE CLUB</div>
-                                    </div>
-                                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/20">PLATINUM</span>
-                                  </div>
-                                  <div>
-                                    <div className="text-xs font-bold">RAHIM UDDIN</div>
-                                    <div className="text-[11px] font-mono tracking-widest mt-0.5">1000 0017</div>
-                                  </div>
+                              <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col items-center justify-center space-y-2">
+                                <div className="w-full max-w-sm">
+                                  <MembershipCard
+                                    customer={MOCK_CUSTOMERS[0]}
+                                    side="front"
+                                    allowFlip={true}
+                                    showActions={true}
+                                  />
                                 </div>
+                                <span className="text-[10px] text-[var(--muted-foreground)]">Click card to test 3D flip between Front and Back (with scannable barcode)</span>
                               </div>
                             </div>
                           </div>
@@ -1395,7 +1391,7 @@ RENDER_ADMIN_AND_STATES_JS = """
                               <td className="py-2.5 px-3 font-mono text-[var(--muted-foreground)]">{log.timestamp}</td>
                               <td className="py-2.5 px-3 font-semibold text-[var(--foreground)]">{log.user}</td>
                               <td className="py-2.5 px-3">
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[var(--surface-sunken)] border border-[var(--border)]">
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-[var(--surface-sunken)] border border-[var(--border)]">
                                   {log.action}
                                 </span>
                               </td>
@@ -1417,7 +1413,7 @@ RENDER_ADMIN_AND_STATES_JS = """
                     <div>
                       <div className="flex items-center gap-2">
                         <h1 className="text-lg font-bold text-[var(--foreground)]">SaaS Multi-Tenant Platform Console</h1>
-                        <span className="px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-600 font-mono text-[10px] font-bold">SUPER ADMIN</span>
+                        <span className="px-2 py-0.5 rounded-md border border-purple-500/30 bg-purple-500/10 text-purple-600 font-mono text-[10px] font-semibold">SUPER ADMIN</span>
                       </div>
                       <div className="text-xs text-[var(--muted-foreground)]">Global tenant provisioning, subscription tiers, MRR metrics, and branch quota allocation</div>
                     </div>
@@ -1495,12 +1491,12 @@ RENDER_ADMIN_AND_STATES_JS = """
                                 <span className="font-bold">{t.branches}</span> branch{t.branches > 1 ? 'es' : ''}
                               </td>
                               <td className="py-2.5 px-3">
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                <span className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold ${
                                   t.plan.includes('Enterprise') 
-                                    ? 'bg-[var(--primary-soft)] text-[var(--primary)]' 
+                                    ? 'bg-[var(--primary-soft)] text-[var(--primary)] border-[var(--primary)]/30' 
                                     : t.plan.includes('Growth') 
-                                      ? 'bg-[var(--info-soft)] text-[var(--info)]' 
-                                      : 'bg-[var(--surface-sunken)] text-[var(--muted-foreground)]'
+                                      ? 'bg-[var(--info-soft)] text-[var(--info)] border-[var(--info)]/30' 
+                                      : 'bg-[var(--surface-sunken)] text-[var(--muted-foreground)] border-[var(--border)]'
                                 }`}>
                                   {t.plan}
                                 </span>
@@ -1663,7 +1659,7 @@ RENDER_ADMIN_AND_STATES_JS = """
                           <div>
                             <div className="flex items-center gap-2">
                               <h2 className="font-bold text-sm text-[var(--foreground)]">{currentUser.name}</h2>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--primary-soft)] text-[var(--primary)]">
+                              <span className="px-2 py-0.5 rounded-md border border-[var(--primary)]/30 text-[10px] font-semibold bg-[var(--primary-soft)] text-[var(--primary)]">
                                 {viewAsRole}
                               </span>
                             </div>
@@ -1848,10 +1844,10 @@ RENDER_ADMIN_AND_STATES_JS = """
                                   <td className="py-2 text-[var(--muted-foreground)] text-[11px]">{entry.terminal}</td>
                                   <td className="py-2 font-mono text-[11px] text-[var(--muted-foreground)]">{entry.ip}</td>
                                   <td className="py-2 text-right">
-                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    <span className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold ${
                                       entry.status === 'Success'
-                                        ? 'bg-[var(--success-soft)] text-[var(--success)]'
-                                        : 'bg-[var(--danger-soft)] text-[var(--danger)]'
+                                        ? 'bg-[var(--success-soft)] text-[var(--success)] border-[var(--success)]/30'
+                                        : 'bg-[var(--danger-soft)] text-[var(--danger)] border-[var(--danger)]/30'
                                     }`}>
                                       {entry.status}
                                     </span>

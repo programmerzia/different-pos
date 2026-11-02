@@ -61,10 +61,10 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                       sortable: true,
                       accessor: c => c.group,
                       cell: c => (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        <span className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold ${
                           (c.group || '').includes('VIP')
-                            ? 'bg-[var(--accent)]/15 text-[var(--accent)]'
-                            : 'bg-[var(--surface-sunken)] text-[var(--muted-foreground)]'
+                            ? 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/30'
+                            : 'bg-[var(--surface-sunken)] text-[var(--muted-foreground)] border-[var(--border)]'
                         }`}>
                           {c.group}
                         </span>
@@ -716,7 +716,7 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                         <div className="flex items-center gap-2">
                           <h1 className="text-lg font-bold text-[var(--foreground)]">{selectedCustomer.name_en}</h1>
                           <span className="text-xs text-[var(--muted-foreground)] font-bangla">({selectedCustomer.name_bn})</span>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--primary-soft)] text-[var(--primary)]">
+                          <span className="px-2 py-0.5 rounded-md border border-[var(--primary)]/30 text-[10px] font-semibold bg-[var(--primary-soft)] text-[var(--primary)]">
                             {selectedCustomer.group}
                           </span>
                         </div>
@@ -812,7 +812,7 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                                 <Icon name="mapPin" size={15} className="text-[var(--primary)]" />
                                 <span>Customer Address & Delivery Details (ঠিকানা ও ডেলিভারি বিবরণ)</span>
                               </div>
-                              <span className="px-2 py-0.5 rounded-full bg-[var(--success-soft)] text-[var(--success)] font-bold text-[10px]">
+                              <span className="px-2 py-0.5 rounded-md border border-[var(--success)]/30 bg-[var(--success-soft)] text-[var(--success)] font-semibold text-[10px]">
                                 ✓ Verified Address
                               </span>
                             </div>
@@ -967,316 +967,592 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                 </div>
               )}
 
-              {/* ================= SCREEN 9: BULK MEMBERSHIP CARD PRODUCTION CENTER ================= */}
-              {currentScreen === 'membership_cards' && (
-                <div className="flex-1 flex flex-col overflow-y-auto p-4 space-y-4">
-                  {/* Studio Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[var(--border)] gap-2">
-                    <div>
-                      <h1 className="text-lg font-bold text-[var(--foreground)]">Membership Card Studio & Production</h1>
-                      <div className="text-xs text-[var(--muted-foreground)]">Print designer with front/back preview, ISO CR80 PVC cards, 10-Up A4 sheets, and Lost Card reissue</div>
-                    </div>
+                            {/* ================= SCREEN 9: BULK MEMBERSHIP CARD PRODUCTION CENTER ================= */}
+              {currentScreen === 'membership_cards' && (() => {
+                // Filter customers for Gallery View
+                const filteredMembers = MOCK_CUSTOMERS.filter(c => {
+                  if (cardTierFilter === 'vip' && !(c.group || '').toLowerCase().includes('vip')) return false;
+                  if (cardTierFilter === 'gold' && ((c.group || '').toLowerCase().includes('vip') || (c.group || '').toLowerCase().includes('corporate'))) return false;
+                  if (cardTierFilter === 'corporate' && !(c.group || '').toLowerCase().includes('corporate')) return false;
+                  if (cardMemberSearch) {
+                    const q = cardMemberSearch.toLowerCase();
+                    const matchName = (c.name_en || '').toLowerCase().includes(q) || (c.name_bn || '').includes(q);
+                    const matchPhone = (c.phone || '').includes(q);
+                    const matchNo = (c.customer_no || '').replace(/\\D/g, '').includes(q.replace(/\\D/g, ''));
+                    if (!matchName && !matchPhone && !matchNo) return false;
+                  }
+                  return true;
+                });
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setReissueTargetCustomer(reissueTargetCustomer || MOCK_CUSTOMERS[0]);
-                          setReissueOldCardNumber(reissueTargetCustomer?.customer_no || '1000 0017');
-                          setShowReissueCardModal(true);
-                        }}
-                        className="h-8 px-3 rounded-lg bg-[var(--warning-soft)] hover:bg-[var(--warning)] hover:text-white text-[var(--warning)] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <Icon name="refresh" size={13} />
-                        <span>Report Lost → Reissue</span>
-                      </button>
+                // A4 Pagination: 10 cards per sheet (2 cols x 5 rows)
+                const a4CardsPerSheet = 10;
+                const totalA4Sheets = Math.ceil(MOCK_CUSTOMERS.length / a4CardsPerSheet);
+                const currentA4Cards = MOCK_CUSTOMERS.slice(cardA4SheetIndex * a4CardsPerSheet, (cardA4SheetIndex + 1) * a4CardsPerSheet);
 
-                      <div className="flex bg-[var(--surface-sunken)] p-0.5 rounded-lg border border-[var(--border)] text-xs">
+                const activeCust = reissueTargetCustomer || MOCK_CUSTOMERS[0];
+
+                return (
+                  <div className="flex-1 flex flex-col overflow-y-auto p-4 space-y-4">
+                    {/* Studio Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[var(--border)] gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h1 className="text-lg font-bold text-[var(--foreground)]">Membership Card Studio & Production</h1>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-md border border-[var(--primary)]/30 bg-[var(--primary-soft)] text-[var(--primary)] font-bold">
+                            CR80 ISO 7810 ID-1
+                          </span>
+                        </div>
+                        <div className="text-xs text-[var(--muted-foreground)]">
+                          Direct PVC card printing (Zebra/Evolis), 10-Up A4 sheets, security masking, and 32-member gallery
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {/* Hardware & Stock Specs Guide Button */}
                         <button
                           type="button"
-                          onClick={() => setCardLayout('cr80')}
-                          className={`px-3 py-1 rounded font-medium cursor-pointer ${cardLayout === 'cr80' ? 'bg-[var(--surface)] text-[var(--primary)] shadow-xs font-bold' : 'text-[var(--muted-foreground)]'}`}
+                          onClick={() => setShowPrintSpecsModal(true)}
+                          className="h-8 px-2.5 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-raised)] border border-[var(--border)] text-xs font-semibold text-[var(--foreground)] flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="Card printer setup, ribbon & stock specifications"
                         >
-                          CR80 PVC
+                          <Icon name="info" size={13} className="text-[var(--primary)]" />
+                          <span>Hardware Specs</span>
+                        </button>
+
+                        {/* Report Lost -> Reissue Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReissueTargetCustomer(activeCust);
+                            setReissueOldCardNumber(activeCust.customer_no);
+                            setShowReissueCardModal(true);
+                          }}
+                          className="h-8 px-3 rounded-lg bg-[var(--warning-soft)] hover:bg-[var(--warning)] hover:text-white text-[var(--warning)] text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Icon name="refresh" size={13} />
+                          <span>Report Lost → Reissue</span>
+                        </button>
+
+                        {/* Print Trigger Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            window.print();
+                            addToast(
+                              cardViewTab === 'single'
+                                ? `Printing CR80 PVC card for ${activeCust.name_en}...`
+                                : (cardViewTab === 'a4_10' ? `Printing A4 Sheet #${cardA4SheetIndex + 1}...` : `Printing batch cards...`),
+                              "success"
+                            );
+                          }}
+                          className="h-8 px-3.5 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer hover:bg-[var(--primary-hover)]"
+                        >
+                          <Icon name="printer" size={14} />
+                          <span>{cardViewTab === 'single' ? 'Print Card' : (cardViewTab === 'a4_10' ? 'Print A4 Sheet' : 'Print Batch')}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Navigation, Filter & Security Masking Controls Strip */}
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] gap-3 shadow-xs">
+                      {/* Left: Member Selector Dropdown (Features 'All Members' as first option!) */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-semibold text-[var(--muted-foreground)]">Select Member:</span>
+                        <select
+                          value={cardViewTab === 'gallery' ? 'all' : (activeCust.id || 'all')}
+                          onChange={(e) => {
+                            if (e.target.value === 'all') {
+                              setCardViewTab('gallery');
+                            } else {
+                              const found = MOCK_CUSTOMERS.find(c => c.id === e.target.value);
+                              if (found) {
+                                setReissueTargetCustomer(found);
+                                setReissueOldCardNumber(found.customer_no);
+                                setCardViewTab('single');
+                              }
+                            }
+                          }}
+                          className="h-8 px-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] font-semibold min-w-[240px]"
+                        >
+                          <option value="all">★ All Members (32 Cards — Gallery View)</option>
+                          <optgroup label="★ Platinum VIP Members (4)">
+                            {MOCK_CUSTOMERS.filter(c => (c.group || '').toLowerCase().includes('vip')).map(c => (
+                              <option key={c.id} value={c.id}>{c.name_en} ({c.customer_no}) · VIP</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="★ Gold Privilege Members (24)">
+                            {MOCK_CUSTOMERS.filter(c => !(c.group || '').toLowerCase().includes('vip') && !(c.group || '').toLowerCase().includes('corporate')).map(c => (
+                              <option key={c.id} value={c.id}>{c.name_en} ({c.customer_no}) · Gold</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="★ Corporate Elite Members (4)">
+                            {MOCK_CUSTOMERS.filter(c => (c.group || '').toLowerCase().includes('corporate')).map(c => (
+                              <option key={c.id} value={c.id}>{c.name_en} ({c.customer_no}) · Corporate</option>
+                            ))}
+                          </optgroup>
+                        </select>
+                      </div>
+
+                      {/* Middle: View Mode Tabs */}
+                      <div className="flex bg-[var(--surface-sunken)] p-0.5 rounded-lg border border-[var(--border)] text-xs self-start lg:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => setCardViewTab('single')}
+                          className={`px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                            cardViewTab === 'single'
+                              ? 'bg-[var(--surface)] text-[var(--primary)] shadow-xs font-bold'
+                              : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                          }`}
+                        >
+                          <Icon name="creditCard" size={13} />
+                          <span>Single Studio</span>
                         </button>
                         <button
                           type="button"
-                          onClick={() => setCardLayout('a4_10')}
-                          className={`px-3 py-1 rounded font-medium cursor-pointer ${cardLayout === 'a4_10' ? 'bg-[var(--surface)] text-[var(--primary)] shadow-xs font-bold' : 'text-[var(--muted-foreground)]'}`}
+                          onClick={() => setCardViewTab('gallery')}
+                          className={`px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                            cardViewTab === 'gallery'
+                              ? 'bg-[var(--surface)] text-[var(--primary)] shadow-xs font-bold'
+                              : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                          }`}
                         >
-                          A4 (10-Up)
+                          <Icon name="grid" size={13} />
+                          <span>All Members Gallery (32)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCardViewTab('a4_10')}
+                          className={`px-3 py-1.5 rounded-md font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                            cardViewTab === 'a4_10'
+                              ? 'bg-[var(--surface)] text-[var(--primary)] shadow-xs font-bold'
+                              : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                          }`}
+                        >
+                          <Icon name="layers" size={13} />
+                          <span>A4 Sheet (10-Up)</span>
                         </button>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const area = document.getElementById('printable-card-area');
-                          if (area) {
-                            area.classList.add('printable-area');
-                            window.print();
-                            area.classList.remove('printable-area');
-                          } else {
-                            window.print();
-                          }
-                          addToast("Sending cards to card printer...", "info");
-                        }}
-                        className="h-8 px-3.5 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer hover:bg-[var(--primary-hover)]"
-                      >
-                        <Icon name="printer" size={14} />
-                        <span>Print Batch</span>
-                      </button>
-                    </div>
-                  </div>
+                      {/* Right: Security Number Unmask Toggle & Flip Card Button */}
+                      <div className="flex items-center gap-2 self-start lg:self-auto">
+                        {/* Security Masking Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => setIsCardNumberRevealed(prev => !prev)}
+                          className={`h-8 px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs ${
+                            isCardNumberRevealed
+                              ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 font-bold'
+                              : 'bg-[var(--surface-sunken)] border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                          }`}
+                          title="Card numbers are masked by default. Hover over card or click to reveal."
+                        >
+                          <Icon name={isCardNumberRevealed ? "eyeOff" : "eye"} size={13} />
+                          <span>{isCardNumberRevealed ? "Numbers Unmasked" : "Masked (Hover to Reveal)"}</span>
+                        </button>
 
-                  {/* Customer Selector & Flip Switcher Strip */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] gap-2 shadow-xs">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-semibold text-[var(--foreground)]">Select Member:</span>
-                      <select
-                        value={reissueTargetCustomer?.id || MOCK_CUSTOMERS[0].id}
-                        onChange={(e) => {
-                          const found = MOCK_CUSTOMERS.find(c => c.id === e.target.value);
-                          if (found) {
-                            setReissueTargetCustomer(found);
-                            setReissueOldCardNumber(found.customer_no);
-                          }
-                        }}
-                        className="h-8 px-2.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] font-semibold"
-                      >
-                        {MOCK_CUSTOMERS.map(c => (
-                          <option key={c.id} value={c.id}>{c.name_en} ({c.customer_no}) · {c.group}</option>
-                        ))}
-                      </select>
+                        {/* Flip Card Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => setCardPreviewSide(prev => prev === 'front' ? 'back' : 'front')}
+                          className="h-8 px-2.5 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-raised)] border border-[var(--border)] text-xs font-bold text-[var(--primary)] flex items-center gap-1 cursor-pointer shadow-2xs"
+                          title="Flip card between front and back"
+                        >
+                          <Icon name="refresh" size={12} />
+                          <span>Side: {cardPreviewSide.toUpperCase()}</span>
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setCardPreviewSide(prev => prev === 'front' ? 'back' : 'front')}
-                        className="h-8 px-3.5 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-raised)] border border-[var(--border)] text-xs font-bold text-[var(--primary)] flex items-center gap-1.5 cursor-pointer shadow-xs"
-                      >
-                        <Icon name="refresh" size={13} />
-                        <span>Flip Card (Showing: {cardPreviewSide.toUpperCase()})</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Interactive Card Designer Canvas & Live Front/Back Preview */}
-                  <div id="printable-card-area" className="w-full space-y-4">
-                    {cardLayout === 'cr80' && (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                        {/* 3D Physical Card Simulation Container */}
-                        <div className="p-6 rounded-2xl bg-[var(--surface)] border border-[var(--border)] flex flex-col items-center justify-center space-y-4 shadow-xs">
-                          <div className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider flex items-center justify-between w-full">
-                            <span>Interactive Physical CR80 Simulation</span>
-                            <span className="font-mono text-[10px]">ISO/IEC 7810 ID-1 (85.6 × 54mm)</span>
-                          </div>
-
-                          {/* THE CARD */}
-                          {cardPreviewSide === 'front' ? (
-                            /* FRONT SIDE PREVIEW */
-                            <div
-                              style={{
-                                background: 'linear-gradient(135deg, #042f2e 0%, #0d9488 50%, #0f766e 100%)',
-                                WebkitPrintColorAdjust: 'exact',
-                                printColorAdjust: 'exact',
-                                color: '#ffffff'
-                              }}
-                              className="w-[340px] h-[214px] rounded-2xl p-5 flex flex-col justify-between shadow-2xl relative overflow-hidden border border-[var(--primary)]/40 select-none animate-in fade-in duration-200"
-                            >
-                              {/* Metallic Sheen Effect */}
-                              <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-xl pointer-events-none" />
-
-                              <div className="flex items-start justify-between relative z-10">
-                                <div>
-                                  <div className="text-xs font-black tracking-widest text-[var(--primary-soft)] uppercase">DIFFERENT FASHION</div>
-                                  <div className="text-[9px] text-[var(--primary-soft)] tracking-wider font-semibold">EXCLUSIVE PRIVILEGE CLUB</div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {/* Smart Chip */}
-                                  <div className="w-8 h-6 rounded bg-gradient-to-br from-[var(--warning)] to-[var(--warning)] border border-[var(--warning)]/50 flex items-center justify-center text-[8px] font-mono font-bold text-black shadow-inner">
-                                    CHIP
-                                  </div>
-                                  {/* NFC Contactless Wave */}
-                                  <div className="text-[var(--primary-soft)] text-sm font-bold tracking-tighter">
-                                    ))))
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="space-y-1 relative z-10">
-                                <div className="font-mono text-xl tracking-widest text-white font-extrabold drop-shadow">
-                                  {reissueTargetCustomer?.customer_no || '1000 0017'}
-                                </div>
-                                <div className="flex justify-between items-end pt-1">
-                                  <div>
-                                    <div className="text-[8px] text-[var(--primary-soft)] uppercase tracking-wider font-semibold">Member Cardholder</div>
-                                    <div className="text-xs font-bold tracking-wide text-white">{reissueTargetCustomer?.name_en || 'Rahim Uddin'}</div>
-                                    <div className="text-[10px] text-[var(--primary-soft)] font-bangla">{reissueTargetCustomer?.name_bn || 'রহিম উদ্দিন'}</div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-[8px] text-[var(--primary-soft)] uppercase tracking-wider font-semibold">Club Tier</div>
-                                    <div className="text-xs font-black text-[var(--warning)] uppercase tracking-wider">
-                                      {(reissueTargetCustomer?.group || '').includes('VIP') ? 'PLATINUM VIP' : 'GOLD PRIVILEGE'}
-                                    </div>
-                                    <div className="text-[9px] text-[var(--primary-soft)] font-mono">VALID: 10/29</div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            /* BACK SIDE PREVIEW */
-                            <div
-                              style={{
-                                background: '#1e293b',
-                                WebkitPrintColorAdjust: 'exact',
-                                printColorAdjust: 'exact',
-                                color: '#ffffff'
-                              }}
-                              className="w-[340px] h-[214px] rounded-2xl flex flex-col justify-between shadow-2xl relative overflow-hidden border border-[var(--border)] select-none animate-in fade-in duration-200"
-                            >
-                              {/* Magnetic Stripe */}
-                              <div className="w-full h-10 bg-black mt-4 border-y border-black" />
-
-                              {/* Signature & Barcode Area */}
-                              <div className="px-5 py-2 space-y-2">
-                                <div className="flex items-center gap-3">
-                                  <div className="flex-1 h-7 bg-white text-black px-2 flex items-center justify-between text-[10px] font-mono italic border border-[var(--border)] rounded">
-                                    <span className="text-[8px] text-[var(--muted-foreground)] font-sans not-italic">AUTHORIZED SIGNATURE</span>
-                                    <span>{reissueTargetCustomer?.name_en || 'Cardholder'}</span>
-                                  </div>
-                                  <div className="w-8 h-7 bg-white text-black flex items-center justify-center font-mono font-bold text-xs rounded border border-[var(--border)]">
-                                    849
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center justify-between pt-1">
-                                  {/* Code 128 Barcode */}
-                                  <div className="bg-white p-1.5 rounded border border-[var(--border)] text-center">
-                                    <div className="font-mono text-base tracking-widest text-black font-bold h-6 flex items-center justify-center">
-                                      ||| | |||| | |||||| || |
-                                    </div>
-                                    <div className="font-mono text-[8px] text-black font-semibold">
-                                      MC{(reissueTargetCustomer?.customer_no || '1000 0017').replace(/[ ]+/g, '')}01
-                                    </div>
-                                  </div>
-
-                                  {/* QR Code */}
-                                  <div className="w-12 h-12 bg-white text-black p-1 rounded border border-[var(--border)] flex flex-col items-center justify-center">
-                                    <Icon name="grid" size={24} className="text-black" />
-                                    <span className="text-[6px] font-mono">SCAN</span>
-                                  </div>
-                                </div>
-
-                                <div className="text-[7px] text-[var(--muted-foreground)] leading-tight pt-1">
-                                  This membership card remains property of Different Fashion. Settle dues within 30 days. Found cards please return to Uttara Showroom. Helpline: 01711-223344.
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => setCardPreviewSide(prev => prev === 'front' ? 'back' : 'front')}
-                            className="text-xs text-[var(--primary)] font-semibold flex items-center gap-1 hover:underline"
-                          >
-                            <Icon name="refresh" size={12} />
-                            <span>Click to Flip (Currently {cardPreviewSide.toUpperCase()})</span>
-                          </button>
-                        </div>
-
-                        {/* Bulk Print Queue Card */}
-                        <div className="p-4 rounded-2xl bg-[var(--surface)] border border-[var(--border)] space-y-3 shadow-xs">
-                          <div className="flex items-center justify-between">
-                            <h2 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider">Bulk Print Queue (Pending Batch)</h2>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--primary-soft)] text-[var(--primary)]">
-                              5 Cards Queued
+                    {/* ================= VIEW 1: SINGLE CARD STUDIO ================= */}
+                    {cardViewTab === 'single' && (
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        {/* Left Stage (7 cols): Card Visualizer Container */}
+                        <div className="lg:col-span-7 p-6 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col items-center justify-center space-y-4 shadow-xs">
+                          <div className="text-xs font-bold text-[var(--muted-foreground)] uppercase tracking-wider flex items-center justify-between w-full pb-2 border-b border-[var(--border)]">
+                            <span className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                              <span>Interactive Physical CR80 Simulation</span>
+                            </span>
+                            <span className="font-mono text-[10px] text-[var(--muted-foreground)]">
+                              ISO/IEC 7810 ID-1 (85.60 × 53.98 mm)
                             </span>
                           </div>
 
-                          <div className="overflow-x-auto border border-[var(--border)] rounded-xl">
-                            <table className="w-full text-left text-xs">
-                              <thead className="bg-[var(--surface-sunken)] border-b border-[var(--border)] text-[var(--muted-foreground)] font-semibold">
-                                <tr>
-                                  <th className="py-2 px-2.5">Member #</th>
-                                  <th className="py-2 px-2.5">Customer Name</th>
-                                  <th className="py-2 px-2.5">Tier</th>
-                                  <th className="py-2 px-2.5 text-center">Print Status</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-[var(--border)]">
-                                {MOCK_CUSTOMERS.slice(0, 5).map((c, idx) => (
-                                  <tr key={c.id} className="hover:bg-[var(--surface-sunken)]/50">
-                                    <td className="py-2 px-2.5 font-mono font-bold text-[var(--primary)]">{c.customer_no}</td>
-                                    <td className="py-2 px-2.5 font-medium text-[var(--foreground)] truncate max-w-[120px]">{c.name_en}</td>
-                                    <td className="py-2 px-2.5">
-                                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-[var(--surface-sunken)]">
-                                        {(c.group || '').includes('VIP') ? 'VIP' : 'GOLD'}
-                                      </span>
-                                    </td>
-                                    <td className="py-2 px-2.5 text-center">
-                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--warning-soft)] text-[var(--warning)]">
-                                        Ready to Print
-                                      </span>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                          {/* The Card Component */}
+                          <div className="w-full max-w-md py-2">
+                            <div id="printable-card-area" className="printable-area w-full cr80-page">
+                              <MembershipCard
+                                customer={activeCust}
+                                side={cardPreviewSide}
+                                allowFlip={true}
+                                onFlip={(s) => setCardPreviewSide(s)}
+                                isRevealed={isCardNumberRevealed}
+                                showActions={true}
+                                onPrintSingle={() => {
+                                  window.print();
+                                  addToast(`Printing CR80 card for ${activeCust.name_en}...`, "success");
+                                }}
+                              />
+                            </div>
                           </div>
 
-                          <div className="pt-2 flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => addToast("Printed 5 queued PVC cards", "success")}
-                              className="flex-1 h-8 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] text-xs font-semibold flex items-center justify-center gap-1 shadow-xs cursor-pointer"
-                            >
-                              <Icon name="printer" size={13} />
-                              <span>Print All Queued Cards</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => addToast("Queue cleared", "info")}
-                              className="px-3 h-8 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-raised)] border border-[var(--border)] text-xs font-medium text-[var(--muted-foreground)] cursor-pointer"
-                            >
-                              Clear
-                            </button>
+                          <div className="w-full pt-3 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                            <div className="flex items-center gap-2 text-[var(--muted-foreground)]">
+                              <Icon name="info" size={13} className="text-[var(--primary)] shrink-0" />
+                              <span>Click card to 3D flip. Hover over number to unmask digits.</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCardPrintSide('both');
+                                  window.print();
+                                  addToast("Sending duplex CR80 card to printer...", "info");
+                                }}
+                                className="h-8 px-3 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] font-bold flex items-center gap-1.5 shadow-xs cursor-pointer hover:bg-[var(--primary-hover)]"
+                              >
+                                <Icon name="printer" size={13} />
+                                <span>Print Both Sides (Duplex)</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right Stage (5 cols): Cardholder Details & Scanner Test */}
+                        <div className="lg:col-span-5 space-y-4">
+                          {/* Profile Snapshot Card */}
+                          <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] space-y-3 shadow-xs">
+                            <div className="flex items-center justify-between">
+                              <h2 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider">
+                                Member Information & Card Status
+                              </h2>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                                Card Active
+                              </span>
+                            </div>
+
+                            <div className="space-y-2 text-xs">
+                              <div className="flex justify-between py-1 border-b border-[var(--border)]/60">
+                                <span className="text-[var(--muted-foreground)]">Customer Name:</span>
+                                <span className="font-semibold text-[var(--foreground)]">{activeCust.name_en} ({activeCust.name_bn || 'রহিম উদ্দিন'})</span>
+                              </div>
+                              <div className="flex justify-between py-1 border-b border-[var(--border)]/60">
+                                <span className="text-[var(--muted-foreground)]">Phone Number:</span>
+                                <span className="font-mono font-medium text-[var(--foreground)]">{activeCust.phone || '01711-223344'}</span>
+                              </div>
+                              <div className="flex justify-between py-1 border-b border-[var(--border)]/60">
+                                <span className="text-[var(--muted-foreground)]">Card Number:</span>
+                                <span className="font-mono font-bold text-[var(--primary)]">{activeCust.customer_no}</span>
+                              </div>
+                              <div className="flex justify-between py-1 border-b border-[var(--border)]/60">
+                                <span className="text-[var(--muted-foreground)]">Loyalty Tier:</span>
+                                <span className="font-semibold text-[var(--foreground)]">
+                                  {(activeCust.group || '').includes('VIP') ? 'Platinum VIP' : 'Gold Privilege'}
+                                </span>
+                              </div>
+                              <div className="flex justify-between py-1 border-b border-[var(--border)]/60">
+                                <span className="text-[var(--muted-foreground)]">Loyalty Balance:</span>
+                                <span className="font-mono font-bold text-amber-400">{activeCust.loyalty_points || 1450} Points (৳145.00)</span>
+                              </div>
+                              <div className="flex justify-between py-1">
+                                <span className="text-[var(--muted-foreground)]">Card Validity:</span>
+                                <span className="font-mono text-[var(--foreground)]">Valid Thru 10/2029 (5 Years)</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Barcode Laser Scanner Test Card */}
+                          <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] space-y-3 shadow-xs">
+                            <div className="flex items-center justify-between">
+                              <h2 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider flex items-center gap-1.5">
+                                <Icon name="barcode" size={14} className="text-[var(--primary)]" />
+                                <span>POS Scanner Test Simulator</span>
+                              </h2>
+                              <span className="text-[9px] font-mono text-[var(--muted-foreground)]">Code 128 Auto-Read</span>
+                            </div>
+
+                            <p className="text-[11px] text-[var(--muted-foreground)] leading-relaxed">
+                              Scan the physical printed card's barcode with your counter scanner to verify instant decoding:
+                            </p>
+
+                            <div className="space-y-2">
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={cardScanTestInput}
+                                  onChange={(e) => setCardScanTestInput(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      const clean = cardScanTestInput.trim().replace(/^DF/i, '').replace(/[ *]/g, '');
+                                      const matched = MOCK_CUSTOMERS.find(c => c.customer_no.replace(/\\D/g, '') === clean || c.customer_no === cardScanTestInput.trim());
+                                      if (matched) {
+                                        setCardScanTestResult(matched);
+                                        addToast(`Scanner Verified: ${matched.name_en} (${matched.customer_no})`, "success");
+                                      } else {
+                                        setCardScanTestResult(false);
+                                        addToast("Barcode not matched to any member", "warning");
+                                      }
+                                    }
+                                  }}
+                                  placeholder="Scan card barcode here or enter DF10000017..."
+                                  className="w-full h-8 pl-8 pr-16 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs font-mono text-[var(--foreground)] focus:border-[var(--primary)]"
+                                />
+                                <Icon name="search" size={13} className="absolute left-2.5 top-2.5 text-[var(--muted-foreground)]" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCardScanTestInput(`DF${activeCust.customer_no.replace(/\\s+/g, '')}`);
+                                    setCardScanTestResult(activeCust);
+                                    addToast("Simulated laser scan successful", "info");
+                                  }}
+                                  className="absolute right-1 top-1 h-6 px-2 rounded bg-[var(--surface)] hover:bg-[var(--surface-raised)] border border-[var(--border)] text-[9px] font-semibold text-[var(--primary)] cursor-pointer"
+                                >
+                                  Simulate
+                                </button>
+                              </div>
+
+                              {cardScanTestResult && (
+                                <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs flex items-center justify-between text-emerald-400">
+                                  <div className="flex items-center gap-2">
+                                    <Icon name="checkCircle" size={14} />
+                                    <span>Verified: <strong>{cardScanTestResult.name_en}</strong> ({cardScanTestResult.customer_no})</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setAttachedCustomer(cardScanTestResult);
+                                      setCurrentScreen('pos');
+                                      addToast(`Attached ${cardScanTestResult.name_en} to POS register`, "success");
+                                    }}
+                                    className="font-bold underline cursor-pointer"
+                                  >
+                                    Open in POS →
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {/* A4 Sheet 10-Up Layout */}
-                    {cardLayout === 'a4_10' && (
-                      <div className="p-6 rounded-xl bg-[var(--surface)] border border-[var(--border)] space-y-4">
-                        <div className="text-xs font-semibold text-[var(--muted-foreground)] flex items-center justify-between">
-                          <span>A4 Card Sheet Grid (2 columns × 5 rows with crop marks for die-cutting)</span>
-                          <span className="font-mono text-[10px]">Print at 100% scale (No fit to page)</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto p-4 bg-white text-black border border-dashed border-[var(--input)] shadow-sm">
-                          {RAW_DATA.CUSTOMERS.slice(0, 10).map((cust, n) => (
-                            <div key={cust.id} className="p-3 border border-[var(--border)] rounded-lg flex flex-col justify-between h-28 text-xs relative bg-white">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <div className="font-extrabold text-[11px] text-[var(--primary-hover)] tracking-wider">DIFFERENT FASHION</div>
-                                  <div className="text-[9px] text-[var(--muted-foreground)]">Privilege Card #{n + 1}</div>
-                                </div>
-                                <span className="text-[9px] font-mono font-bold bg-[var(--surface-sunken)] px-1 rounded">{cust.group.includes('VIP') ? 'VIP' : 'MEMBER'}</span>
-                              </div>
-                              <div className="font-mono text-sm tracking-wider font-bold text-[var(--foreground)]">{cust.customer_no}</div>
-                              <div className="flex justify-between items-end border-t border-[var(--border)] pt-1 text-[10px]">
-                                <span className="font-bold">{cust.name_en}</span>
-                                <span className="font-mono text-[var(--muted-foreground)]">MC{cust.customer_no.replace(/[ ]+/g, '')}01</span>
-                              </div>
+                    {/* ================= VIEW 2: ALL MEMBERS GALLERY (32 CARDS) ================= */}
+                    {cardViewTab === 'gallery' && (
+                      <div className="space-y-4">
+                        {/* Gallery Filter & Search Toolbar */}
+                        <div className="p-3 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* Search Member input */}
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={cardMemberSearch}
+                                onChange={(e) => setCardMemberSearch(e.target.value)}
+                                placeholder="Search member, phone, card #..."
+                                className="h-8 pl-8 pr-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] w-56"
+                              />
+                              <Icon name="search" size={13} className="absolute left-2.5 top-2.5 text-[var(--muted-foreground)]" />
                             </div>
-                          ))}
+
+                            {/* Tier Filter Chips */}
+                            <div className="flex bg-[var(--surface-sunken)] p-0.5 rounded-lg border border-[var(--border)] text-xs">
+                              {[
+                                { id: 'all', label: `All (${MOCK_CUSTOMERS.length})` },
+                                { id: 'vip', label: `Platinum VIP (${MOCK_CUSTOMERS.filter(c => (c.group || '').toLowerCase().includes('vip')).length})` },
+                                { id: 'gold', label: `Gold (${MOCK_CUSTOMERS.filter(c => !(c.group || '').toLowerCase().includes('vip') && !(c.group || '').toLowerCase().includes('corporate')).length})` },
+                                { id: 'corporate', label: `Corporate (${MOCK_CUSTOMERS.filter(c => (c.group || '').toLowerCase().includes('corporate')).length})` },
+                              ].map(chip => (
+                                <button
+                                  key={chip.id}
+                                  type="button"
+                                  onClick={() => setCardTierFilter(chip.id)}
+                                  className={`px-2.5 py-1 rounded font-medium cursor-pointer transition-colors ${
+                                    cardTierFilter === chip.id
+                                      ? 'bg-[var(--surface)] text-[var(--primary)] font-bold shadow-2xs'
+                                      : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                                  }`}
+                                >
+                                  {chip.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (selectedBatchCardIds.length === filteredMembers.length) {
+                                  setSelectedBatchCardIds([]);
+                                } else {
+                                  setSelectedBatchCardIds(filteredMembers.map(c => c.id));
+                                }
+                              }}
+                              className="h-8 px-3 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-raised)] border border-[var(--border)] text-xs font-semibold text-[var(--foreground)] cursor-pointer"
+                            >
+                              {selectedBatchCardIds.length === filteredMembers.length ? "Deselect All" : "Select All"}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                window.print();
+                                addToast(`Printing ${selectedBatchCardIds.length} selected cards...`, "success");
+                              }}
+                              className="h-8 px-3.5 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer hover:bg-[var(--primary-hover)]"
+                            >
+                              <Icon name="printer" size={13} />
+                              <span>Print Selected ({selectedBatchCardIds.length})</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Cards Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                          {filteredMembers.map(cust => {
+                            const isSelected = selectedBatchCardIds.includes(cust.id);
+                            return (
+                              <div
+                                key={cust.id}
+                                className={`p-4 rounded-xl bg-[var(--surface)] border transition-all duration-200 space-y-3 shadow-xs ${
+                                  isSelected ? 'border-[var(--primary)] ring-1 ring-[var(--primary)]/30' : 'border-[var(--border)]'
+                                }`}
+                              >
+                                {/* Card Row Top: Checkbox, Name, and Quick Studio Button */}
+                                <div className="flex items-center justify-between pb-1">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => {
+                                        setSelectedBatchCardIds(prev =>
+                                          prev.includes(cust.id) ? prev.filter(x => x !== cust.id) : [...prev, cust.id]
+                                        );
+                                      }}
+                                      className="rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)]"
+                                    />
+                                    <span className="font-bold text-xs text-[var(--foreground)]">{cust.name_en}</span>
+                                  </label>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setReissueTargetCustomer(cust);
+                                      setReissueOldCardNumber(cust.customer_no);
+                                      setCardViewTab('single');
+                                    }}
+                                    className="text-[10px] font-semibold text-[var(--primary)] hover:underline flex items-center gap-0.5 cursor-pointer"
+                                  >
+                                    <span>Studio</span>
+                                    <Icon name="arrowRight" size={10} />
+                                  </button>
+                                </div>
+
+                                {/* The Actual Card Visualizer */}
+                                <MembershipCard
+                                  customer={cust}
+                                  side={cardPreviewSide}
+                                  allowFlip={true}
+                                  isRevealed={isCardNumberRevealed}
+                                  showActions={true}
+                                  onPrintSingle={(c) => {
+                                    setReissueTargetCustomer(c);
+                                    window.print();
+                                    addToast(`Printing CR80 card for ${c.name_en}...`, "success");
+                                  }}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ================= VIEW 3: A4 SHEET 10-UP BATCH ================= */}
+                    {cardViewTab === 'a4_10' && (
+                      <div className="p-6 rounded-xl bg-[var(--surface)] border border-[var(--border)] space-y-4 shadow-xs">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border)]">
+                          <div>
+                            <h2 className="text-sm font-bold text-[var(--foreground)]">
+                              A4 Sheet Grid Production (2 Columns × 5 Rows = 10 Cards / Sheet)
+                            </h2>
+                            <p className="text-xs text-[var(--muted-foreground)]">
+                              Standard A4 cardstock sheet with crop marks for commercial die-cut or paper trimmer
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {/* Sheet Pagination */}
+                            <div className="flex items-center gap-1 bg-[var(--surface-sunken)] p-1 rounded-lg border border-[var(--border)] text-xs font-semibold">
+                              <span>Sheet:</span>
+                              {Array.from({ length: totalA4Sheets }).map((_, i) => (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  onClick={() => setCardA4SheetIndex(i)}
+                                  className={`px-2 py-0.5 rounded cursor-pointer ${
+                                    cardA4SheetIndex === i ? 'bg-[var(--primary)] text-[var(--primary-foreground)]' : 'text-[var(--muted-foreground)]'
+                                  }`}
+                                >
+                                  {i + 1}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* Front/Back Sheet Switcher */}
+                            <div className="flex bg-[var(--surface-sunken)] p-0.5 rounded-lg border border-[var(--border)] text-xs">
+                              <button
+                                type="button"
+                                onClick={() => setCardA4SheetSide('front')}
+                                className={`px-2.5 py-1 rounded font-medium cursor-pointer ${
+                                  cardA4SheetSide === 'front' ? 'bg-[var(--surface)] text-[var(--primary)] font-bold shadow-2xs' : 'text-[var(--muted-foreground)]'
+                                }`}
+                              >
+                                Fronts Sheet
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCardA4SheetSide('back')}
+                                className={`px-2.5 py-1 rounded font-medium cursor-pointer ${
+                                  cardA4SheetSide === 'back' ? 'bg-[var(--surface)] text-[var(--primary)] font-bold shadow-2xs' : 'text-[var(--muted-foreground)]'
+                                }`}
+                              >
+                                Backs Sheet (Mirrored)
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Printable A4 Grid Canvas */}
+                        <div id="printable-card-area" className="printable-area a4-sheet-page max-w-4xl mx-auto p-4 bg-white border border-dashed border-gray-300 shadow-sm rounded-lg">
+                          <div className="grid grid-cols-2 gap-4">
+                            {currentA4Cards.map((cust, idx) => (
+                              <div key={cust.id} className="relative p-1 border border-dashed border-gray-300 rounded-xl">
+                                {/* Corner Crop Marks */}
+                                <div className="absolute -top-1 -left-1 w-2 h-2 border-t border-l border-gray-400"></div>
+                                <div className="absolute -top-1 -right-1 w-2 h-2 border-t border-r border-gray-400"></div>
+                                <div className="absolute -bottom-1 -left-1 w-2 h-2 border-b border-l border-gray-400"></div>
+                                <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b border-r border-gray-400"></div>
+
+                                <MembershipCard
+                                  customer={cust}
+                                  side={cardA4SheetSide}
+                                  allowFlip={false}
+                                  forPrint={true}
+                                  isRevealed={true}
+                                  showActions={false}
+                                />
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
+
 
               {/* ================= SCREEN 10: WHATSAPP & SMS MESSAGING (G W) ================= */}
               {currentScreen === 'messaging' && (
@@ -1289,11 +1565,11 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--success)]/15 text-[var(--success)] flex items-center gap-1.5">
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-md border border-[var(--success)]/30 bg-[var(--success)]/10 text-[var(--success)] flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse"></span>
                         <span>WhatsApp Business Connected</span>
                       </span>
-                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] flex items-center gap-1.5">
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-md border border-[var(--border)] bg-[var(--surface-sunken)] text-[var(--foreground)] flex items-center gap-1.5">
                         <span>SMS Gateway: 4,250 Credits</span>
                       </span>
                     </div>
@@ -1454,7 +1730,7 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                       {/* Right: Phone Mock Simulator */}
                       <div className="w-full lg:w-80 rounded-xl bg-[var(--surface)] border border-[var(--border)] p-4 flex flex-col items-center justify-center shrink-0 shadow-xs">
                         <div className="text-xs font-semibold text-[var(--muted-foreground)] mb-3">Live Recipient Phone Simulator</div>
-                        <div className="w-64 h-[420px] rounded-3xl bg-[#0B141A] border-4 border-[var(--border)] p-2.5 flex flex-col justify-between shadow-2xl text-white overflow-hidden">
+                        <div className="w-64 h-[420px] rounded-xl bg-[#0B141A] border border-[var(--border)] p-2.5 flex flex-col justify-between shadow-xl text-white overflow-hidden">
                           <div className="bg-[#1F2C34] -mx-2.5 -mt-2.5 p-2.5 flex items-center gap-2 border-b border-[#2A3942]">
                             <div className="w-7 h-7 rounded-full bg-[var(--primary)] text-white font-bold flex items-center justify-center text-xs">
                               DF
@@ -1516,7 +1792,7 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                           <div key={idx} className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] flex flex-col justify-between space-y-3 shadow-xs">
                             <div>
                               <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--surface-sunken)] text-[var(--muted-foreground)]">{tpl.cat}</span>
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md border border-[var(--border)] bg-[var(--surface-sunken)] text-[var(--muted-foreground)]">{tpl.cat}</span>
                                 <span className="text-[10px] font-mono text-[var(--primary)] font-semibold">{tpl.tag}</span>
                               </div>
                               <h3 className="font-bold text-xs text-[var(--foreground)] mt-2">{tpl.title}</h3>
@@ -1574,8 +1850,8 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                                 <td className="py-2.5 px-3 text-[var(--muted-foreground)]">{rule.channel}</td>
                                 <td className="py-2.5 px-3 text-[var(--muted-foreground)]">{rule.delay}</td>
                                 <td className="py-2.5 px-3 text-center">
-                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                    rule.status ? 'bg-[var(--success-soft)] text-[var(--success)]' : 'bg-[var(--surface-sunken)] text-[var(--muted-foreground)]'
+                                  <span className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold ${
+                                    rule.status ? 'bg-[var(--success-soft)] text-[var(--success)] border-[var(--success)]/30' : 'bg-[var(--surface-sunken)] text-[var(--muted-foreground)] border-[var(--border)]'
                                   }`}>
                                     {rule.status ? 'ACTIVE' : 'PAUSED'}
                                   </span>
@@ -1642,8 +1918,8 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                             sortable: true,
                             accessor: m => m.channel,
                             cell: m => (
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                m.channel === 'WhatsApp' ? 'bg-[var(--success)]/15 text-[var(--success)]' : 'bg-[var(--primary-soft)] text-[var(--primary)]'
+                              <span className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold ${
+                                m.channel === 'WhatsApp' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/30' : 'bg-[var(--primary-soft)] text-[var(--primary)] border-[var(--primary)]/30'
                               }`}>
                                 {m.channel}
                               </span>
@@ -1675,8 +1951,8 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                             align: 'center',
                             accessor: m => m.status,
                             cell: m => (
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                m.status === 'Delivered' ? 'bg-[var(--success-soft)] text-[var(--success)]' : 'bg-[var(--danger-soft)] text-[var(--danger)]'
+                              <span className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold ${
+                                m.status === 'Delivered' ? 'bg-[var(--success-soft)] text-[var(--success)] border-[var(--success)]/30' : 'bg-[var(--danger-soft)] text-[var(--danger)] border-[var(--danger)]/30'
                               }`}>
                                 {m.status}
                               </span>
@@ -1788,7 +2064,7 @@ RENDER_CUSTOMERS_MESSAGING_JS = """
                                 <td className="py-2.5 px-3 text-[var(--muted-foreground)]">{item.date}</td>
                                 <td className="py-2.5 px-3 text-[var(--foreground)]">{item.reason}</td>
                                 <td className="py-2.5 px-3">
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--surface-sunken)] border border-[var(--border)]">
+                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[var(--surface-sunken)] border border-[var(--border)]">
                                     {item.channel}
                                   </span>
                                 </td>

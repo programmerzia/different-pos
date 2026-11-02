@@ -290,7 +290,7 @@ RENDER_MONEY_DASHBOARD_REPORTS_JS = """
                       <div>
                         <div className="flex items-center gap-2">
                           <h1 className="text-lg font-bold text-[var(--foreground)]">Executive POS Dashboard</h1>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary)]">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary)]/30">
                             Live BI
                           </span>
                         </div>

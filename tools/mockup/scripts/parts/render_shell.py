@@ -6,21 +6,22 @@ RENDER_SHELL_TOP_JS = """
       if (!isAuthenticated || currentScreen === 'login') {
         return (
           <div className="h-full w-full flex items-center justify-center bg-[var(--background)] p-4 select-none relative overflow-y-auto">
-            <div className="w-full max-w-md bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-2xl p-6 space-y-5 animate-in fade-in duration-200">
+            <div className="w-full max-w-md bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl shadow-slate-950/10 p-6 space-y-5 animate-in fade-in duration-200">
               {/* Brand Header */}
               <div className="text-center space-y-1.5">
-                <div className="w-12 h-12 rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)] mx-auto flex items-center justify-center font-bold text-lg shadow-md">
+                <div className="w-10 h-10 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] mx-auto flex items-center justify-center font-bold text-sm shadow-xs">
                   DF
                 </div>
-                <h1 className="text-xl font-bold tracking-tight text-[var(--foreground)]">Different Fashion</h1>
+                <h1 className="text-lg font-bold tracking-tight text-[var(--foreground)] uppercase">Different Fashion</h1>
                 <p className="text-xs text-[var(--muted-foreground)]">Point of Sale & Enterprise Retail Management</p>
+                <div className="text-[10px] font-mono text-[var(--muted-foreground)]">Terminal: POS-DF1-01 · Dhaka, BD</div>
               </div>
 
               {/* STEP 1: CREDENTIALS */}
               {loginStep === 'credentials' && (
                 <form onSubmit={handleLoginSubmit} className="space-y-4">
                   {loginIsLockedOut && (
-                    <div className="p-3 rounded-xl bg-[var(--danger-soft)] text-[var(--danger)] text-xs font-semibold flex items-start gap-2 border border-[var(--danger)]/30">
+                    <div className="p-3 rounded-lg bg-[var(--danger-soft)] text-[var(--danger)] text-xs font-semibold flex items-start gap-2 border border-[var(--danger)]/30">
                       <Icon name="lock" size={16} className="shrink-0 mt-0.5" />
                       <div>
                         <div>Terminal Locked Out!</div>
@@ -37,23 +38,23 @@ RENDER_SHELL_TOP_JS = """
                   )}
 
                   <div>
-                    <label className="text-xs font-semibold text-[var(--foreground)]">Username or Phone</label>
+                    <label className="text-xs font-medium text-[var(--foreground)]">Staff Username or Phone</label>
                     <div className="relative mt-1">
                       <input
                         type="text"
                         value={loginUsername}
                         onChange={(e) => setLoginUsername(e.target.value)}
                         placeholder="e.g. sumi@differentfashion.bd or 01711..."
-                        className="w-full h-9 pl-8 pr-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] focus:border-[var(--primary)]"
+                        className="w-full h-8 pl-8 pr-3 rounded-md bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] focus:border-[var(--primary)] focus:outline-none"
                         disabled={loginIsLockedOut}
                       />
-                      <Icon name="user" size={14} className="absolute left-2.5 top-2.5 text-[var(--muted-foreground)]" />
+                      <Icon name="user" size={13} className="absolute left-2.5 top-2.5 text-[var(--muted-foreground)]" />
                     </div>
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-[var(--foreground)]">Password</label>
+                      <label className="text-xs font-medium text-[var(--foreground)]">Passcode or PIN</label>
                       <button
                         type="button"
                         onClick={() => setLoginStep('forgot_password')}
@@ -67,18 +68,18 @@ RENDER_SHELL_TOP_JS = """
                         type={loginShowPassword ? "text" : "password"}
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
-                        placeholder="Enter password"
-                        className="w-full h-9 pl-8 pr-9 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] focus:border-[var(--primary)]"
+                        placeholder="Enter password or 4-digit PIN"
+                        className="w-full h-8 pl-8 pr-9 rounded-md bg-[var(--surface-sunken)] border border-[var(--border)] text-xs text-[var(--foreground)] focus:border-[var(--primary)] focus:outline-none"
                         disabled={loginIsLockedOut}
                       />
-                      <Icon name="lock" size={14} className="absolute left-2.5 top-2.5 text-[var(--muted-foreground)]" />
+                      <Icon name="lock" size={13} className="absolute left-2.5 top-2.5 text-[var(--muted-foreground)]" />
                       <button
                         type="button"
                         onClick={() => setLoginShowPassword(prev => !prev)}
-                        className="absolute right-2.5 top-2.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                        className="absolute right-2.5 top-2.5 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
                         title={loginShowPassword ? "Hide Password" : "Show Password"}
                       >
-                        <Icon name={loginShowPassword ? "eye" : "eye"} size={14} />
+                        <Icon name="eye" size={13} />
                       </button>
                     </div>
                   </div>
@@ -91,7 +92,7 @@ RENDER_SHELL_TOP_JS = """
                         onChange={(e) => setLoginRememberDevice(e.target.checked)}
                         className="rounded border-[var(--border)] text-[var(--primary)]"
                       />
-                      <span className="text-[var(--muted-foreground)] text-[11px]">Remember this terminal device</span>
+                      <span className="text-[var(--muted-foreground)] text-[11px]">Remember terminal device</span>
                     </label>
                     {loginAttempts > 0 && !loginIsLockedOut && (
                       <span className="text-[10px] text-[var(--danger)] font-medium">Failed: {loginAttempts}/5 tries</span>
@@ -101,21 +102,21 @@ RENDER_SHELL_TOP_JS = """
                   <button
                     type="submit"
                     disabled={loginIsLockedOut}
-                    className="w-full h-9 rounded-lg bg-[var(--primary)] text-[var(--primary-foreground)] text-xs font-bold hover:bg-[var(--primary-hover)] transition-colors shadow-xs disabled:opacity-50"
+                    className="w-full h-8.5 rounded-md bg-[var(--primary)] text-[var(--primary-foreground)] text-xs font-semibold hover:bg-[var(--primary-hover)] transition-colors shadow-xs disabled:opacity-50 cursor-pointer"
                   >
                     Sign In to Terminal
                   </button>
 
                   {/* Fast Demo Role Login Chips */}
                   <div className="pt-3 border-t border-[var(--border)] space-y-1.5">
-                    <div className="text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider text-center">Fast Demo Sign In</div>
+                    <div className="text-[10px] font-semibold text-[var(--muted-foreground)] uppercase tracking-wider text-center">Select Demo Staff Desk</div>
                     <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                       {[
-                        { name: 'Sumi', role: 'Cashier', pin: '1234', color: 'text-[var(--success)]' },
-                        { name: 'Rafiq', role: 'Stock Keeper', pin: '2345', color: 'text-[var(--info)]' },
-                        { name: 'Nusrat', role: 'Accountant', pin: '3456', color: 'text-[var(--primary)]' },
-                        { name: 'Farhan', role: 'Manager', pin: '5678', color: 'text-[var(--warning)]' },
-                        { name: 'Tanvir Ahmed', role: 'Owner', pin: '9999', color: 'text-[var(--danger)]' }
+                        { name: 'Sumi', role: 'Cashier', desk: 'POS Register', pin: '1234', color: 'text-[var(--success)]' },
+                        { name: 'Rafiq', role: 'Stock Keeper', desk: 'Warehouse', pin: '2345', color: 'text-[var(--info)]' },
+                        { name: 'Nusrat', role: 'Accountant', desk: 'Ledgers', pin: '3456', color: 'text-[var(--primary)]' },
+                        { name: 'Farhan', role: 'Manager', desk: 'Branch Ops', pin: '5678', color: 'text-[var(--warning)]' },
+                        { name: 'Tanvir Ahmed', role: 'Owner', desk: 'All Menus', pin: '9999', color: 'text-[var(--foreground)]' }
                       ].map(usr => (
                         <button
                           key={usr.role}
@@ -128,11 +129,14 @@ RENDER_SHELL_TOP_JS = """
                             setLoginAttempts(0);
                             setLoginIsLockedOut(false);
                             setLoginStep('branch_picker');
-                            addToast(`Selected demo user: ${usr.name} (${usr.role})`, "info");
+                            addToast(`Selected desk: ${usr.name} (${usr.role})`, "info");
                           }}
-                          className="p-1.5 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-raised)] border border-[var(--border)] text-left flex items-center justify-between"
+                          className="p-2 rounded-md bg-[var(--surface-sunken)] hover:bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--primary)] text-left flex items-center justify-between transition-colors cursor-pointer"
                         >
-                          <span className="font-semibold truncate">{usr.name}</span>
+                          <div>
+                            <div className="font-semibold text-xs truncate text-[var(--foreground)]">{usr.name}</div>
+                            <div className="text-[10px] text-[var(--muted-foreground)]">{usr.desk}</div>
+                          </div>
                           <span className={`text-[10px] font-bold ${usr.color}`}>{usr.role.split(' ')[0]}</span>
                         </button>
                       ))}
@@ -305,45 +309,41 @@ RENDER_SHELL_TOP_JS = """
           }
         }}>
 
-          {/* ================= 1. TOP BAR (52px) ================= */}
-          <header className="h-[52px] bg-[var(--surface)] border-b border-[var(--border)] px-3 flex items-center justify-between shrink-0 select-none z-30">
+          {/* ================= 1. TOP BAR (50px) ================= */}
+          <header className="h-[50px] bg-[var(--surface)] border-b border-[var(--border)] px-3.5 flex items-center justify-between shrink-0 select-none z-30">
             {/* Left Section: Logo, Tenant & Branch */}
             <div className="flex items-center gap-3">
               <button 
                 onClick={() => setSidebarCollapsed(prev => !prev)}
-                className="p-1.5 rounded hover:bg-[var(--surface-sunken)] text-[var(--muted-foreground)] focus-visible:ring-1"
+                className="p-1.5 rounded-md hover:bg-[var(--surface-sunken)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors focus-visible:ring-1"
                 title="Toggle Sidebar (Ctrl+B)"
               >
-                <div className="w-4 h-4 flex flex-col justify-between">
-                  <span className="h-0.5 w-full bg-current rounded"></span>
-                  <span className="h-0.5 w-full bg-current rounded"></span>
-                  <span className="h-0.5 w-full bg-current rounded"></span>
-                </div>
+                <Icon name="menu" size={16} />
               </button>
 
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-md bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center font-bold text-xs shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-md bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center font-bold text-xs tracking-tight shadow-xs">
                   DF
                 </div>
                 <div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 leading-none">
                     <span className="font-bold text-xs tracking-wider uppercase text-[var(--foreground)]">Different Fashion</span>
-                    <span className="text-[10px] px-1 py-0.2 rounded bg-[var(--surface-sunken)] text-[var(--muted-foreground)] font-medium">Retail POS</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-sm bg-[var(--surface-sunken)] border border-[var(--border)] text-[var(--muted-foreground)] font-mono font-medium">RETAIL POS</span>
                   </div>
-                  {/* Branch switcher */}
-                  <div className="flex items-center gap-1 text-[11px] text-[var(--muted-foreground)] hover:text-[var(--primary)] cursor-pointer group"
+                  {/* Branch & Counter Indicator */}
+                  <div className="flex items-center gap-1 text-[11px] text-[var(--muted-foreground)] hover:text-[var(--primary)] cursor-pointer group mt-0.5"
                     onClick={() => setBranch(b => b.includes('Main') ? 'Different Fashion - 2 [DF2]' : 'Different Fashion - Main [DF1]')}
-                    title="Switch Branch"
+                    title="Click to Switch Store Location"
                   >
-                    <span className="truncate max-w-[160px] font-medium">{branch}</span>
-                    <Icon name="chevronDown" size={12} className="group-hover:translate-y-0.5 transition-transform" />
+                    <span className="truncate max-w-[170px] font-medium">{branch}</span>
+                    <Icon name="chevronDown" size={11} className="group-hover:translate-y-0.5 transition-transform opacity-70" />
                   </div>
                 </div>
               </div>
 
               {/* Direct Role Switcher in Top Bar */}
-              <div className="hidden lg:flex items-center gap-1 bg-[var(--surface-sunken)] border border-[var(--border)] px-2 py-0.5 rounded-lg text-xs ml-2">
-                <span className="text-[10px] text-[var(--muted-foreground)] font-semibold uppercase">Role:</span>
+              <div className="hidden lg:flex items-center gap-1.5 bg-[var(--surface-sunken)] border border-[var(--border)] px-2 py-1 rounded-md text-xs ml-2">
+                <span className="text-[10px] text-[var(--muted-foreground)] font-semibold uppercase tracking-wider">Desk:</span>
                 <select
                   value={viewAsRole}
                   onChange={(e) => {
@@ -358,16 +358,16 @@ RENDER_SHELL_TOP_JS = """
                       'Super Admin': { name: 'Super Admin', role: 'Super Admin', pin: '9999' }
                     };
                     if (demoUsers[newRole]) setCurrentUser(demoUsers[newRole]);
-                    addToast(`Switched view to role: ${newRole}`, "info");
+                    addToast(`Switched active desk: ${newRole}`, "info");
                   }}
-                  className="bg-transparent font-bold text-xs text-[var(--foreground)] cursor-pointer focus:outline-none"
+                  className="bg-transparent font-semibold text-xs text-[var(--foreground)] cursor-pointer focus:outline-none"
                 >
-                  <option value="Owner">👑 Owner (All)</option>
-                  <option value="Manager">👔 Manager</option>
-                  <option value="Cashier">🛒 Cashier</option>
-                  <option value="Accountant">📊 Accountant</option>
-                  <option value="Stock Keeper">📦 Stock Keeper</option>
-                  <option value="Super Admin">⚡ Super Admin</option>
+                  <option value="Cashier">Cashier Desk</option>
+                  <option value="Stock Keeper">Stock & Inventory Desk</option>
+                  <option value="Accountant">Accountant Desk</option>
+                  <option value="Manager">Store Manager</option>
+                  <option value="Owner">Store Owner (All Ops)</option>
+                  <option value="Super Admin">SaaS Platform Admin</option>
                 </select>
               </div>
             </div>
@@ -394,7 +394,7 @@ RENDER_SHELL_TOP_JS = """
               <div className="relative">
                 <button
                   onClick={() => setShowSyncCenter(prev => !prev)}
-                  className={`h-7 px-2 rounded-full border text-[11px] font-medium flex items-center gap-1.5 transition-colors ${currentSyncStatus.colorClass}`}
+                  className={`h-7 px-2 rounded-md border text-[11px] font-medium flex items-center gap-1.5 transition-colors ${currentSyncStatus.colorClass}`}
                   title="Click to view Sync Center"
                 >
                   <Icon name={currentSyncStatus.icon} size={12} className={isSyncing ? "animate-spin" : ""} />
@@ -456,7 +456,7 @@ RENDER_SHELL_TOP_JS = """
               <div className="relative">
                 <button
                   onClick={() => setShowTodaySummaryPopover(prev => !prev)}
-                  className="hidden sm:flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-[var(--surface-sunken)] border border-[var(--border)] text-[11px] text-[var(--foreground)] hover:border-[var(--primary)] cursor-pointer transition-colors"
+                  className="hidden sm:flex items-center gap-1.5 h-7 px-2.5 rounded-md bg-[var(--surface-sunken)] border border-[var(--border)] text-[11px] text-[var(--foreground)] hover:border-[var(--primary)] cursor-pointer transition-colors"
                   title="Click to view Today's Store Summary"
                 >
                   <span className="w-2 h-2 rounded-full bg-[var(--success)]"></span>
@@ -469,7 +469,7 @@ RENDER_SHELL_TOP_JS = """
                 {showTodaySummaryPopover && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowTodaySummaryPopover(false)} />
-                    <div className="absolute right-0 top-9 w-80 bg-[var(--surface-raised)] border border-[var(--border)] rounded-2xl shadow-2xl p-4 z-50 text-xs space-y-3 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="absolute right-0 top-9 w-80 bg-[var(--surface-raised)] border border-[var(--border)] rounded-xl shadow-xl p-4 z-50 text-xs space-y-3 animate-in fade-in zoom-in-95 duration-100">
                       <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
                         <div className="font-bold flex items-center gap-1.5">
                           <Icon name="calendar" size={15} className="text-[var(--primary)]" />
@@ -796,154 +796,264 @@ RENDER_SHELL_TOP_JS = """
             {/* ================= 2. DESKTOP SIDEBAR ================= */}
             <aside className={`bg-[var(--surface)] border-r border-[var(--border)] flex flex-col shrink-0 transition-all duration-200 select-none z-20 ${sidebarCollapsed ? 'w-14' : 'w-56'}`}>
               <div className="flex-1 overflow-y-auto py-2 space-y-3">
-                {/* Active Role Switcher Card in Sidebar */}
+                {/* Active Role & Desk Operator Card */}
                 {!sidebarCollapsed && (
                   <div className="px-2">
-                    <div className="p-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border)] text-xs space-y-1">
-                      <div className="flex items-center justify-between text-[10px] font-bold text-[var(--muted-foreground)] uppercase tracking-wider">
-                        <span>Active Role</span>
-                        <span className="px-1.5 py-0.2 rounded font-bold bg-[var(--primary-soft)] text-[var(--primary)] text-[9px]">{viewAsRole}</span>
+                    <div className="p-2.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border)] text-xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Staff Workspace</span>
+                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold font-mono ${
+                          viewAsRole === 'Cashier' ? 'bg-[var(--success-soft)] text-[var(--success)]' :
+                          viewAsRole === 'Stock Keeper' ? 'bg-[var(--info-soft)] text-[var(--info)]' :
+                          viewAsRole === 'Accountant' ? 'bg-[var(--primary-soft)] text-[var(--primary)]' :
+                          viewAsRole === 'Manager' ? 'bg-[var(--warning-soft)] text-[var(--warning)]' :
+                          'bg-[var(--surface)] text-[var(--foreground)] border border-[var(--border)]'
+                        }`}>
+                          {viewAsRole}
+                        </span>
                       </div>
-                      <select
-                        value={viewAsRole}
-                        onChange={(e) => {
-                          const newRole = e.target.value;
-                          setViewAsRole(newRole);
-                          const demoUsers = {
-                            'Cashier': { name: 'Sumi', role: 'Cashier', pin: '1234' },
-                            'Stock Keeper': { name: 'Rafiq', role: 'Stock Keeper', pin: '2345' },
-                            'Accountant': { name: 'Nusrat', role: 'Accountant', pin: '3456' },
-                            'Manager': { name: 'Farhan', role: 'Manager', pin: '5678' },
-                            'Owner': { name: 'Tanvir Ahmed', role: 'Owner', pin: '9999' },
-                            'Super Admin': { name: 'Super Admin', role: 'Super Admin', pin: '9999' }
-                          };
-                          if (demoUsers[newRole]) setCurrentUser(demoUsers[newRole]);
-                          addToast(`Switched view to role: ${newRole}`, "info");
-                        }}
-                        className="w-full text-xs font-semibold p-1 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)] cursor-pointer"
-                      >
-                        <option value="Owner">👑 Owner (All Menus)</option>
-                        <option value="Manager">👔 Manager</option>
-                        <option value="Cashier">🛒 Cashier (POS & Sales)</option>
-                        <option value="Accountant">📊 Accountant (Ledgers)</option>
-                        <option value="Stock Keeper">📦 Stock Keeper (Inventory)</option>
-                        <option value="Super Admin">⚡ Super Admin</option>
-                      </select>
+                      
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-md bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center font-bold text-xs text-[var(--foreground)] shrink-0">
+                          {currentUser.name[0]}
+                        </div>
+                        <div className="min-w-0 flex-1 leading-tight">
+                          <div className="font-semibold text-xs text-[var(--foreground)] truncate">{currentUser.name}</div>
+                          <div className="text-[10px] text-[var(--muted-foreground)] truncate">
+                            {viewAsRole === 'Cashier' ? 'Counter 01 · Till Active' :
+                             viewAsRole === 'Stock Keeper' ? 'Uttara Warehouse' :
+                             viewAsRole === 'Accountant' ? 'Financial Auditing' :
+                             viewAsRole === 'Manager' ? 'Floor Operations' :
+                             'Store Owner (All)'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Direct Quick Desk Switcher */}
+                      <div>
+                        <select
+                          value={viewAsRole}
+                          onChange={(e) => {
+                            const newRole = e.target.value;
+                            setViewAsRole(newRole);
+                            const demoUsers = {
+                              'Cashier': { name: 'Sumi', role: 'Cashier', pin: '1234' },
+                              'Stock Keeper': { name: 'Rafiq', role: 'Stock Keeper', pin: '2345' },
+                              'Accountant': { name: 'Nusrat', role: 'Accountant', pin: '3456' },
+                              'Manager': { name: 'Farhan', role: 'Manager', pin: '5678' },
+                              'Owner': { name: 'Tanvir Ahmed', role: 'Owner', pin: '9999' },
+                              'Super Admin': { name: 'Super Admin', role: 'Super Admin', pin: '9999' }
+                            };
+                            if (demoUsers[newRole]) setCurrentUser(demoUsers[newRole]);
+                            addToast(`Switched active desk: ${newRole}`, "info");
+                          }}
+                          className="w-full text-xs font-semibold p-1 rounded-md bg-[var(--surface)] border border-[var(--border)] text-[var(--foreground)] cursor-pointer focus:border-[var(--primary)] focus:outline-none"
+                        >
+                          <option value="Cashier">Cashier Desk (Sumi)</option>
+                          <option value="Stock Keeper">Stock & Inventory Desk (Rafiq)</option>
+                          <option value="Accountant">Accountant Desk (Nusrat)</option>
+                          <option value="Manager">Store Manager (Farhan)</option>
+                          <option value="Owner">Store Owner / All (Tanvir)</option>
+                          <option value="Super Admin">SaaS Platform Admin</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 )}
                 
-                {/* Navigation Groups */}
-                {[
-                  {
-                    group: 'SELL',
-                    roleRequired: 'Cashier',
-                    items: [
-                      { id: 'pos', label: 'POS Register', label_bn: 'পয়েন্ট অব সেল', icon: 'shoppingCart', shortcut: 'F1' },
-                      { id: 'sales', label: 'Sales History', label_bn: 'বিক্রয় বিবরণী', icon: 'fileText', shortcut: 'G S' },
-                      { id: 'returns', label: 'Returns & Exchange', label_bn: 'ফেরত ও পরিবর্তন', icon: 'refresh', shortcut: 'G T' },
-                      { id: 'due_collection', label: 'Due Collection', label_bn: 'বাকি আদায়', icon: 'banknote', shortcut: 'G U' }
-                    ]
-                  },
-                  {
-                    group: 'CUSTOMERS',
-                    roleRequired: 'Cashier',
-                    items: [
-                      { id: 'customers', label: 'Customers', label_bn: 'গ্রাহক তালিকা', icon: 'user', shortcut: 'G C' },
-                      { id: 'membership_cards', label: 'Membership Cards', label_bn: 'মেম্বারশিপ কার্ড', icon: 'idCard', shortcut: '' },
-                      { id: 'messaging', label: 'WhatsApp & SMS', label_bn: 'বার্তা প্রেরণ', icon: 'send', shortcut: 'G W' }
-                    ]
-                  },
-                  {
-                    group: 'CATALOG & STOCK',
-                    roleRequired: 'Stock Keeper',
-                    items: [
-                      { id: 'products', label: 'Products & SKUs', label_bn: 'পণ্য তালিকা', icon: 'tag', shortcut: 'G I' },
-                      { id: 'stock', label: 'Stock & Transfer', label_bn: 'মজুত ও স্থানান্তর', icon: 'package', shortcut: 'G K' },
-                      { id: 'purchases', label: 'Purchases (GRN)', label_bn: 'ক্রয় চালান', icon: 'truck', shortcut: 'G P' },
-                      { id: 'vendors', label: 'Vendor Directory', label_bn: 'সরবরাহকারী', icon: 'users', shortcut: 'G V' }
-                    ]
-                  },
-                  {
-                    group: 'MONEY',
-                    roleRequired: 'Accountant',
-                    items: [
-                      { id: 'money', label: 'Accounts & Expense', label_bn: 'হিসাব ও খরচ', icon: 'dollarSign', shortcut: 'G M' },
-                      { id: 'fixed_assets', label: 'Fixed Assets', label_bn: 'স্থাবর সম্পত্তি', icon: 'layers', shortcut: '' }
-                    ]
-                  },
-                  {
-                    group: 'INSIGHTS',
-                    roleRequired: 'Manager',
-                    items: [
-                      { id: 'dashboard', label: 'Analytics Dashboard', label_bn: 'ড্যাশবোর্ড', icon: 'barChart', shortcut: 'G D' },
-                      { id: 'reports', label: 'Reports Directory', label_bn: 'রিপোর্ট সমূহ', icon: 'fileText', shortcut: 'G R' }
-                    ]
-                  },
-                  {
-                    group: 'ADMIN & SYSTEM',
-                    roleRequired: 'Owner',
-                    items: [
-                      { id: 'users', label: 'Users & Roles', label_bn: 'ব্যবহারকারী ও পদবী', icon: 'shield', shortcut: '' },
-                      { id: 'settings', label: 'Settings', label_bn: 'সেটিংস', icon: 'settings', shortcut: 'G ,' },
-                      { id: 'backup', label: 'Backup & Restore', label_bn: 'ব্যাকআপ সংরক্ষণ', icon: 'database', shortcut: '' },
-                      { id: 'audit_log', label: 'Audit Security Log', label_bn: 'নিরাপত্তা লগ', icon: 'lock', shortcut: '' },
-                      { id: 'super_admin', label: 'SaaS Platform Admin', label_bn: 'সাস প্ল্যাটফর্ম অ্যাডমিন', icon: 'key', shortcut: '' },
-                      { id: 'states_demo', label: 'States Demo', label_bn: 'স্টেট ডেমো', icon: 'palette', shortcut: '' }
-                    ]
+                {/* Dynamic Role-Based Navigation Sections */}
+                {(() => {
+                  let roleSections = [];
+
+                  if (viewAsRole === 'Cashier') {
+                    roleSections = [
+                      {
+                        group: 'CASHIER COUNTER',
+                        group_bn: 'ক্যাশিয়ার কাউন্টার',
+                        items: [
+                          { id: 'pos', label: 'POS Register', label_bn: 'পয়েন্ট অব সেল', icon: 'shoppingCart', shortcut: 'F1' },
+                          { id: 'sales', label: 'Sales & Invoices', label_bn: 'বিক্রয় ও রসিদ', icon: 'fileText', shortcut: 'G S' },
+                          { id: 'returns', label: 'Return / Exchange', label_bn: 'ফেরত ও পরিবর্তন', icon: 'refresh', shortcut: 'G T' },
+                          { id: 'due_collection', label: 'Collect Due', label_bn: 'বাকি আদায়', icon: 'banknote', shortcut: 'G U' }
+                        ]
+                      },
+                      {
+                        group: 'CUSTOMER SERVICES',
+                        group_bn: 'গ্রাহক সেবা',
+                        items: [
+                          { id: 'customers', label: 'Customer Directory', label_bn: 'গ্রাহক তালিকা', icon: 'user', shortcut: 'G C' },
+                          { id: 'membership_cards', label: 'Privilege Club Cards', label_bn: 'মেম্বারশিপ কার্ড', icon: 'idCard', shortcut: '' },
+                          { id: 'messaging', label: 'WhatsApp / SMS Receipt', label_bn: 'বার্তা প্রেরণ', icon: 'send', shortcut: 'G W' }
+                        ]
+                      },
+                      {
+                        group: 'PRODUCT LOOKUP',
+                        group_bn: 'পণ্য অনুসন্ধান',
+                        items: [
+                          { id: 'products', label: 'Price & Stock Check', label_bn: 'পণ্য ও মূল্য যাচাই', icon: 'tag', shortcut: 'G I' }
+                        ]
+                      }
+                    ];
+                  } else if (viewAsRole === 'Stock Keeper') {
+                    roleSections = [
+                      {
+                        group: 'INVENTORY & WAREHOUSE',
+                        group_bn: 'মজুত ও গুদাম',
+                        items: [
+                          { id: 'stock', label: 'Stock & Store Transfers', label_bn: 'মজুত ও স্থানান্তর', icon: 'package', shortcut: 'G K' },
+                          { id: 'products', label: 'Products & SKU Barcodes', label_bn: 'পণ্য ও বারকোড', icon: 'tag', shortcut: 'G I' }
+                        ]
+                      },
+                      {
+                        group: 'SUPPLIERS & PURCHASES',
+                        group_bn: 'সরবরাহ ও ক্রয়',
+                        items: [
+                          { id: 'purchases', label: 'Purchase Orders (GRN)', label_bn: 'ক্রয় চালান (GRN)', icon: 'truck', shortcut: 'G P' },
+                          { id: 'vendors', label: 'Vendor Directory', label_bn: 'সরবরাহকারী তালিকা', icon: 'users', shortcut: 'G V' }
+                        ]
+                      }
+                    ];
+                  } else if (viewAsRole === 'Accountant') {
+                    roleSections = [
+                      {
+                        group: 'ACCOUNTS & CASH REGISTERS',
+                        group_bn: 'হিসাব ও নগদ ক্যাশ',
+                        items: [
+                          { id: 'money', label: 'Cash & Expense Accounts', label_bn: 'হিসাব ও খরচ লেজার', icon: 'dollarSign', shortcut: 'G M' },
+                          { id: 'fixed_assets', label: 'Fixed Assets Register', label_bn: 'স্থাবর সম্পত্তি', icon: 'layers', shortcut: '' }
+                        ]
+                      },
+                      {
+                        group: 'RECEIVABLES & LEDGERS',
+                        group_bn: 'আদায় ও দেনা-পাওনা',
+                        items: [
+                          { id: 'sales', label: 'Sales Journal & Invoices', label_bn: 'বিক্রয় জাবেদা', icon: 'fileText', shortcut: 'G S' },
+                          { id: 'returns', label: 'Return & Refund Audit', label_bn: 'ফেরত নিরীক্ষা', icon: 'refresh', shortcut: 'G T' },
+                          { id: 'due_collection', label: 'Customer Due Aging', label_bn: 'বাকি আদায় খাতা', icon: 'banknote', shortcut: 'G U' },
+                          { id: 'purchases', label: 'Purchase Bills (GRN)', label_bn: 'ক্রয় বিল লেজার', icon: 'truck', shortcut: 'G P' },
+                          { id: 'vendors', label: 'Vendor Payables & Dues', label_bn: 'পাওনাদার তালিকা', icon: 'users', shortcut: 'G V' },
+                          { id: 'customers', label: 'Customer Ledgers', label_bn: 'গ্রাহক খাতা', icon: 'user', shortcut: 'G C' }
+                        ]
+                      },
+                      {
+                        group: 'FINANCIAL AUDIT & TAX',
+                        group_bn: 'আর্থিক বিবরণী ও কর',
+                        items: [
+                          { id: 'dashboard', label: 'Financial KPI Dashboard', label_bn: 'আর্থিক ড্যাশবোর্ড', icon: 'barChart', shortcut: 'G D' },
+                          { id: 'reports', label: 'Profit & Loss (VAT 15%)', label_bn: 'লাভ-ক্ষতি ও ভ্যাট', icon: 'fileText', shortcut: 'G R' }
+                        ]
+                      }
+                    ];
+                  } else {
+                    // Manager / Owner / Super Admin: Full Corporate Suite
+                    roleSections = [
+                      {
+                        group: 'SALES & CASHIER DESK',
+                        group_bn: 'বিক্রয় ও কাউন্টার',
+                        items: [
+                          { id: 'pos', label: 'POS Register', label_bn: 'পয়েন্ট অব সেল', icon: 'shoppingCart', shortcut: 'F1' },
+                          { id: 'sales', label: 'Sales History', label_bn: 'বিক্রয় বিবরণী', icon: 'fileText', shortcut: 'G S' },
+                          { id: 'returns', label: 'Returns & Exchange', label_bn: 'ফেরত ও পরিবর্তন', icon: 'refresh', shortcut: 'G T' },
+                          { id: 'due_collection', label: 'Due Collection', label_bn: 'বাকি আদায়', icon: 'banknote', shortcut: 'G U' }
+                        ]
+                      },
+                      {
+                        group: 'CUSTOMERS & VIP CLUB',
+                        group_bn: 'গ্রাহক ও মেম্বারশিপ',
+                        items: [
+                          { id: 'customers', label: 'Customer Directory', label_bn: 'গ্রাহক তালিকা', icon: 'user', shortcut: 'G C' },
+                          { id: 'membership_cards', label: 'Membership Cards', label_bn: 'মেম্বারশিপ কার্ড', icon: 'idCard', shortcut: '' },
+                          { id: 'messaging', label: 'WhatsApp & SMS Hub', label_bn: 'বার্তা প্রেরণ', icon: 'send', shortcut: 'G W' }
+                        ]
+                      },
+                      {
+                        group: 'CATALOG & INVENTORY',
+                        group_bn: 'পণ্য ও মজুত',
+                        items: [
+                          { id: 'products', label: 'Products & SKUs', label_bn: 'পণ্য তালিকা', icon: 'tag', shortcut: 'G I' },
+                          { id: 'stock', label: 'Stock & Transfer', label_bn: 'মজুত ও স্থানান্তর', icon: 'package', shortcut: 'G K' },
+                          { id: 'purchases', label: 'Purchases (GRN)', label_bn: 'ক্রয় চালান', icon: 'truck', shortcut: 'G P' },
+                          { id: 'vendors', label: 'Vendor Directory', label_bn: 'সরবরাহকারী', icon: 'users', shortcut: 'G V' }
+                        ]
+                      },
+                      {
+                        group: 'FINANCE & ACCOUNTS',
+                        group_bn: 'অর্থ ও হিসাব',
+                        items: [
+                          { id: 'money', label: 'Accounts & Expense', label_bn: 'হিসাব ও খরচ', icon: 'dollarSign', shortcut: 'G M' },
+                          { id: 'fixed_assets', label: 'Fixed Assets', label_bn: 'স্থাবর সম্পত্তি', icon: 'layers', shortcut: '' }
+                        ]
+                      },
+                      {
+                        group: 'ANALYTICS & REPORTS',
+                        group_bn: 'বিশ্লেষণ ও রিপোর্ট',
+                        items: [
+                          { id: 'dashboard', label: 'Executive Dashboard', label_bn: 'ড্যাশবোর্ড', icon: 'barChart', shortcut: 'G D' },
+                          { id: 'reports', label: 'Reports Directory', label_bn: 'রিপোর্ট সমূহ', icon: 'fileText', shortcut: 'G R' }
+                        ]
+                      },
+                      {
+                        group: 'SYSTEM & ADMIN',
+                        group_bn: 'সিস্টেম অ্যাডমিন',
+                        items: [
+                          { id: 'users', label: 'Staff Users & Roles', label_bn: 'কর্মী ও পদবী', icon: 'shield', shortcut: '' },
+                          { id: 'settings', label: 'Store Settings', label_bn: 'সেটিংস', icon: 'settings', shortcut: 'G ,' },
+                          { id: 'backup', label: 'Backup & Restore', label_bn: 'ব্যাকআপ সংরক্ষণ', icon: 'database', shortcut: '' },
+                          { id: 'audit_log', label: 'Audit Security Log', label_bn: 'নিরাপত্তা লগ', icon: 'lock', shortcut: '' },
+                          ...(viewAsRole === 'Super Admin' || viewAsRole === 'Owner' ? [{ id: 'super_admin', label: 'SaaS Platform Admin', label_bn: 'সাস প্ল্যাটফর্ম অ্যাডমিন', icon: 'key', shortcut: '' }] : []),
+                          { id: 'states_demo', label: 'Component States', label_bn: 'স্টেট ডেমো', icon: 'palette', shortcut: '' }
+                        ]
+                      }
+                    ];
                   }
-                ].map(section => {
-                  const allowedItems = section.items.filter(item => {
-                    if (item.id === 'super_admin') return viewAsRole === 'Super Admin' || viewAsRole === 'Owner';
-                    return canAccess(item.id);
-                  });
-                  return { ...section, items: allowedItems };
-                }).filter(section => section.items.length > 0).map((section, idx) => (
-                  <div key={idx} className="px-2">
-                    {!sidebarCollapsed && (
-                      <div className="px-2.5 mb-1 text-[10px] font-bold text-[var(--muted-foreground)] tracking-wider uppercase">
-                        {section.group}
-                      </div>
-                    )}
-                    <div className="space-y-0.5">
-                      {section.items.map(item => {
-                        const isActive = currentScreen === item.id || 
-                          (item.id === 'sales' && currentScreen === 'sale_detail') ||
-                          (item.id === 'customers' && (currentScreen === 'customer_form' || currentScreen === 'customer_profile')) ||
-                          (item.id === 'products' && (currentScreen === 'product_form' || currentScreen === 'product_detail'));
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => {
-                              if (item.id === 'pos') setPosMode('sale');
-                              navigateToScreen(item.id);
-                            }}
-                            className={`w-full h-8 px-2.5 rounded-lg flex items-center justify-between text-xs transition-colors group ${
-                              isActive 
-                                ? 'bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold shadow-xs' 
-                                : 'text-[var(--foreground)] hover:bg-[var(--surface-sunken)]'
-                            }`}
-                            title={`${item.label} ${item.shortcut ? `(${item.shortcut})` : ''}`}
-                          >
-                            <div className="flex items-center gap-2.5 truncate">
-                              <Icon name={item.icon} size={15} className={isActive ? 'text-inherit' : 'text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]'} />
-                              {!sidebarCollapsed && (
-                                <span className="truncate">{lang === 'bn' ? item.label_bn : item.label}</span>
+
+                  return roleSections.map((section, idx) => (
+                    <div key={idx} className="px-2">
+                      {!sidebarCollapsed && (
+                        <div className="px-2.5 mb-1 text-[10px] font-semibold text-[var(--muted-foreground)] tracking-wider uppercase">
+                          {lang === 'bn' ? (section.group_bn || section.group) : section.group}
+                        </div>
+                      )}
+                      <div className="space-y-0.5">
+                        {section.items.map(item => {
+                          const isActive = currentScreen === item.id || 
+                            (item.id === 'sales' && currentScreen === 'sale_detail') ||
+                            (item.id === 'customers' && (currentScreen === 'customer_form' || currentScreen === 'customer_profile')) ||
+                            (item.id === 'products' && (currentScreen === 'product_form' || currentScreen === 'product_detail'));
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => {
+                                if (item.id === 'pos') setPosMode('sale');
+                                navigateToScreen(item.id);
+                              }}
+                              className={`w-full h-8 px-2.5 rounded-md flex items-center justify-between text-xs transition-colors group cursor-pointer ${
+                                isActive 
+                                  ? 'bg-[var(--primary)] text-[var(--primary-foreground)] font-semibold shadow-xs' 
+                                  : 'text-[var(--foreground)] hover:bg-[var(--surface-sunken)]'
+                              }`}
+                              title={`${item.label} ${item.shortcut ? `(${item.shortcut})` : ''}`}
+                            >
+                              <div className="flex items-center gap-2.5 truncate">
+                                <Icon name={item.icon} size={14} className={isActive ? 'text-inherit' : 'text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]'} />
+                                {!sidebarCollapsed && (
+                                  <span className="truncate">{lang === 'bn' ? item.label_bn : item.label}</span>
+                                )}
+                              </div>
+                              {!sidebarCollapsed && item.shortcut && (
+                                <kbd className={`text-[9px] font-mono px-1 py-0.2 rounded border ${
+                                  isActive ? 'bg-black/20 text-white border-transparent' : 'bg-[var(--surface)] text-[var(--muted-foreground)] border-[var(--border)]'
+                                }`}>
+                                  {item.shortcut}
+                                </kbd>
                               )}
-                            </div>
-                            {!sidebarCollapsed && item.shortcut && (
-                              <kbd className={`text-[10px] font-mono px-1 py-0.2 rounded border ${
-                                isActive ? 'bg-black/20 text-white border-transparent' : 'bg-[var(--surface)] text-[var(--muted-foreground)] border-[var(--border)]'
-                              }`}>
-                                {item.shortcut}
-                              </kbd>
-                            )}
-                          </button>
-                        );
-                      })}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ));
+                })()}
 
               </div>
 

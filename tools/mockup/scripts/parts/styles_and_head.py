@@ -21,164 +21,191 @@ HEAD_HTML = """<!DOCTYPE html>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    /* CSS Variables & Tokens */
+    /* =========================================================================
+       DIFFERENT FASHION — HUMAN-CRAFTED DESIGN SYSTEM & DESIGN TOKENS
+       Clean, restrained, high-density POS aesthetics inspired by Linear & Stripe
+       ========================================================================= */
     :root {
+      /* Surfaces & Neutrals (Light Mode) */
       --background: #F8FAFC;
       --surface: #FFFFFF;
       --surface-raised: #FFFFFF;
       --surface-sunken: #F1F5F9;
       --foreground: #0F172A;
       --muted-foreground: #475569;
-      --subtle-foreground: #64748B;
+      --subtle-foreground: #94A3B8;
       --border: #E2E8F0;
+      --border-subtle: #F1F5F9;
       --input: #CBD5E1;
       
-      --success: #15803D;
-      --success-soft: #DCFCE7;
-      --warning: #B45309;
-      --warning-soft: #FEF3C7;
-      --danger: #B91C1C;
-      --danger-soft: #FEE2E2;
-      --info: #1D4ED8;
-      --info-soft: #DBEAFE;
-      --accent: #D97706;
+      /* Semantic Status — High Contrast, Low Saturation */
+      --success: #059669;
+      --success-soft: rgba(5, 150, 105, 0.08);
+      --success-text: #065F46;
+
+      --warning: #D97706;
+      --warning-soft: rgba(217, 119, 6, 0.08);
+      --warning-text: #92400E;
+
+      --danger: #DC2626;
+      --danger-soft: rgba(220, 38, 38, 0.08);
+      --danger-text: #991B1B;
+
+      --info: #2563EB;
+      --info-soft: rgba(37, 99, 235, 0.08);
+      --info-text: #1E40AF;
+
+      --accent: #B45309;
       --accent-foreground: #FFFFFF;
 
-      --money-positive: #15803D;
-      --money-negative: #B91C1C;
+      --money-positive: #059669;
+      --money-negative: #DC2626;
 
+      /* Disciplined Geometric Radii */
+      --radius-xs: 4px;
       --radius-sm: 6px;
-      --radius: 10px;
-      --radius-lg: 14px;
+      --radius: 8px;
+      --radius-lg: 10px;
+      --radius-xl: 12px;
 
-      /* Scheme variables (Teal default) */
-      --primary: #0F766E;
-      --primary-hover: #115E59;
+      /* Refined Brand Scheme: Heritage Forest Teal (Default) */
+      --primary: #0D6E66;
+      --primary-hover: #09544E;
       --primary-foreground: #FFFFFF;
-      --primary-soft: #CCFBF1;
-      --ring: #14B8A6;
+      --primary-soft: rgba(13, 110, 102, 0.08);
+      --ring: #0D6E66;
 
-      /* Table row height & density */
-      --row-height: 44px;
-      --table-font: 14px;
-      --card-pad: 20px;
+      /* Table density & Ergonomics */
+      --row-height: 40px;
+      --table-font: 13px;
+      --card-pad: 16px;
     }
 
     [data-theme="dark"] {
-      --background: #0B1120;
-      --surface: #111827;
-      --surface-raised: #1F2937;
-      --surface-sunken: #0F172A;
-      --foreground: #F1F5F9;
+      /* Surfaces & Neutrals (Dark Mode — Deep Obsidian Precision) */
+      --background: #090D14;
+      --surface: #0F1623;
+      --surface-raised: #162032;
+      --surface-sunken: #0A0F1A;
+      --foreground: #F8FAFC;
       --muted-foreground: #94A3B8;
       --subtle-foreground: #64748B;
       --border: #1E293B;
-      --input: #334155;
+      --border-subtle: #141D2D;
+      --input: #26354D;
       
-      --success: #4ADE80;
-      --success-soft: #052E16;
-      --warning: #FBBF24;
-      --warning-soft: #422006;
-      --danger: #F87171;
-      --danger-soft: #450A0A;
-      --info: #60A5FA;
-      --info-soft: #172554;
-      --accent: #FBBF24;
+      --success: #10B981;
+      --success-soft: rgba(16, 185, 129, 0.14);
+      --success-text: #6EE7B7;
+
+      --warning: #F59E0B;
+      --warning-soft: rgba(245, 158, 11, 0.14);
+      --warning-text: #FCD34D;
+
+      --danger: #EF4444;
+      --danger-soft: rgba(239, 68, 68, 0.14);
+      --danger-text: #FCA5A5;
+
+      --info: #3B82F6;
+      --info-soft: rgba(59, 130, 246, 0.14);
+      --info-text: #93C5FD;
+
+      --accent: #F59E0B;
       --accent-foreground: #451A03;
 
-      --money-positive: #4ADE80;
-      --money-negative: #F87171;
+      --money-positive: #10B981;
+      --money-negative: #EF4444;
     }
 
-    /* 6 Color Schemes */
+    /* 6 Purpose-Built Refined Color Schemes */
     [data-scheme="teal"] {
-      --primary: #0F766E;
-      --primary-hover: #115E59;
-      --primary-soft: #CCFBF1;
-      --ring: #14B8A6;
+      --primary: #0D6E66;
+      --primary-hover: #09544E;
+      --primary-soft: rgba(13, 110, 102, 0.08);
+      --ring: #0D6E66;
     }
     [data-theme="dark"][data-scheme="teal"] {
       --primary: #14B8A6;
       --primary-hover: #2DD4BF;
-      --primary-soft: #042F2E;
-      --ring: #2DD4BF;
+      --primary-soft: rgba(20, 184, 166, 0.14);
+      --ring: #14B8A6;
     }
 
     [data-scheme="indigo"] {
-      --primary: #4338CA;
-      --primary-hover: #3730A3;
-      --primary-soft: #E0E7FF;
-      --ring: #6366F1;
+      --primary: #3730A3;
+      --primary-hover: #312E81;
+      --primary-soft: rgba(55, 48, 163, 0.08);
+      --ring: #4F46E5;
     }
     [data-theme="dark"][data-scheme="indigo"] {
       --primary: #818CF8;
       --primary-hover: #A5B4FC;
-      --primary-soft: #1E1B4B;
-      --ring: #A5B4FC;
+      --primary-soft: rgba(129, 140, 248, 0.14);
+      --ring: #818CF8;
     }
 
     [data-scheme="violet"] {
-      --primary: #6D28D9;
-      --primary-hover: #5B21B6;
-      --primary-soft: #EDE9FE;
-      --ring: #8B5CF6;
+      --primary: #5B21B6;
+      --primary-hover: #4C1D95;
+      --primary-soft: rgba(91, 33, 182, 0.08);
+      --ring: #7C3AED;
     }
     [data-theme="dark"][data-scheme="violet"] {
       --primary: #A78BFA;
       --primary-hover: #C4B5FD;
-      --primary-soft: #2E1065;
-      --ring: #C4B5FD;
+      --primary-soft: rgba(167, 139, 250, 0.14);
+      --ring: #A78BFA;
     }
 
     [data-scheme="rose"] {
-      --primary: #BE123C;
-      --primary-hover: #9F1239;
-      --primary-soft: #FFE4E6;
-      --ring: #F43F5E;
+      --primary: #9F1239;
+      --primary-hover: #881337;
+      --primary-soft: rgba(159, 18, 57, 0.08);
+      --ring: #E11D48;
     }
     [data-theme="dark"][data-scheme="rose"] {
       --primary: #FB7185;
       --primary-hover: #FDA4AF;
-      --primary-soft: #4C0519;
-      --ring: #FDA4AF;
+      --primary-soft: rgba(251, 113, 133, 0.14);
+      --ring: #FB7185;
     }
 
     [data-scheme="ocean"] {
-      --primary: #0369A1;
-      --primary-hover: #075985;
-      --primary-soft: #E0F2FE;
+      --primary: #075985;
+      --primary-hover: #0C4A6E;
+      --primary-soft: rgba(7, 89, 133, 0.08);
       --ring: #0284C7;
     }
     [data-theme="dark"][data-scheme="ocean"] {
       --primary: #38BDF8;
       --primary-hover: #7DD3FC;
-      --primary-soft: #082F49;
-      --ring: #7DD3FC;
+      --primary-soft: rgba(56, 189, 248, 0.14);
+      --ring: #38BDF8;
     }
 
     [data-scheme="graphite"] {
-      --primary: #334155;
-      --primary-hover: #1E293B;
-      --primary-soft: #E2E8F0;
-      --ring: #64748B;
+      --primary: #1E293B;
+      --primary-hover: #0F172A;
+      --primary-soft: rgba(30, 41, 59, 0.08);
+      --ring: #475569;
     }
     [data-theme="dark"][data-scheme="graphite"] {
       --primary: #CBD5E1;
       --primary-hover: #E2E8F0;
-      --primary-soft: #1E293B;
-      --ring: #E2E8F0;
+      --primary-soft: rgba(203, 213, 225, 0.14);
+      --ring: #CBD5E1;
     }
 
     /* Density Switch */
     [data-density="compact"] {
       --row-height: 32px;
       --table-font: 12px;
-      --card-pad: 12px;
+      --card-pad: 10px;
     }
     [data-density="comfortable"] {
-      --row-height: 44px;
-      --table-font: 14px;
-      --card-pad: 20px;
+      --row-height: 40px;
+      --table-font: 13px;
+      --card-pad: 16px;
     }
 
     /* Global Typography & Rules */
@@ -186,27 +213,57 @@ HEAD_HTML = """<!DOCTYPE html>
       font-family: 'Inter', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: var(--background);
       color: var(--foreground);
-      line-height: 1.6;
+      line-height: 1.5;
       user-select: none;
       overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    h1, h2, h3, h4 {
+      letter-spacing: -0.015em;
     }
 
     .font-mono { font-family: 'JetBrains Mono', monospace; }
     .font-bangla { font-family: 'Hind Siliguri', sans-serif; }
+    
     .num, .money {
       font-family: 'Inter', 'Hind Siliguri', sans-serif !important;
       font-variant-numeric: tabular-nums !important;
       letter-spacing: -0.01em;
     }
 
-    /* Custom Scrollbars */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    /* Custom Hairline Scrollbars */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
 
     /* Focus Ring */
-    :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    :focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+
+    /* Tactile Physical Keycap Badge */
+    kbd {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border);
+      border-bottom-width: 2px;
+      color: var(--muted-foreground);
+      font-weight: 600;
+      white-space: nowrap;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+    }
+
+    /* Tactile Button Depth & Focus */
+    .btn-tactile {
+      transition: all 0.12s ease-in-out;
+    }
+    .btn-tactile:active {
+      transform: translateY(1px);
+    }
 
     /* Keyframe Animations */
     @keyframes flash-primary {
@@ -217,22 +274,10 @@ HEAD_HTML = """<!DOCTYPE html>
 
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-8px); }
-      40%, 80% { transform: translateX(8px); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
     }
-    .animate-shake { animation: shake 0.4s ease-in-out; }
-
-    kbd {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      padding: 1px 5px;
-      border-radius: 4px;
-      background: var(--surface-sunken);
-      border: 1px solid var(--border);
-      color: var(--muted-foreground);
-      font-weight: 500;
-      white-space: nowrap;
-    }
+    .animate-shake { animation: shake 0.35s ease-in-out; }
 
     /* Print Isolation Styles: Hide app shell and print ONLY designated .printable-area with 100% color fidelity */
     @media print {
@@ -266,6 +311,42 @@ HEAD_HTML = """<!DOCTYPE html>
         color: black !important;
       }
       .no-print, button, .modal-backdrop, header, aside, .header-bar { display: none !important; }
+
+      /* Always show unmasked numbers during physical print */
+      .card-number-masked { display: none !important; }
+      .card-number-unmasked { display: inline-block !important; }
+
+      /* Direct CR80 PVC Card Printer Profile */
+      @page cr80 {
+        size: 85.6mm 53.98mm;
+        margin: 0;
+      }
+      .cr80-page {
+        page: cr80;
+        width: 85.6mm !important;
+        height: 53.98mm !important;
+        max-width: 85.6mm !important;
+        max-height: 53.98mm !important;
+        page-break-after: always;
+        break-after: page;
+        margin: 0 auto !important;
+        border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+      
+      /* A4 10-Up Sheet Page Profile */
+      @page a4sheet {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+      .a4-sheet-page {
+        page: a4sheet;
+        width: 194mm !important;
+        page-break-after: always;
+        break-after: page;
+        margin: 0 auto !important;
+      }
     }
   </style>
 </head>
