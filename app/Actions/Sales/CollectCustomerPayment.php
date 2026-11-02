@@ -9,6 +9,7 @@ use App\Enums\AllocatableType;
 use App\Enums\PaymentDirection;
 use App\Enums\PaymentStatus;
 use App\Enums\SaleStatus;
+use App\Events\CustomerPaymentCollected;
 use App\Exceptions\Domain\InvalidSaleDocument;
 use App\Exceptions\Domain\InvalidTender;
 use App\Models\Customer;
@@ -25,6 +26,7 @@ use App\Support\Sales\SaleGate;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Collects money from a customer in the current branch: one `payments` row (direction in, number
@@ -106,6 +108,8 @@ final readonly class CollectCustomerPayment
                 'allocated' => $allocated->paisa,
                 'advance' => $draft->amount->minus($allocated)->paisa,
             ], $actor);
+
+            DB::afterCommit(static fn () => CustomerPaymentCollected::dispatch($payment->id, $customer->id));
 
             return $payment->load('allocations');
         });

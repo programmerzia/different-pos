@@ -13,7 +13,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * session('branch_id') must be one of the user's assigned, active branches of the current tenant;
- * re-checked on every request. A user with exactly one such branch gets it auto-selected.
+ * re-checked on every request. With no session branch the last used one (users.preferences.last_branch_id)
+ * is restored, and a user with exactly one such branch gets it auto-selected.
  * Runs after ResolveTenant (the Branch tenant scope then excludes foreign branches).
  */
 final readonly class EnsureBranchSelected
@@ -33,6 +34,11 @@ final readonly class EnsureBranchSelected
         $branch = is_int($selectedId) || is_string($selectedId)
             ? $branches->firstWhere('id', (int) $selectedId)
             : null;
+
+        if (! $branch instanceof Branch) {
+            $lastId = $user->preferences['last_branch_id'] ?? null;
+            $branch = is_int($lastId) ? $branches->firstWhere('id', $lastId) : null;
+        }
 
         if (! $branch instanceof Branch && $branches->count() === 1) {
             $branch = $branches->first();

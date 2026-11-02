@@ -362,3 +362,22 @@
         }
     }
 }
+
+/* Reports: print only the report itself (parameter bar, sidebar and status bar stay off the page). */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    .print-area,
+    .print-area * {
+        visibility: visible;
+    }
+
+    .print-area {
+        position: absolute;
+        inset-inline: 0;
+        top: 0;
+        width: 100%;
+    }
+}

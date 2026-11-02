@@ -15,6 +15,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\SaleOrigin;
 use App\Enums\SaleStatus;
 use App\Enums\StockMovementType;
+use App\Events\SaleCompleted;
 use App\Exceptions\Domain\BackdateNotAllowed;
 use App\Exceptions\Domain\BelowCostSale;
 use App\Exceptions\Domain\CreditLimitExceeded;
@@ -51,6 +52,7 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -108,6 +110,8 @@ final readonly class CompleteSale
                 'approved_by' => $prepared->overrides === [] ? null : $draft->approver?->id,
                 'flags' => $prepared->flags,
             ], $actor);
+
+            DB::afterCommit(static fn () => SaleCompleted::dispatch($sale->id));
 
             return $sale->load('items');
         });

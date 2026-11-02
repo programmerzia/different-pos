@@ -15,6 +15,8 @@ import {
     UserPlus,
 } from 'lucide-react';
 import { actions, type AppAction } from './actions';
+import { registerAdminActions } from './admin-actions';
+import { registerCustomerActions } from './customer-actions';
 import { navigateTo } from './navigate';
 import { useUiStore } from './ui-store';
 import { usePreferencesStore, SCHEMES } from '@/lib/preferences';
@@ -113,7 +115,7 @@ const commands: AppAction[] = [
         icon: ShoppingCart,
         keys: 'f1',
         permission: 'pos.sell',
-        href: '/pos',
+        href: '/app/pos',
     },
     {
         id: 'cmd.new_customer',
@@ -195,6 +197,8 @@ export function registerDefaultActions(): void {
     registered = true;
     actions.register(...rowActions);
     actions.register(...commands);
+    registerCustomerActions();
+    registerAdminActions();
 }
 
 export { navigateTo };

@@ -24,9 +24,8 @@ const TABS = [
         id: 'pos',
         labelKey: 'tabs.pos',
         icon: ShoppingCart,
-        href: '/pos',
+        href: '/app/pos',
         permission: 'pos.sell',
-        external: true,
     },
     {
         id: 'sales',

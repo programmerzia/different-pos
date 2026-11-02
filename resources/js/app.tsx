@@ -7,6 +7,13 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
+/** The personal-account pages share the narrow settings sub-layout; business settings pages are full width. */
+const ACCOUNT_PAGES = [
+    'settings/profile',
+    'settings/security',
+    'settings/appearance',
+];
+
 const appName = import.meta.env.VITE_APP_NAME || 'POS';
 
 void createInertiaApp({
@@ -17,7 +24,7 @@ void createInertiaApp({
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
-            case name.startsWith('settings/'):
+            case ACCOUNT_PAGES.includes(name):
                 return [AppLayout, SettingsLayout];
             default:
                 return AppLayout;

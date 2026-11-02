@@ -48,7 +48,7 @@ final class CardExport
         fputcsv($handle, self::COLUMNS, ',', '"', '');
         foreach (self::rows($cards) as $row) {
             // A cell that starts with = + - @ would run as a formula in a spreadsheet.
-            fputcsv($handle, array_map(static fn (string $v): string => $v !== '' && str_contains('=+-@', $v[0]) ? "'".$v : $v, array_values($row)), ',', '"', '');
+            fputcsv($handle, array_map(static fn (string $v): string => self::looksLikeFormula($v) ? "'".$v : $v, array_values($row)), ',', '"', '');
         }
         rewind($handle);
         $csv = (string) stream_get_contents($handle);
@@ -65,5 +65,15 @@ final class CardExport
     public static function customerNo(Customer $customer): string
     {
         return $customer->customer_no === null ? '' : CustomerNumber::format((string) $customer->customer_no);
+    }
+
+    private static function looksLikeFormula(string $value): bool
+    {
+        if ($value === '' || ! str_contains('=+-@', $value[0])) {
+            return false;
+        }
+
+        // A phone number in E.164 form starts with + but is plain data.
+        return preg_match('/^\+\d+$/', $value) !== 1;
     }
 }

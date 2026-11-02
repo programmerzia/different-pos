@@ -33,6 +33,7 @@ use App\Support\Numbering\DocumentNumberer;
 use App\Support\Quantity\Quantity;
 use App\Support\Sales\BusinessDay;
 use App\Support\Sales\CustomerAccounts;
+use App\Support\Sales\OrderDiscountShares;
 use App\Support\Sales\ReturnPlan;
 use App\Support\Sales\SaleGate;
 use App\Support\Sales\SoldStock;
@@ -133,7 +134,7 @@ final readonly class CreateSaleReturn
             $item->setRelation('batches', $links->get($item->id) ?? collect());
         }
 
-        $shares = self::orderShares($sale, array_values($items->all()));
+        $shares = OrderDiscountShares::of($sale, array_values($items->all()));
         $previous = SaleReturnItem::query()
             ->whereIn('sale_item_id', $items->keys()->all())
             ->when($excludeReturnId !== null, static fn ($query) => $query->where('sale_return_id', '!=', $excludeReturnId))
@@ -368,32 +369,6 @@ final readonly class CreateSaleReturn
         }
 
         return $method;
-    }
-
-    /**
-     * Each line's share of the sale's order discount, prorated like the pricing engine did it
-     * (weights = qty × unit_price − line discount).
-     *
-     * @param  list<SaleItem>  $items
-     * @return array<int, Money> by sale item id
-     */
-    private static function orderShares(Sale $sale, array $items): array
-    {
-        $shares = [];
-        foreach ($items as $item) {
-            $shares[$item->id] = Money::zero();
-        }
-
-        $weights = array_map(static fn (SaleItem $item): int => max(0, $item->unit_price->times($item->qty)->minus($item->discount)->paisa), $items);
-        if ($sale->order_discount->paisa <= 0 || array_sum($weights) === 0) {
-            return $shares;
-        }
-
-        foreach ($sale->order_discount->allocate($weights) as $index => $share) {
-            $shares[$items[$index]->id] = $share;
-        }
-
-        return $shares;
     }
 
     private static function prorate(Money $amount, Quantity $part, Quantity $whole): Money

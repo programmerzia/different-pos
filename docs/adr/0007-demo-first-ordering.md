@@ -17,3 +17,4 @@ The owner needs a working demo on DIFFERENT FASHION's real data: products, stock
 - CLAUDE.md, .cursorrules, 01_PRD non-goals and 04_TRD §2 updated in the same change.
 - The `customers.pin_*` columns are created but unused in this phase.
 - Playwright offline scenarios (4.6) move with the offline SPA.
+- The online register asks for a manager's password or staff PIN (`POST /app/api/pos/authorize`, a short-lived token bound to the cashier) instead of the device flow's Manager PIN token bound to a cart hash. On the online register F1 starts a new sale, F5 is price check and F11 opens returns; exchange from the register comes with the offline SPA.

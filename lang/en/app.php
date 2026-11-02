@@ -5,6 +5,7 @@ declare(strict_types=1);
 /* Server-side strings (flash messages, API errors). UI text lives in resources/js/i18n. */
 return [
     'saved' => 'Saved.',
+    'password_changed' => 'Password changed.',
     'created' => 'Created.',
     'updated' => 'Updated.',
     'deleted' => 'Deleted.',

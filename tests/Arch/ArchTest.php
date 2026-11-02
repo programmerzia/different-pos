@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Branch\BranchSelectController;
 use App\Http\Controllers\Platform\PlatformHomeController;
+use App\Http\Controllers\Sales\PublicReceiptController;
+use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
 
 arch('app uses strict types')
@@ -43,6 +45,7 @@ it('authorizes in every public controller action', function (): void {
     $exempt = [
         BranchSelectController::class, // lists only the caller's own branches
         PlatformHomeController::class, // platform.admin middleware
+        PublicReceiptController::class, // public by design: the random receipt token is the credential
     ];
     $skipDirs = ['Auth', 'Settings']; // starter-kit controllers act on the caller's own account
 
@@ -64,13 +67,16 @@ it('authorizes in every public controller action', function (): void {
         $reflection = new ReflectionClass($class);
         $constructor = $reflection->hasMethod('__construct') ? $reflection->getMethod('__construct') : null;
         $resource = $constructor instanceof ReflectionMethod && str_contains(methodSource($constructor), '$this->authorizeResource(');
+        if ($reflection->hasMethod('middleware') && str_contains(methodSource($reflection->getMethod('middleware')), "'can:")) {
+            $resource = true;
+        }
 
         foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-            if ($method->isConstructor() || $method->getDeclaringClass()->getName() !== $class || str_starts_with($method->getName(), '__') && $method->getName() !== '__invoke') {
+            if ($method->isConstructor() || $method->getDeclaringClass()->getName() !== $class || $method->getFileName() !== $reflection->getFileName() || str_starts_with($method->getName(), '__') && $method->getName() !== '__invoke') {
                 continue;
             }
             $source = methodSource($method);
-            $authorizes = $resource || str_contains($source, 'authorize(') || str_contains($source, 'can(') || str_contains($source, 'Gate::');
+            $authorizes = $resource || str_contains($source, 'authorize(') || str_contains($source, 'can(') || str_contains($source, 'Gate::') || formRequestAuthorizes($method);
             expect($authorizes)->toBeTrue("{$class}::{$method->getName()} does not authorize");
             $checked++;
         }
@@ -78,6 +84,26 @@ it('authorizes in every public controller action', function (): void {
 
     expect($checked)->toBeGreaterThanOrEqual(0);
 });
+
+/** A FormRequest parameter whose authorize() checks a policy or permission counts as authorization. */
+function formRequestAuthorizes(ReflectionMethod $method): bool
+{
+    foreach ($method->getParameters() as $parameter) {
+        $type = $parameter->getType();
+        if (! $type instanceof ReflectionNamedType || $type->isBuiltin() || ! is_subclass_of($type->getName(), FormRequest::class)) {
+            continue;
+        }
+        $authorize = new ReflectionMethod($type->getName(), 'authorize');
+        if ($authorize->getDeclaringClass()->getName() === $type->getName()) {
+            $source = methodSource($authorize);
+            if (str_contains($source, '->can(') || str_contains($source, 'checkPermissionTo(') || str_contains($source, 'Gate::')) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
 
 function methodSource(ReflectionMethod $method): string
 {

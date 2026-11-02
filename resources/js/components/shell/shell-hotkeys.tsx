@@ -5,6 +5,7 @@ import { useUiStore } from '@/command/ui-store';
 import { useCan } from '@/hooks/use-can';
 import { useHotkeys, type HotkeySpec } from '@/hotkeys/use-hotkeys';
 import { usePreferencesStore } from '@/lib/preferences';
+import { POS_F1_EVENT, POS_PATH } from '@/pos/register/hotkeys';
 
 /** Global shortcuts (02_AppFlow §1.3): palette, overlay, G-chords, F1, Alt+L/T/B/N, Ctrl+B (listed; the sidebar owns it). */
 export function ShellHotkeys() {
@@ -40,8 +41,19 @@ export function ShellHotkeys() {
             {
                 id: 'shell.pos',
                 keys: 'f1',
-                labelKey: 'nav.pos',
-                handler: () => can('pos.sell') && go('/pos', true),
+                labelKey: 'hotkeys.pos',
+                // On the register itself F1 starts a new sale / focuses the scan field instead.
+                handler: () => {
+                    if (!can('pos.sell')) {
+                        return;
+                    }
+                    if (window.location.pathname === POS_PATH) {
+                        window.dispatchEvent(new CustomEvent(POS_F1_EVENT));
+
+                        return;
+                    }
+                    go(POS_PATH);
+                },
             },
             {
                 id: 'shell.sidebar',

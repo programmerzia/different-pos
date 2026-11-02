@@ -42,3 +42,7 @@ yarn-error.log
 /opencode.json
 /opencode.jsonc
 /.commandcode
+e2e/.state.json
+/test-results/
+/playwright-report/
+e2e/.auth.json

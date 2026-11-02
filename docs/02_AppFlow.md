@@ -86,13 +86,14 @@ Rules: shortcuts never fire while typing in an input, except `Esc`, `F-keys`, `C
 | # | Method | URI | Route name | Page / response | Permission |
 |---|---|---|---|---|---|
 | **Auth** |
-| 1 | GET/POST | `/login` | `login` | `auth/login`: one identifier field (email / username / phone) + **business code** shown for non-email identifiers, remembered per browser in cookie `pos_tenant` (ADR 0006) | guest |
+| 1 | GET/POST | `/login` | `login` | `auth/login`: one identifier field `login` (email / username / phone) + **business code** (`business`) shown for non-email identifiers, remembered per browser in cookie `pos_tenant` (ADR 0006). Same error for unknown business / user / password; 5 attempts per minute per login+IP (429, every attempt written to `login_activities`); a deactivated user is refused after a correct password. A migrated user whose password is still the legacy MD5 is upgraded to argon2id on this login and sent to `password.change` | guest |
 | 2 | POST | `/logout` | `logout` | redirect | auth |
 | 3 | GET/POST | `/forgot-password`, `/reset-password/{token}` | `password.*` | `auth/forgot-password`, `auth/reset-password` | guest |
 | 4 | GET/POST | `/two-factor-challenge` | `two-factor.login` | `auth/two-factor-challenge` | pending 2FA |
 | 5 | GET/POST | `/invite/{token}` | `invites.accept` | `auth/accept-invite` | signed |
-| 6 | GET | `/app/branch/select` | `branch.select` | `branch/select` *(no branch)* | auth |
-| 7 | POST | `/app/branch/{branch}/switch` | `branch.switch` | redirect | assigned |
+| 6 | GET | `/app/branch/select` | `branch.select` | `branch/select` *(no branch)*: keyboard list (arrows, Enter, 1-9), last used branch first; with no session branch the last used one (`users.preferences.last_branch_id`) is restored instead | auth |
+| 7 | POST | `/app/branch/{branch}/switch` | `branch.switch` | redirect; session `branch_id` + `last_branch_id`; unassigned, inactive or foreign branch = 404 | assigned |
+| 9 | GET/PUT | `/app/password/change` | `password.change`, `password.change.update` | `auth/change-password` (forced after a legacy login: every other `/app` page and `/app/api` call is blocked by `password.changed` until done; JSON answers 409 `password_change_required`) | auth |
 | 8 | POST | `/app/lock`, `/app/unlock` | `lock.*` | lock screen | auth |
 | **Dashboard & shell** |
 | 10 | GET | `/app` | `dashboard` | `dashboard` | `dashboard.view` |
@@ -101,6 +102,12 @@ Rules: shortcuts never fire while typing in an input, except `Esc`, `F-keys`, `C
 | 13 | PATCH | `/app/api/preferences` | `api.preferences` | JSON (theme, scheme, density, locale, bn_digits; the user can only change themselves, `UserPolicy::updatePreferences`) | auth |
 | **POS** |
 | 20 | GET | `/pos` | `pos.index` | **static Blade shell** `pos.blade.php` + Vite entry `resources/js/pos/main.tsx` (standalone SPA, **not** an Inertia page; no server data, no session; precached by the service worker). See ADR 0001 | none on the shell (static, no data). `pos.sell` is enforced by local staff unlock and on every pushed op |
+| 20a | GET | `/app/pos?customer={uuid}` | `pos.register` | `pos/register`: the **online** register (ADR 0007) with payment methods, categories, settings, discount cap, optional pre-attached customer | `pos.sell` |
+| 20b | POST | `/app/pos/sales` | `pos.sales.store` | JSON: CompleteSale (`origin=web`); 201 new, 200 for a resubmitted `client_uuid`; business-rule failures 422 `{message, detail, code}` | `pos.sell` |
+| 20c | GET | `/app/api/pos/products?q=&category=` | `pos.products` | JSON: families with all variants and stock at the current branch; an exact barcode/SKU hit returns just that product. No cost | `pos.sell` |
+| 20d | GET | `/app/api/pos/customers?q=` · `/app/api/pos/customers/{uuid}` | `pos.customers` · `pos.customers.show` | JSON: picker via CustomerSearch; card with group discount, balance, effective credit limit, spendable advance. No PIN data | `pos.sell` |
+| 20e | GET | `/app/api/pos/today?register_id=` | `pos.today` | JSON: today's sales of the register (or of the cashier), received by method, last 10 sales | `pos.sell` |
+| 20f | POST | `/app/api/pos/authorize` | `pos.authorize` | JSON: manager login + password/staff PIN + permission → 120 s encrypted approval token for this cashier. Throttled 10/min | `pos.sell` (the manager needs the asked permission) |
 | 21 | POST | `/app/settings/devices/pairing-codes` | `devices.pairing-codes.store` | JSON: one-time pairing code (8 chars, 10 min TTL, single use) + QR for a chosen register | `devices.manage` |
 | 21a | POST | `/api/pos/v1/enroll` | `pos-api.enroll` | exchange a pairing code for a device token bound to (tenant, branch, register). Rate limited 5/min per IP | pairing code |
 | **Device sync API** (bearer device token, ability `pos:device`) |
@@ -114,33 +121,41 @@ Rules: shortcuts never fire while typing in an input, except `Esc`, `F-keys`, `C
 | **Sales** |
 | 30 | GET | `/app/sales` | `sales.index` | `sales/index` | `sales.view` |
 | 31 | GET | `/app/sales/{sale}` | `sales.show` | `sales/show` | `sales.view` |
-| 32 | GET | `/app/sales/{sale}/receipt?format=` | `sales.receipt` | print view / PDF | `sales.view` |
+| 32 | GET | `/app/sales/{sale}/receipt?paper=80\|58\|a4&lang=&print=1` | `sales.receipt` | print view (Blade, `@page` per paper); `format=pdf` answers 501 until mPDF | `sales.view` |
 | 33 | POST | `/app/sales/{sale}/void` | `sales.void` | redirect | `sales.void` |
-| 34 | POST | `/app/sales/{sale}/payments` | `sales.payments.store` | redirect | `payments.collect` |
-| 35 | GET | `/r/{token}` | `receipts.public` | public receipt (no phone/address) | public |
+| 34 | POST | `/app/sales/{sale}/payments` | `sales.payments.store` | redirect (allocates to this invoice, excess = advance) | `payments.collect` |
+| 34a | POST | `/app/sales/{sale}/share` | `sales.share` | JSON `{url}`: gives the sale a public token if it has none (imported sales) | `sales.view` |
+| 35 | GET | `/r/{token}` | `receipts.public` | public receipt (no customer phone, number, BIN or address; no cost/PIN), throttled 30/min, `noindex` | public |
 | 36 | GET | `/app/sync-exceptions` | `sync-exceptions.index` | `sales/sync-exceptions` (flagged offline sales: resolve/acknowledge) | `sales.void` |
 | **Returns** |
 | 40 | GET | `/app/returns` | `returns.index` | `returns/index` | `returns.view` |
 | 41 | GET/POST | `/app/returns/create?sale=` · `/app/returns` | `returns.create/store` | `returns/create` | `returns.create` |
 | 42 | GET | `/app/returns/{return}` | `returns.show` | `returns/show` | `returns.view` |
-| 43 | GET/POST | `/app/exchanges/create?sale=` · `/app/exchanges` | `exchanges.create/store` | `returns/exchange` (return lines + replacement lines + difference) | `returns.create` + `pos.sell` |
+| 42a | GET | `/app/returns/{return}/receipt?paper=` | `returns.receipt` | return / exchange receipt print view | `returns.view` |
+| 43 | GET/POST | `/app/exchanges/create?sale=` · `/app/exchanges` | `exchanges.create/store` | `returns/create` in exchange mode (return lines + replacement lines + difference) | `returns.create` + `pos.sell` |
 | 44 | POST | `/api/pos/v1/exchanges/quote` · `/api/pos/v1/exchanges` | `pos-api.exchanges.quote/store` | server-valued return + replacement sale with the device number (online only, ADR 0005) | device + `returns.create` |
 | **Customers & membership** |
 | 50 | resource | `/app/customers` | `customers.*` | `customers/index\|create\|edit\|show` | `customers.view/create/update/delete` |
-| 51 | GET | `/app/customers/{customer}/statement` | `customers.statement` | page / PDF | `customers.view` |
-| 52 | GET/POST | `/app/customers/{customer}/collect` | `customers.collect` | `customers/collect` | `payments.collect` |
+| 51 | GET · POST | `/app/customers/statement` · `/app/customers/{customer}/statement?from=&to=` · `POST …/statement/sms` | `customers.statement.index` · `customers.statement` · `customers.statement.sms` | `customers/statement` (search, period chips, totals row, print CSS; SMS summary via `App\Sms\SendCustomerStatement`) | `customers.view` (+ `settings.manage` for SMS) |
+| 51a | GET · POST | `/app/customers/search?q=` · `/app/customers/check-phone?phone=&except=` · `POST /app/customers/{customer}/deactivate` · `/merge` | `customers.search` · `customers.check-phone` · `customers.deactivate` · `customers.merge` | JSON picker / live duplicate-phone check; redirects | `customers.view` · `customers.delete` |
+| 52 | GET/POST | `/app/customers/{customer}/collect` | `customers.collect` | not built: due collection lives on `dues.show` (55a/55b) | `payments.collect` |
 | 53 | POST | `/app/customers/{customer}/pin/reset` | `customers.pin.reset` | redirect (reason required) | `customers.reset_pin` |
 | 54 | POST | `/app/customers/{customer}/pin/unlock` | `customers.pin.unlock` | redirect | `customers.reset_pin` |
-| 55 | GET | `/app/dues` | `dues.index` | `dues/index` (aging + share reminder) | `customers.view` |
+| 55 | GET | `/app/dues` | `dues.index` | `dues/index` (aging buckets 0–30/31–60/61–90/90+, current branch) | `customers.view` |
+| 55a | GET | `/app/dues/{customer}?amount=` | `dues.show` | `dues/show`: open invoices oldest first, allocation preview, recent payments (customer uuid) | `customers.view` |
+| 55b | POST | `/app/dues/{customer}/payments` | `dues.payments.store` | redirect to `dues.show?receipt=` (oldest first, or the given `allocations`) | `payments.collect` |
+| 55c | GET | `/app/payments/{payment}/receipt?paper=` | `payments.receipt` | money receipt print view | `payments.collect` or `payments.pay` |
+| 55a | GET | `/app/messages` | `messages.index` | `messages/index` (SMS log, status filter) | `customers.view` |
+| 55b | POST | `/app/messages/{message}/resend` | `messages.resend` | redirect back (failed messages only) | `settings.manage` |
 | 56 | resource | `/app/customer-groups` | `customer-groups.*` | `customer-groups/*` | `customers.update` |
 | 57 | GET | `/app/membership-cards` | `cards.index` | `cards/index` (issued cards, filter status, print queue) | `cards.view` |
-| 58 | POST | `/app/membership-cards/issue` | `cards.issue` | issue for customer ids → redirect to print | `cards.issue` |
-| 59 | GET | `/app/membership-cards/print?ids=&layout=cr80\|a4_10` | `cards.print` | `cards/print` preview → PDF | `cards.issue` |
+| 58 | POST | `/app/membership-cards/issue` | `cards.issue` | issue for customer uuids (`customers[]`) → back with toast | `cards.issue` |
+| 59 | GET · GET · POST | `/app/membership-cards/print?ids=&layout=cr80\|bleed` · `/export.csv?ids=` · `POST /printed` | `cards.print` · `cards.export` · `cards.printed` | print-ready HTML with `@page` (browser print dialog saves the PDF; only active cards) · press data CSV · records print_count | `cards.issue` |
 | 60 | POST | `/app/membership-cards/{card}/lost` · `/reissue` | `cards.lost/reissue` | redirect | `cards.issue` |
 | 61 | GET | `/app/api/geo/search?q=&level=` · `/app/api/geo/{level}?parent=` | `api.geo.*` | JSON location lookup (cached, global) | auth |
 | **Inventory** |
 | 70 | resource + import/export | `/app/products` | `products.*` | `products/*` | `products.*` |
-| 71 | resource | `/app/categories`, `/app/brands`, `/app/units` | … | `catalog/*` | `products.update` |
+| 71 | resource | `/app/products/categories`, `/app/products/brands` (inline CRUD; `categories.*`, `brands.*`), `/app/products/families/{family}` (`families.show/variants/attach`), `/app/variant-options` (JSON chips) | … | `catalog/*`, `products/family` | `products.update` |
 | 72 | GET | `/app/stock` · `/app/stock/{product}/movements` | `stock.*` | `stock/*` | `stock.view` |
 | 73 | resource | `/app/adjustments` | `adjustments.*` | `adjustments/*` | `stock.adjust` |
 | 74 | resource + `post` | `/app/stocktakes` | `stocktakes.*` | `stocktakes/*` | `stock.count` |
@@ -153,15 +168,17 @@ Rules: shortcuts never fire while typing in an input, except `Esc`, `F-keys`, `C
 | 90 | resource | `/app/cash-book`, `/app/accounts`, `/app/transaction-categories`, `/app/fixed-assets` | … | `money/*` | `money.*` |
 | **Reports** |
 | 95 | GET | `/app/reports` · `/app/reports/{report}` | `reports.*` | `reports/index`, `reports/show` | `reports.view` (+ `reports.profit` for cost/profit) |
-| 96 | POST | `/app/reports/{report}/export` | `reports.export` | queued → notification | `reports.export` |
+| 96 | POST | `/app/reports/{report}/export` | `reports.export` | CSV streamed as a download (queued export deferred; D4.2) | `reports.export` |
 | **Settings** |
-| 100 | GET/PUT | `/app/settings/business` (incl. VAT BIN, customer PIN policy, offline credit cap) | `settings.business` | `settings/business` | `settings.manage` |
-| 101 | resource | `/app/settings/branches` (+ registers, **devices**: list/revoke) | `branches.*`, `devices.*` | `settings/branches*` | `settings.manage`, `devices.manage` |
-| 102 | resource + invite | `/app/settings/users` | `users.*` | `settings/users*` | `users.manage` |
-| 103 | resource | `/app/settings/roles` | `roles.*` | `settings/roles*` | `users.manage` |
-| 104 | resource | `/app/settings/payment-methods`, `/taxes` | … | `settings/*` | `settings.manage` |
+| 100 | GET/PUT | `/app/settings/business` (profile, VAT BIN, locale, timezone, currency, tax-inclusive, back-date days, return window, default credit limit, customer PIN policy, offline credit cap) | `settings.business`, `settings.business.update` | `settings/business` | `settings.manage` |
+| 100a | GET/PUT | `/app/settings/sms` | `settings.sms.edit`, `settings.sms.update` | `settings/sms` (provider, credentials, templates) | `settings.manage` |
+| 100b | POST | `/app/settings/sms/test` | `settings.sms.test` | redirect + toast (sends a test SMS now) | `settings.manage` |
+| 101 | GET + POST/PUT | `/app/settings/branches[/{branch}]`, `/app/settings/registers[/{register}]` (+ **devices**: list/revoke, later) | `branches.index/store/update`, `registers.index/store/update`, `devices.*` | `settings/branches`, `settings/registers` (list + dialog form) | `settings.manage`, `devices.manage` |
+| 102 | resource | `/app/settings/users` (list, create, edit, `POST {user}/deactivate`; invite later) | `users.index/create/store/edit/update/deactivate` | `settings/users/index`, `settings/users/form` | `users.manage` |
+| 103 | GET + POST/PUT/DELETE | `/app/settings/roles[/{role}]` (permission matrix; system roles keep their name, the Owner keeps every permission, custom roles can be created and deleted when unused) | `roles.index/store/update/destroy` | `settings/roles` | `users.manage` |
+| 104 | GET + POST/PUT | `/app/settings/payment-methods`, `/taxes`, `/units` | `payment-methods.*`, `taxes.*`, `units.*` | `settings/payment-methods`, `settings/taxes`, `settings/units` | `settings.manage` |
 | 105 | GET/PUT | `/app/settings/receipt`, `/app/settings/card` (card template text/colours) | … | `settings/*` | `settings.manage` |
-| 106 | GET | `/app/settings/audit` · `/app/settings/backups` | … | `settings/*` | `audit.view` / Owner |
+| 106 | GET | `/app/settings/audit` (filters: date range, user, record type, text; details drawer) · `/app/settings/backups` | `settings.audit` | `settings/audit` | `audit.view` / Owner |
 | **Profile** |
 | 110 | GET/PUT | `/app/profile[/password\|/pin\|/2fa]` | `profile.*` | `profile/*` *(no branch)* | auth |
 | **Platform** |
@@ -285,6 +302,7 @@ Unchanged from v1.0 of this document (all **online-only**):
 - **Transfer:** draft → in_transit → received (short-receive with a reason).
 
 ### 5.9 Reports runner
+Reports: sales-by-day, sales-by-product, sales-by-user, sales-by-tender, returns, top-customers, customers-last-purchase, dues-aging, stock-valuation, daily-cash. `branch=all` or a branch id needs `reports.all_branches`, otherwise the current branch. Cost/profit columns need `reports.profit`. Dashboard (`/app`, `dashboard.view`): current branch, cached 60 s per tenant + branch.
 Filters (branch, date presets, user, category, **division/district**) → tiles + chart + table → export (queued; a notification when ready).
 
 ## 6. Global error, offline & edge handling

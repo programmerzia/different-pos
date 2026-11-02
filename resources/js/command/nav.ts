@@ -8,7 +8,6 @@ import {
     Settings,
     ShoppingCart,
     Truck,
-    Wallet,
 } from 'lucide-react';
 import { dashboard } from '@/routes';
 
@@ -32,7 +31,7 @@ export type NavGroup = {
     chord?: string;
     href: string;
     permission?: string | readonly string[];
-    /** A full page load: the POS is a separate SPA, not an Inertia page. */
+    /** A full page load (a non-Inertia page). The online register at /app/pos is an Inertia page. */
     external?: boolean;
     keys?: string;
     children?: NavLeaf[];
@@ -51,8 +50,7 @@ export const NAV: NavGroup[] = [
         id: 'pos',
         labelKey: 'nav.pos',
         icon: ShoppingCart,
-        href: '/pos',
-        external: true,
+        href: '/app/pos',
         keys: 'f1',
         permission: 'pos.sell',
     },
@@ -76,12 +74,6 @@ export const NAV: NavGroup[] = [
                 href: '/app/returns',
                 permission: 'returns.view',
             },
-            {
-                id: 'sales.sync',
-                labelKey: 'nav.sync_exceptions',
-                href: '/app/sync-exceptions',
-                permission: 'sales.void',
-            },
         ],
     },
     {
@@ -102,6 +94,12 @@ export const NAV: NavGroup[] = [
                 id: 'customers.dues',
                 labelKey: 'nav.dues',
                 href: '/app/dues',
+                permission: 'customers.view',
+            },
+            {
+                id: 'customers.messages',
+                labelKey: 'sms.nav_messages',
+                href: '/app/messages',
                 permission: 'customers.view',
             },
             {
@@ -138,24 +136,6 @@ export const NAV: NavGroup[] = [
                 href: '/app/adjustments',
                 permission: 'stock.adjust',
             },
-            {
-                id: 'inventory.stocktakes',
-                labelKey: 'nav.stocktakes',
-                href: '/app/stocktakes',
-                permission: 'stock.count',
-            },
-            {
-                id: 'inventory.transfers',
-                labelKey: 'nav.transfers',
-                href: '/app/transfers',
-                permission: 'stock.transfer',
-            },
-            {
-                id: 'inventory.labels',
-                labelKey: 'nav.labels',
-                href: '/app/labels',
-                permission: 'products.view',
-            },
         ],
     },
     {
@@ -179,14 +159,6 @@ export const NAV: NavGroup[] = [
                 permission: 'vendors.view',
             },
         ],
-    },
-    {
-        id: 'money',
-        labelKey: 'nav.money',
-        icon: Wallet,
-        chord: 'm',
-        href: '/app/cash-book',
-        permission: 'money.view',
     },
     {
         id: 'reports',
@@ -217,6 +189,30 @@ export const NAV: NavGroup[] = [
                 permission: 'settings.manage',
             },
             {
+                id: 'settings.registers',
+                labelKey: 'nav.registers',
+                href: '/app/settings/registers',
+                permission: 'settings.manage',
+            },
+            {
+                id: 'settings.payment_methods',
+                labelKey: 'nav.payment_methods',
+                href: '/app/settings/payment-methods',
+                permission: 'settings.manage',
+            },
+            {
+                id: 'settings.taxes',
+                labelKey: 'nav.taxes',
+                href: '/app/settings/taxes',
+                permission: 'settings.manage',
+            },
+            {
+                id: 'settings.units',
+                labelKey: 'nav.units',
+                href: '/app/settings/units',
+                permission: 'settings.manage',
+            },
+            {
                 id: 'settings.users',
                 labelKey: 'nav.users',
                 href: '/app/settings/users',
@@ -227,6 +223,12 @@ export const NAV: NavGroup[] = [
                 labelKey: 'nav.roles',
                 href: '/app/settings/roles',
                 permission: 'users.manage',
+            },
+            {
+                id: 'settings.sms',
+                labelKey: 'sms.nav_settings',
+                href: '/app/settings/sms',
+                permission: 'settings.manage',
             },
             {
                 id: 'settings.audit',

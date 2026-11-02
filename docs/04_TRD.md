@@ -144,7 +144,7 @@ pos-rewrite/
 │  │  ├─ i18n/{en,bn}.json · types/
 │  │  ├─ hotkeys/ (matcher, registry, dispatch, host, use-hotkeys) · command/ (action registry shared by row buttons, context menu and palette; nav; search; ui-store) · components/{shell,data-table}/ (D3.1). NB the shared action registry lives in `command/`, not `actions/`: `resources/js/actions/` is the Wayfinder output folder and is git-ignored.
 │  │  └─ sw.ts (service worker, vite-plugin-pwa injectManifest)
-│  └─ views/{app.blade.php (Inertia root), pos.blade.php (static POS shell, no server data), print/{receipt-thermal,receipt-a4,statement,report,card-cr80,card-a4}.blade.php}
+│  └─ views/{app.blade.php (Inertia root), pos.blade.php (static POS shell, no server data), receipts/{thermal,a4,return,payment}.blade.php, cards/cr80.blade.php, print/{statement,report}.blade.php}
 ├─ routes/{web.php, app.php, api-internal.php, pos-api.php, platform.php, console.php}
 ├─ tests/{Feature, Unit, Arch, fixtures/pricing/*.json} · e2e/ (Playwright)
 └─ lang/{en,bn}/
@@ -290,7 +290,7 @@ Roles:
 | Sentry | PHP + React errors | yes (prod) |
 | Uptime monitor | `/up` | yes (prod) |
 | BD geo reference data | divisions/districts/upazilas/unions (EN+BN) + post codes, imported once into `geo_*` from an open dataset (licence verified and recorded in `docs/adr`) | yes (data only) |
-| **SMS provider** | `SmsGateway` contract; drivers `ssl_wireless` (HTTP via Laravel `Http`), `log`, `null`. No SDK dependency (ADR 0007) | no |
+| **SMS provider** | `SmsGateway` contract; drivers `ssl_wireless` (HTTP via Laravel `Http`), `log`, `null`. No SDK dependency (ADR 0007). Settings live in `tenants.settings.sms` (`driver`, `sender_id`, `sid`, `base_url`, `api_token`, `templates`); the `api_token` is stored `Crypt`-encrypted inside that JSON, is never sent to a page and is scrubbed from audit rows. Queued `App\Sms\SendSms` (3 tries, backoff 30s/120s, `WithTenantContext`) | no |
 | Payment gateways | non-goal | no |
 
 ## 5. Security constraints (non-negotiable)

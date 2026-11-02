@@ -113,13 +113,14 @@ export function QtyStepper({
                     setText(qtyToDecimalString(value).replace(/\.?0+$/, ''));
                     e.currentTarget.select();
                 }}
-                onChange={(e) =>
-                    setText(
-                        digits
-                            .latin(e.target.value)
-                            .replace(integer ? /[^0-9]/g : /[^0-9.]/g, ''),
-                    )
-                }
+                onChange={(e) => {
+                    const cleaned = digits
+                        .latin(e.target.value)
+                        .replace(integer ? /[^0-9]/g : /[^0-9.]/g, '');
+                    setText(cleaned);
+                    // Apply while typing: a submit shortcut pressed in the field must see the new quantity.
+                    commit(cleaned);
+                }}
                 onBlur={() => {
                     if (text !== null) {
                         commit(text);

@@ -22,7 +22,7 @@ final class Audit
     /** Attributes that must never appear in an audit row, at any depth. */
     public const array FORBIDDEN = [
         'password', 'pin', 'pin_hash', 'remember_token', 'legacy_password_md5', 'member_pin_box',
-        'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'pin_box_secret_key',
+        'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'pin_box_secret_key', 'api_token',
     ];
 
     /** @param  array<string, mixed>  $properties */

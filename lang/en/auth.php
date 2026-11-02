@@ -16,6 +16,7 @@ return [
     */
 
     'failed' => 'These credentials do not match our records.',
+    'deactivated' => 'This account has been deactivated. Please contact your administrator.',
     'password' => 'The provided password is incorrect.',
     'tenant_suspended' => 'Your business account is suspended. Please contact support.',
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
