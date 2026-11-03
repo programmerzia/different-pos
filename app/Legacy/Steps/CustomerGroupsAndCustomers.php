@@ -68,17 +68,21 @@ final readonly class CustomerGroupsAndCustomers implements Step
             }
 
             $row = $legacy->get($groupId);
-            $name = $row === null ? null : Text::limit($context->text($row->title, self::GROUPS, $groupId, 'title'), 100);
-            if ($name === null) {
-                $name = "Legacy group #{$groupId}";
+            if ($row === null) {
+                // The group id points nowhere in legacy (DIFFERENT FASHION's group 2): those customers
+                // are simply ungrouped, so they import with no group rather than a made-up one.
                 $count = $context->legacy()->table(self::TABLE)->whereIn('store_id', $context->stores())->where('customer_group_id', $groupId)->count();
-                $context->report->add('orphan_group', self::GROUPS, $groupId, "Group does not exist in legacy; {$count} customers put in placeholder group [{$name}]");
+                $context->report->add('orphan_group', self::GROUPS, $groupId, "Group does not exist in legacy; {$count} customers imported without a group");
+                $context->ids->put(self::GROUPS, 0, $groupId, 0);
+
+                continue;
             }
+            $name = Text::limit($context->text($row->title, self::GROUPS, $groupId, 'title'), 100) ?? "Group {$groupId}";
 
             $group = CustomerGroup::query()->withTrashed()->where('name', $name)->first();
             if (! $group instanceof CustomerGroup) {
                 $group = new CustomerGroup;
-                $group->forceFill(['name' => $name, 'is_active' => $row === null || $row->status === 'Active', 'legacy_id' => $groupId])->save();
+                $group->forceFill(['name' => $name, 'is_active' => $row->status === 'Active', 'legacy_id' => $groupId])->save();
                 $context->created();
             }
             $context->ids->put(self::GROUPS, 0, $groupId, $group->id);
@@ -107,7 +111,7 @@ final readonly class CustomerGroupsAndCustomers implements Step
             $context->report->add('blank_name', self::TABLE, $id, "Customer has no name; named [{$name}]");
         }
         $address = Text::limit(Text::orNull($context->text($row->address, self::TABLE, $id, 'address')), 500);
-        $groupId = (int) $row->customer_group_id > 0 ? $context->ids->get(self::GROUPS, (int) $row->customer_group_id) : null;
+        $groupId = (int) $row->customer_group_id > 0 ? ($context->ids->get(self::GROUPS, (int) $row->customer_group_id) ?: null) : null;
 
         $customer = new Customer;
         $customer->forceFill([
