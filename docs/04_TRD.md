@@ -200,14 +200,17 @@ purchases.view · purchases.create · purchases.receive · purchases.cancel
 vendors.view · vendors.create · vendors.update · vendors.delete
 money.view · money.create · money.manage
 reports.view · reports.export · reports.profit · reports.all_branches
+branches.switch
 users.manage · settings.manage · audit.view
 ```
 Roles:
 - **Owner**: all.
-- **Manager**: all except `users.manage`, `settings.manage`, `audit.view`.
+- **Manager**: all except `users.manage`, `settings.manage`, `audit.view`, `branches.switch`, `reports.all_branches` (a Manager works in their own branch only; only the Owner switches branch and sees other branches' reports).
 - **Cashier**: `dashboard.view pos.sell sales.view returns.view customers.view customers.create cards.view products.view stock.view payments.collect`.
 - **Accountant**: `dashboard.view sales.view returns.view customers.view vendors.view money.* reports.* payments.*`.
 - **Stock Keeper**: `products.* stock.* purchases.* vendors.* reports.view`.
+
+`php artisan permissions:sync` (run on deploy; idempotent) creates permission names added to `Permission::ALL` and grants each newly created one to every tenant's Owner role; `--reset-system-roles` re-applies the default sets of the system roles (use it once to take `branches.switch`/`reports.all_branches` away from existing Managers). Without `branches.switch` a user never sees the branch picker: the branch is the pivot default, else `last_branch_id`, else the first active assigned one.
 
 `roles.max_discount_pct_bp` holds the per-role discount cap. Seeded defaults: Owner 10000 (100%), Manager 2000 (20%), Cashier/Accountant/Stock Keeper 0. Source of truth in code: `App\Support\Permissions\{Permission,SystemRoles}`; `App\Actions\Tenancy\SeedTenantRoles` creates the five `is_system` roles per tenant (idempotent; re-running refreshes permission sets but keeps an existing role's discount cap).
 

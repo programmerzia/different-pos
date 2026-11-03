@@ -11,10 +11,12 @@ use App\Models\Product;
 use App\Models\Unit;
 use App\Support\Money\Money;
 use App\Support\Quantity\Quantity;
+use Illuminate\Support\Facades\DB;
 
 /**
- * Step 7: store_product_list -> products (tenant-wide catalog). product_code -> sku; a code already
- * used in the tenant gets "-{legacy_id}". A deleted legacy product referenced by history becomes an
+ * Step 7: store_product_list -> products (tenant-wide catalog). product_code -> sku. The same code in
+ * another legacy store merges into the first product (one product, stock per branch); a code already
+ * used in the same store or by a non-legacy product gets "-{legacy_id}". A deleted legacy product referenced by history becomes an
  * inactive, soft-deleted placeholder (see placeholder()).
  */
 final readonly class Products implements Step
@@ -37,8 +39,13 @@ final readonly class Products implements Step
         }
         $context->setLookup(self::UNIT, $unit->id);
 
-        /** @var array<string, true> $skus */
-        $skus = Product::query()->withTrashed()->pluck('sku')->mapWithKeys(fn (mixed $sku): array => [mb_strtolower((string) $sku) => true])->all();
+        // lowercased SKU => the product that holds it, its legacy store (0 = unknown) and whether it came from legacy.
+        /** @var array<string, array{id: int, store: int, legacy: bool}> $skus */
+        $skus = [];
+        $stores = DB::table('legacy_id_maps')->where('entity', self::TABLE)->orderBy('id')->pluck('legacy_store_id', 'new_id');
+        foreach (Product::query()->withTrashed()->get(['id', 'sku', 'legacy_id']) as $existing) {
+            $skus[mb_strtolower((string) $existing->sku)] = ['id' => $existing->id, 'store' => (int) ($stores[$existing->id] ?? 0), 'legacy' => $existing->legacy_id !== null];
+        }
 
         $context->select(self::TABLE, ['id', 'store_id', 'category_id', 'brand_id', 'vendor_id', 'quantity', 'min_sale_qty', 'stock_out_alert', 'status'], ['product_name', 'product_code'], ['mrp', 'buy_price'])
             ->whereIn('store_id', $context->stores())
@@ -53,12 +60,22 @@ final readonly class Products implements Step
                     }
 
                     $code = Text::limit($context->text($row->product_code, self::TABLE, $id, 'product_code'), 50) ?? 'L'.$row->store_id.'-'.$id;
+                    $storeId = (int) $row->store_id;
                     $sku = $code;
-                    if (isset($skus[mb_strtolower($sku)])) {
+                    $holder = $skus[mb_strtolower($sku)] ?? null;
+                    if ($holder !== null && $holder['legacy'] && $holder['store'] !== $storeId) {
+                        // The same article stocked in another shop: one product, stock per branch. The first
+                        // product keeps its name, prices and active flag.
+                        $context->ids->put(self::TABLE, $storeId, $id, $holder['id']);
+                        $context->skipped();
+                        $context->report->add('merged_product', self::TABLE, $id, "Product code [{$code}] from store {$storeId} merged into product #{$holder['id']} imported from store {$holder['store']}");
+
+                        continue;
+                    }
+                    if ($holder !== null) {
                         $sku = $code.'-'.$id;
                         $context->report->add('duplicate_sku', self::TABLE, $id, "Product code [{$code}] already used in the tenant; imported as SKU [{$sku}]");
                     }
-                    $skus[mb_strtolower($sku)] = true;
 
                     $cost = Money::parseRounded((string) ($row->buy_price ?? '0'));
                     if ($cost->isZero()) {
@@ -88,7 +105,8 @@ final readonly class Products implements Step
                         'legacy_id' => $id,
                     ])->save();
 
-                    $context->ids->put(self::TABLE, (int) $row->store_id, $id, $product->id);
+                    $skus[mb_strtolower($sku)] = ['id' => $product->id, 'store' => $storeId, 'legacy' => true];
+                    $context->ids->put(self::TABLE, $storeId, $id, $product->id);
                     $context->created();
                 }
             });

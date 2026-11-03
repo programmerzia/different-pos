@@ -28,6 +28,7 @@ const EXPECTED_PERMISSIONS = [
     'vendors.view', 'vendors.create', 'vendors.update', 'vendors.delete',
     'money.view', 'money.create', 'money.manage',
     'reports.view', 'reports.export', 'reports.profit', 'reports.all_branches',
+    'branches.switch',
     'users.manage', 'settings.manage', 'audit.view',
 ];
 
@@ -68,7 +69,7 @@ it('creates the five system roles per tenant', function (): void {
         ]);
 
     expect(rolePermissions($tenant, 'Owner'))->toBe(sorted(EXPECTED_PERMISSIONS))
-        ->and(rolePermissions($tenant, 'Manager'))->toBe(sorted(array_diff(EXPECTED_PERMISSIONS, ['users.manage', 'settings.manage', 'audit.view'])))
+        ->and(rolePermissions($tenant, 'Manager'))->toBe(sorted(array_diff(EXPECTED_PERMISSIONS, ['users.manage', 'settings.manage', 'audit.view', 'branches.switch', 'reports.all_branches'])))
         ->and(rolePermissions($tenant, 'Cashier'))->toBe(sorted([
             'dashboard.view', 'pos.sell', 'sales.view', 'returns.view', 'customers.view', 'customers.create',
             'cards.view', 'products.view', 'stock.view', 'payments.collect',
@@ -76,7 +77,7 @@ it('creates the five system roles per tenant', function (): void {
         ->and(rolePermissions($tenant, 'Accountant'))->toBe(sorted([
             'dashboard.view', 'sales.view', 'returns.view', 'customers.view', 'vendors.view',
             'money.view', 'money.create', 'money.manage',
-            'reports.view', 'reports.export', 'reports.profit', 'reports.all_branches',
+            'reports.view', 'reports.export', 'reports.profit',
             'payments.collect', 'payments.pay',
         ]))
         ->and(rolePermissions($tenant, 'Stock Keeper'))->toBe(sorted([

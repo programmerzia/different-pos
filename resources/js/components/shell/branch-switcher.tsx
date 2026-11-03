@@ -9,6 +9,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useUiStore } from '@/command/ui-store';
+import { useCan } from '@/hooks/use-can';
 import { useT } from '@/i18n';
 
 /** POST /app/branch/{branch}/switch (route #7, lands with D3.2). Shown only with more than one branch. */
@@ -16,15 +17,29 @@ const switchUrl = (id: number) => `/app/branch/${id}/switch`;
 
 export function BranchSwitcher() {
     const { t } = useT();
+    const can = useCan();
     const { branches, branch_id } = usePage().props.auth;
     const open = useUiStore((s) => s.overlay === 'branch');
     const toggle = useUiStore((s) => s.toggle);
     const close = useUiStore((s) => s.close);
 
+    const current = branches.find((b) => b.id === branch_id);
+
+    // Only users with branches.switch (the Owner) may change branch; everyone else sees their own as plain text.
+    if (!can('branches.switch')) {
+        return current ? (
+            <span
+                className="inline-flex min-h-11 max-w-48 items-center gap-2 px-2 text-sm md:min-h-9"
+                title={t('branch.current')}
+            >
+                <Store className="size-4 opacity-60" aria-hidden="true" />
+                <span className="truncate">{current.name}</span>
+            </span>
+        ) : null;
+    }
     if (branches.length < 2) {
         return null;
     }
-    const current = branches.find((b) => b.id === branch_id);
 
     return (
         <DropdownMenu

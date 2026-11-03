@@ -64,7 +64,11 @@ final readonly class Reconciliation
         $legacyVendors = $ids($legacy->table(Vendors::TABLE)->where('store_id', $store));
         $count('vendors', count($legacyVendors), $this->countLegacy('vendors', $tenantId, $legacyVendors));
         $legacyProducts = $ids($legacy->table(Products::TABLE)->where('store_id', $store));
-        $count('products', count($legacyProducts), $this->countLegacy('products', $tenantId, $legacyProducts));
+        // Cross-store duplicates merge, so count the products the store's legacy ids resolve to.
+        $count('products', count($legacyProducts), $this->sumInt($this->chunked($legacyProducts, fn (array $chunk): array => [
+            'n' => DB::table('legacy_id_maps')->join('products', 'products.id', '=', 'legacy_id_maps.new_id')
+                ->where('legacy_id_maps.entity', Products::TABLE)->where('products.tenant_id', $tenantId)->whereIn('legacy_id_maps.legacy_id', $chunk)->count(),
+        ]), 'n'));
         $legacyCustomers = $ids($legacy->table(CustomerGroupsAndCustomers::TABLE)->where('store_id', $store));
         $count('customers', count($legacyCustomers), $this->countLegacy('customers', $tenantId, $legacyCustomers));
 

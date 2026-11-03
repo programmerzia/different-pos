@@ -81,7 +81,7 @@ export function ShellHotkeys() {
                 id: 'shell.branch',
                 keys: 'alt+b',
                 labelKey: 'hotkeys.branch',
-                handler: () => ui().toggle('branch'),
+                handler: () => can('branches.switch') && ui().toggle('branch'),
             },
             {
                 id: 'shell.notifications',

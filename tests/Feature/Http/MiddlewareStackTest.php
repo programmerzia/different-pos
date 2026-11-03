@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Route;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
@@ -16,10 +17,14 @@ beforeEach(function (): void {
         ->get('/app/api/_probe', fn () => response()->json(['ok' => true]));
 });
 
-function tenantUser(?Tenant $tenant = null, int $branches = 1, array $attributes = []): array
+function tenantUser(?Tenant $tenant = null, int $branches = 1, array $attributes = [], bool $canSwitch = false): array
 {
     $tenant ??= Tenant::factory()->create();
     $user = User::factory()->for($tenant)->create($attributes);
+    if ($canSwitch) {
+        app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->id);
+        $user->givePermissionTo(Permission::findOrCreate('branches.switch', 'web'));
+    }
     $made = [];
     for ($i = 0; $i < $branches; $i++) {
         $branch = makeBranch($tenant);
@@ -60,7 +65,7 @@ it('answers 403 json for a suspended tenant on json requests', function (): void
 
 it('sets the tenant context and permission team for an active tenant', function (): void {
     $this->withoutVite();
-    [$user, $tenant] = tenantUser();
+    [$user, $tenant] = tenantUser(canSwitch: true);
 
     $this->actingAs($user)->get(route('branch.select'))->assertOk();
 
@@ -94,13 +99,13 @@ it('auto-selects the only branch and sets the branch context', function (): void
 });
 
 it('redirects to branch.select when several branches and none chosen', function (): void {
-    [$user] = tenantUser(branches: 2);
+    [$user] = tenantUser(branches: 2, canSwitch: true);
 
     $this->actingAs($user)->get('/app')->assertRedirect(route('branch.select'));
 });
 
 it('accepts a session branch that is assigned and re-checks it every request', function (): void {
-    [$user, , [, $second]] = tenantUser(branches: 3);
+    [$user, , [, $second]] = tenantUser(branches: 3, canSwitch: true);
 
     $this->actingAs($user)->withSession(['branch_id' => $second->id])->get('/app');
     expect(app(TenantContext::class)->branchId())->toBe($second->id);
@@ -127,7 +132,7 @@ it('ignores inactive branches', function (): void {
 });
 
 it('rejects a session branch of another tenant', function (): void {
-    [$user] = tenantUser(branches: 2);
+    [$user] = tenantUser(branches: 2, canSwitch: true);
     $foreign = app(TenantContext::class)->withoutTenancy(fn () => Branch::factory()->create());
 
     $this->actingAs($user)->withSession(['branch_id' => $foreign->id])->get('/app')
@@ -144,7 +149,7 @@ it('rejects a foreign branch even when it is attached to the user', function ():
 });
 
 it('answers 409 json when a branch is required', function (): void {
-    [$user] = tenantUser(branches: 2);
+    [$user] = tenantUser(branches: 2, canSwitch: true);
 
     $this->actingAs($user)->getJson('/app/api/_probe')->assertStatus(409)->assertJson(['code' => 'branch_required']);
 });

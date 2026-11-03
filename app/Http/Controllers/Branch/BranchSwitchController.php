@@ -12,13 +12,15 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
-/** POST /app/branch/{branch}/switch: only to a branch the user is assigned to and that is active; anything else is a 404. */
+/** POST /app/branch/{branch}/switch: only to a branch the user is assigned to and that is active; anything else is a 404. Needs branches.switch (Owner only by default); others stay in their own branch. */
 final class BranchSwitchController extends Controller
 {
     public function __invoke(Request $request, int $branch, SwitchBranch $switch): RedirectResponse
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401);
+
+        Gate::authorize('branches.switch');
 
         $target = $user->branches()->where('branches.is_active', true)->whereKey($branch)->first();
         abort_if($target === null, 404);

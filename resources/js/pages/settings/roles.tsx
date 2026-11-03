@@ -305,7 +305,12 @@ function FragmentRows({
                         scope="row"
                         className="sticky left-0 bg-background px-3 py-1.5 text-left font-normal"
                     >
-                        <span className="font-mono text-xs">{name}</span>
+                        <span className="block">
+                            {t(`roles.perm.${name.replace('.', '_')}`)}
+                        </span>
+                        <span className="font-mono text-xs text-muted-foreground">
+                            {name}
+                        </span>
                     </th>
                     {roles.map((role) => (
                         <td key={role.id} className="px-3 py-1.5 text-center">

@@ -35,7 +35,7 @@ Mobile (< 768 px): the sidebar becomes a bottom tab bar [Home · POS · Sales ·
 ### 1.1 Top bar elements
 | Element | Behavior | Key |
 |---|---|---|
-| Branch switcher | Dropdown of the user's branches. Switching confirms if the POS cart is non-empty | `Alt+B` |
+| Branch switcher | Owner only (`branches.switch`): dropdown of the user's branches; everyone else sees their branch name as plain text. Switching confirms if the POS cart is non-empty | `Alt+B` |
 | Global search / command palette | Pages, actions ("New sale", "Receive purchase"), products, customers (`#12345678` = customer no.), invoices (`S-…`), settings | `Ctrl+K` |
 | Connectivity + sync pill | `● Online` (success) · `⚠ Offline` (warning) · `⟳ n unsynced` (accent, pulses while syncing) · `✕ Sync error` (danger). Click opens the **Sync center** popover (queue, last pull/push, retry, conflicts) | `Alt+Y` |
 | Register pill | "R1 · 12 sales today". Click: Today summary, Sync center | — |
@@ -91,8 +91,8 @@ Rules: shortcuts never fire while typing in an input, except `Esc`, `F-keys`, `C
 | 3 | GET/POST | `/forgot-password`, `/reset-password/{token}` | `password.*` | `auth/forgot-password`, `auth/reset-password` | guest |
 | 4 | GET/POST | `/two-factor-challenge` | `two-factor.login` | `auth/two-factor-challenge` | pending 2FA |
 | 5 | GET/POST | `/invite/{token}` | `invites.accept` | `auth/accept-invite` | signed |
-| 6 | GET | `/app/branch/select` | `branch.select` | `branch/select` *(no branch)*: keyboard list (arrows, Enter, 1-9), last used branch first; with no session branch the last used one (`users.preferences.last_branch_id`) is restored instead | auth |
-| 7 | POST | `/app/branch/{branch}/switch` | `branch.switch` | redirect; session `branch_id` + `last_branch_id`; unassigned, inactive or foreign branch = 404 | assigned |
+| 6 | GET | `/app/branch/select` | `branch.select` | `branch/select` *(no branch)*: keyboard list (arrows, Enter, 1-9), last used branch first; with no session branch the last used one (`users.preferences.last_branch_id`) is restored instead; a user without `branches.switch` is redirected to their pivot-default branch (else last used, else first) and never sees the picker | auth |
+| 7 | POST | `/app/branch/{branch}/switch` | `branch.switch` | redirect; session `branch_id` + `last_branch_id`; 403 without `branches.switch`; unassigned, inactive or foreign branch = 404 | `branches.switch` |
 | 9 | GET/PUT | `/app/password/change` | `password.change`, `password.change.update` | `auth/change-password` (forced after a legacy login: every other `/app` page and `/app/api` call is blocked by `password.changed` until done; JSON answers 409 `password_change_required`) | auth |
 | 8 | POST | `/app/lock`, `/app/unlock` | `lock.*` | lock screen | auth |
 | **Dashboard & shell** |

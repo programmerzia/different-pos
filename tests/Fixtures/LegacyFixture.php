@@ -241,6 +241,8 @@ final class LegacyFixture
             ['id' => 2418, 'store_id' => 7, 'product_name' => 'Shirt Chaina', 'product_code' => '410500', 'category_id' => 272, 'brand_id' => 257, 'vendor_id' => 3, 'quantity' => 10, 'mrp' => 1050, 'buy_price' => 0, 'min_sale_qty' => 3, 'stock_out_alert' => 3, 'status' => 'Active'],
             ['id' => 2419, 'store_id' => 7, 'product_name' => 'Panjabi Solid', 'product_code' => '309000', 'category_id' => 273, 'brand_id' => 257, 'vendor_id' => 0, 'quantity' => 5, 'mrp' => 900, 'buy_price' => 700.5, 'min_sale_qty' => 1, 'stock_out_alert' => 1, 'status' => 'Inactive'],
             ['id' => 2451, 'store_id' => 10, 'product_name' => 'Shirt Chaina', 'product_code' => '410500', 'category_id' => 277, 'brand_id' => 259, 'vendor_id' => 4, 'quantity' => 3, 'mrp' => 1050, 'buy_price' => 600, 'min_sale_qty' => 1, 'stock_out_alert' => 0, 'status' => 'Active'],
+            // Same code twice inside store 7: keeps the suffix.
+            ['id' => 2460, 'store_id' => 7, 'product_name' => 'Panjabi Solid 2', 'product_code' => '309000', 'category_id' => 273, 'brand_id' => 257, 'vendor_id' => 0, 'quantity' => 0, 'mrp' => 950, 'buy_price' => 700, 'min_sale_qty' => 1, 'stock_out_alert' => 0, 'status' => 'Active'],
         ]);
         $db->table('store_stock_invoice_list')->insert([
             ['id' => 1053, 'store_id' => 7, 'invoice_no' => 'ST1', 'created_at' => '2024-05-06 04:57:42', 'created_by' => 28],

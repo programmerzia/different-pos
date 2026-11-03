@@ -86,14 +86,23 @@ it('is idempotent: a second run creates nothing new', function (): void {
         ->and(collect($result->steps)->except('Roles')->sum('created'))->toBe(0);
 });
 
-it('suffixes duplicate product codes and reports them and cost-0 products', function (): void {
+it('merges a code shared across stores into one product, suffixes a same-store duplicate and reports cost-0 products', function (): void {
     ($this->import)();
 
     $skus = ($this->as)(fn (): array => Product::query()->orderBy('legacy_id')->pluck('sku', 'legacy_id')->all());
-    expect($skus)->toBe([2418 => '410500', 2419 => '309000', 2451 => '410500-2451'])
+    expect($skus)->toBe([2418 => '410500', 2419 => '309000', 2460 => '309000-2460'])
         ->and(($this->report)('duplicate_sku'))->toHaveCount(1)
-        ->and(($this->report)('duplicate_sku')[0][2])->toBe('2451')
+        ->and(($this->report)('duplicate_sku')[0][2])->toBe('2460')
+        ->and(($this->report)('merged_product'))->toHaveCount(1)
+        ->and(($this->report)('merged_product')[0][2])->toBe('2451')
         ->and(array_column(($this->report)('cost_zero'), 2))->toBe(['2418']);
+
+    $merged = (int) DB::table('products')->where('legacy_id', 2418)->value('id');
+    $branches = DB::table('branch_stocks')->where('product_id', $merged)->pluck('qty_on_hand', 'branch_id');
+    expect(DB::table('legacy_id_maps')->where('entity', 'store_product_list')->where('legacy_id', 2451)->value('new_id'))->toBe($merged)
+        ->and($branches)->toHaveCount(2)
+        // Reconciliation is per store: store 10's 3 units match its own branch, so only 2418 (fixture 10 vs 8) differs.
+        ->and(array_column(($this->report)('stock_mismatch'), 2))->toBe(['2418']);
 
     $panjabi = ($this->as)(fn (): Product => Product::query()->where('legacy_id', 2419)->firstOrFail());
     expect($panjabi->cost_price->paisa)->toBe(70050)

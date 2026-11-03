@@ -24,6 +24,7 @@ final class Permission
         'vendors.view', 'vendors.create', 'vendors.update', 'vendors.delete',
         'money.view', 'money.create', 'money.manage',
         'reports.view', 'reports.export', 'reports.profit', 'reports.all_branches',
+        'branches.switch',
         'users.manage', 'settings.manage', 'audit.view',
     ];
 
