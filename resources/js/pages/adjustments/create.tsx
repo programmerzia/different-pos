@@ -72,10 +72,10 @@ export default function AdjustmentCreate({ reasons }: { reasons: string[] }) {
                             {lines.map((l, i) => (
                                 <li key={l.product_id} className="flex flex-wrap items-center gap-3 px-3 py-2">
                                     <div className="min-w-48 flex-1"><p className="font-medium">{l.name}</p><p className="num text-xs text-muted-foreground">{l.sku}</p></div>
-                                    <div role="group" aria-label={t('adjustments.direction')} className="inline-flex overflow-hidden rounded-md border">
+                                    <fieldset className="m-0 inline-flex min-w-0 overflow-hidden rounded-md border p-0"><legend className="sr-only">{t('adjustments.direction')}</legend>
                                         <button type="button" aria-pressed={l.direction === 1} onClick={() => setLine(i, { direction: 1 })} className={cn('inline-flex min-h-11 items-center gap-1 px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50', l.direction === 1 ? 'bg-success-soft font-medium text-success' : 'hover:bg-muted')}><Plus className="size-4" aria-hidden="true" /> {t('adjustments.add_stock')}</button>
                                         <button type="button" aria-pressed={l.direction === -1} onClick={() => setLine(i, { direction: -1 })} className={cn('inline-flex min-h-11 items-center gap-1 border-l px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50', l.direction === -1 ? 'bg-danger-soft font-medium text-destructive' : 'hover:bg-muted')}><Minus className="size-4" aria-hidden="true" /> {t('adjustments.remove_stock')}</button>
-                                    </div>
+                                    </fieldset>
                                     <QtyStepper value={l.qty} min={1} onChange={(v) => setLine(i, { qty: v })} aria-label={`${t('purchases.qty')} ${l.name}`} />
                                     <Button type="button" variant="ghost" size="icon" className="size-11" aria-label={`${t('purchases.remove_line')} ${l.name}`} onClick={() => setLines((prev) => prev.filter((_, idx) => idx !== i))}><Trash2 aria-hidden="true" /></Button>
                                 </li>

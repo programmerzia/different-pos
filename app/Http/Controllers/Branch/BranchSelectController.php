@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Branch;
 
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\EnsureBranchSelected;
+use App\Models\Branch;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,7 @@ final class BranchSelectController extends Controller
 
         if (! $user->can('branches.switch')) {
             $fixed = EnsureBranchSelected::fixedBranch($user, $user->branches()->where('branches.is_active', true)->get());
-            if ($fixed !== null) {
+            if ($fixed instanceof Branch) {
                 $request->session()->put(EnsureBranchSelected::SESSION_KEY, $fixed->id);
 
                 return redirect()->route('dashboard');

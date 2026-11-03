@@ -69,11 +69,8 @@ export default function Appearance() {
 
                 <div className="grid gap-2">
                     <p className="text-sm font-medium">{t('theme.scheme')}</p>
-                    <div
-                        role="group"
-                        aria-label={t('theme.scheme')}
-                        className="flex flex-wrap gap-2"
-                    >
+                    <fieldset className="m-0 flex min-w-0 flex-wrap gap-2 border-0 p-0">
+                        <legend className="sr-only">{t('theme.scheme')}</legend>
                         {SCHEMES.map((scheme) => (
                             <button
                                 key={scheme}
@@ -96,7 +93,7 @@ export default function Appearance() {
                                 {t(`scheme.${scheme}`)}
                             </button>
                         ))}
-                    </div>
+                    </fieldset>
                 </div>
 
                 <div className="grid gap-2">

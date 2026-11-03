@@ -50,10 +50,11 @@ export function TrendChart({ points }: { points: Point[] }) {
                     </table>
                 </div>
             ) : (
+                <>
+                <span className="sr-only">{t('dashboard.trend')}</span>
                 <svg
                     viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-                    role="img"
-                    aria-label={t('dashboard.trend')}
+                    aria-hidden="true"
                     className="h-auto w-full"
                 >
                     <line
@@ -96,6 +97,7 @@ export function TrendChart({ points }: { points: Point[] }) {
                         );
                     })}
                 </svg>
+                </>
             )}
             <Button
                 type="button"

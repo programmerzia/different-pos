@@ -118,11 +118,10 @@ export default function Statement({
                         onPick={pick}
                         className="w-full max-w-md"
                     />
-                    <div
-                        role="group"
-                        aria-label={t('customers.statement.period')}
-                        className="flex flex-wrap gap-1"
-                    >
+                    <fieldset className="m-0 flex min-w-0 flex-wrap gap-1 border-0 p-0">
+                        <legend className="sr-only">
+                            {t('customers.statement.period')}
+                        </legend>
                         {STATEMENT_PRESETS.map((preset) => (
                             <Button
                                 key={preset}
@@ -142,7 +141,7 @@ export default function Statement({
                                 {t(`range.${preset}`)}
                             </Button>
                         ))}
-                    </div>
+                    </fieldset>
                     {showCustom ? (
                         <form
                             className="flex flex-wrap items-end gap-2"
@@ -340,7 +339,7 @@ export default function Statement({
                                             <td className="num px-3 py-2 text-right">
                                                 {digits.money(totals.due)}
                                             </td>
-                                            <td />
+                                            <td aria-label={t('customers.statement.col.status')} />
                                         </tr>
                                     </tfoot>
                                 </table>

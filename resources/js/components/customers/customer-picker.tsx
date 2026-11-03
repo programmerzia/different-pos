@@ -109,10 +109,7 @@ export function CustomerPicker({
             />
             <Input
                 type="search"
-                role="combobox"
-                aria-expanded={open}
-                aria-controls={listId}
-                aria-autocomplete="list"
+                aria-controls={open ? listId : undefined}
                 autoComplete="off"
                 autoFocus={autoFocus}
                 value={text}
@@ -122,10 +119,14 @@ export function CustomerPicker({
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={onKeyDown}
             />
+            <output className="sr-only">
+                {open && results[active]
+                    ? `${results[active].name} ${active + 1}/${results.length}`
+                    : ''}
+            </output>
             {open ? (
                 <ul
                     id={listId}
-                    role="listbox"
                     className="absolute z-30 mt-1 max-h-80 w-full overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
                 >
                     {results.length === 0 && searched ? (
@@ -134,13 +135,10 @@ export function CustomerPicker({
                         </li>
                     ) : null}
                     {results.map((c, index) => (
-                        <li
-                            key={c.uuid}
-                            role="option"
-                            aria-selected={index === active}
-                        >
+                        <li key={c.uuid}>
                             <button
                                 type="button"
+                                aria-current={index === active}
                                 tabIndex={-1}
                                 className={cn(
                                     'flex min-h-11 w-full flex-col items-start rounded-sm px-3 py-1.5 text-left text-sm md:min-h-9',
