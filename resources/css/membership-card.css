@@ -10,9 +10,12 @@
  */
 .mc {
     /* The mockup's light-theme tokens, pinned: the card is printed artwork and looks the same in any theme. */
-    --mc-primary: #0f766e;
-    --mc-primary-soft: #ccfbf1;
-    --mc-warning: #b45309;
+    /* DIFFERENT FASHION brand: black card, metallic gold accents (from the shield logo). */
+    --mc-primary: #d4a017;
+    --mc-primary-soft: #f3cf5c;
+    --mc-gold: #f5b800;
+    --mc-gold-deep: #a87900;
+    --mc-warning: #f5b800;
     --mc-border: #e2e8f0;
     --mc-muted: #475569;
     --mc-white: #ffffff;
@@ -50,8 +53,10 @@
 }
 .mc-front {
     padding: 5.882cqw;
-    border: 1px solid color-mix(in srgb, var(--mc-primary) 40%, transparent);
-    background: linear-gradient(135deg, #042f2e 0%, #0d9488 50%, #0f766e 100%);
+    border: 1px solid color-mix(in srgb, var(--mc-gold) 45%, transparent);
+    background:
+        radial-gradient(120% 90% at 100% 0%, rgb(245 184 0 / 0.16) 0%, transparent 55%),
+        linear-gradient(135deg, #050505 0%, #1c1a14 55%, #0a0a0a 100%);
 }
 .mc-sheen {
     position: absolute;
@@ -60,7 +65,7 @@
     width: 47.059cqw;
     height: 47.059cqw;
     border-radius: 9999px;
-    background: rgb(255 255 255 / 0.1);
+    background: rgb(245 184 0 / 0.14);
     filter: blur(7.059cqw);
     pointer-events: none;
 }
@@ -81,18 +86,18 @@
 .mc-logo {
     flex: none;
     display: flex;
-    width: 10cqw;
-    height: 10cqw;
+    width: 13cqw;
+    height: 13cqw;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     padding: 0.9cqw;
-    border: 0.35cqw solid rgb(255 255 255 / 0.85);
+    border: 0.35cqw solid var(--mc-gold);
     border-radius: 9999px;
-    background: var(--mc-white);
+    background: var(--mc-black);
     box-shadow:
-        0 0 0 0.35cqw rgb(255 255 255 / 0.18),
-        0 3px 8px -2px rgb(0 0 0 / 0.35);
+        0 0 0 0.35cqw rgb(245 184 0 / 0.22),
+        0 3px 8px -2px rgb(0 0 0 / 0.6);
 }
 .mc-logo img {
     display: block;
@@ -105,7 +110,11 @@
     box-shadow: none;
 }
 .mc-tenant {
-    color: var(--mc-primary-soft);
+    color: var(--mc-gold);
+    background: linear-gradient(180deg, #ffe08a 0%, #f5b800 45%, #b8860b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
     font-size: 3.529cqw;
     font-weight: 900;
     letter-spacing: 0.1em;
@@ -191,7 +200,8 @@
     margin-top: 1.176cqw;
 }
 .mc-number {
-    color: var(--mc-white);
+    color: var(--mc-gold);
+    text-shadow: 0 1px 0 rgb(0 0 0 / 0.6);
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 5.882cqw;
     font-weight: 800;
@@ -263,14 +273,14 @@
 /* Back */
 .mc-back {
     border: 1px solid var(--mc-border);
-    background: #1e293b;
+    background: #111111;
 }
 .mc-stripe {
     width: 100%;
     height: 11.765cqw;
     margin-top: 4.706cqw;
-    border-block: 1px solid var(--mc-black);
-    background: var(--mc-black);
+    border-block: 1px solid var(--mc-gold-deep);
+    background: #000000;
 }
 .mc-backbody {
     padding: 2.353cqw 5.882cqw;
