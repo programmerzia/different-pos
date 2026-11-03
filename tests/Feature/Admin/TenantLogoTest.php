@@ -24,7 +24,8 @@ it('stores an uploaded logo, records its path in branding and audits it', functi
 
     $path = $tenant->refresh()->logoPath();
     expect($path)->toStartWith("tenants/{$tenant->id}/logo-")->toEndWith('.png')
-        ->and($tenant->logoUrl())->toBe(Storage::disk('public')->url((string) $path));
+        ->and($tenant->logoUrl())->toBe('/storage/'.$path)
+        ->and($tenant->logoUrl())->not->toContain('://');
     Storage::disk('public')->assertExists((string) $path);
 
     $audit = Activity::query()->where('event', 'settings.logo_updated')->where('subject_id', $tenant->id)->sole();
@@ -104,7 +105,7 @@ it('gives the login page the remembered business logo, and nothing for a bogus c
 
     $this->withUnencryptedCookie('pos_tenant', 'logo-shop')->get('/login')->assertInertia(fn (Assert $page) => $page
         ->where('business.code', 'logo-shop')
-        ->where('business.logo_url', Storage::disk('public')->url('tenants/1/logo-x.png'))
+        ->where('business.logo_url', '/storage/tenants/1/logo-x.png')
         ->where('business.tagline', null));
     $this->withUnencryptedCookie('pos_tenant', 'plain-shop')->get('/login')
         ->assertInertia(fn (Assert $page) => $page->where('business.name', 'Plain Shop')->where('business.logo_url', null));
@@ -126,7 +127,7 @@ it('shares the tenant name and logo only inside a tenant context', function (): 
 
     $this->actingAs($owner)->get('/app/settings/business')->assertInertia(fn (Assert $page) => $page
         ->where('tenant.name', $tenant->name)
-        ->where('tenant.logo_url', Storage::disk('public')->url("tenants/{$tenant->id}/logo-abc.png")));
+        ->where('tenant.logo_url', "/storage/tenants/{$tenant->id}/logo-abc.png"));
 
     expect(app(TenantContext::class)->hasTenant())->toBeTrue();
 });

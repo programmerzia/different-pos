@@ -18,6 +18,7 @@ import {
     useState,
     type KeyboardEvent,
 } from 'react';
+import { toast } from 'sonner';
 import {
     cardCode,
     formatNumber,
@@ -51,7 +52,7 @@ import { actions, type AppAction } from '@/command/actions';
 import { registerMemberCardActions } from '@/command/customer-actions';
 import { useDigits } from '@/hooks/use-digits';
 import { useHotkeys } from '@/hotkeys/use-hotkeys';
-import { useT } from '@/i18n';
+import { i18n, useT } from '@/i18n';
 import {
     exportUrl,
     moveCursor,
@@ -96,7 +97,7 @@ const primaryButton =
 const focusRing =
     'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50';
 
-/** Issues what is missing (POST cards.prepare), then answers with the card ids; [] when nothing is printable. */
+/** Issues what is missing (POST cards.prepare), then answers with the card ids. A failure (403, 422, network) is a toast and []. */
 async function prepared(uuids: string[]): Promise<number[]> {
     if (uuids.length === 0) {
         return [];
@@ -104,6 +105,8 @@ async function prepared(uuids: string[]): Promise<number[]> {
     try {
         return await prepareCards(uuids);
     } catch {
+        toast.error(i18n.t('cards.prepare_failed'));
+
         return [];
     }
 }
@@ -116,13 +119,29 @@ async function exportMembers(uuids: string[]) {
     }
 }
 
-/** Opens the print-ready page (the browser's print dialog saves the PDF) and records the print. */
+/**
+ * Opens the print-ready page (the browser's print dialog saves the PDF) and records the print. The
+ * window opens synchronously on the click (a pop-up blocker allows it only inside the user gesture)
+ * and is pointed at the page once `prepare` answers; the print is recorded only when it opened.
+ */
 async function press(uuids: string[], layout: PrintLayout, crop: boolean) {
-    const ids = await prepared(uuids);
-    if (ids.length === 0) {
+    if (uuids.length === 0) {
         return;
     }
-    window.open(printUrl(ids, layout, crop), '_blank', 'noopener');
+    const win = window.open('about:blank', '_blank');
+    const ids = await prepared(uuids);
+    if (ids.length === 0) {
+        win?.close();
+
+        return;
+    }
+    if (!win || win.closed) {
+        toast.error(i18n.t('cards.popup_blocked'));
+
+        return;
+    }
+    win.opener = null;
+    win.location.href = printUrl(ids, layout, crop);
     router.post(
         '/app/membership-cards/printed',
         { ids, layout },

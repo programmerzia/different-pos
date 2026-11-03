@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Actions\Settings\EnsureSystemPaymentMethods;
 use App\Models\Branch;
 use App\Models\Tenant;
 use App\Models\User;
@@ -30,7 +31,11 @@ final class DatabaseSeeder extends Seeder
             ),
         );
 
+        // Store credit and exchange credit tenders (returns, exchanges, customer accounts).
+        app(TenantContext::class)->withoutTenancy(fn (): int => app(EnsureSystemPaymentMethods::class)->handle($tenant));
+
         $this->call(RolesAndPermissionsSeeder::class);
+        $this->call(GeoSeeder::class);
 
         $owner = User::query()->firstOrNew(['email' => 'owner@demo.test']);
         $owner->forceFill([

@@ -13,23 +13,34 @@ use App\Http\Controllers\Concerns\TranslatesDomainErrors;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Sales\Concerns\PresentsSales;
 use App\Http\Requests\Sales\CollectPaymentRequest;
+use App\Messaging\MessagingUi;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Sale;
+use App\Reports\ColumnType;
+use App\Reports\ReportColumn;
+use App\Reports\ReportResult;
+use App\Support\Export\ExportFormat;
+use App\Support\Export\ExportMeta;
+use App\Support\Export\TabularExport;
 use App\Support\Http\TableQuery;
 use App\Support\Money\Money;
+use App\Support\Sales\BusinessDay;
 use App\Support\Sales\CustomerAccounts;
 use App\Support\Sales\DueAging;
+use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Open dues of the current branch: customers with aging buckets (0–30, 31–60, 61–90, 90+ days),
@@ -61,34 +72,11 @@ final class DueController extends Controller
     {
         $this->authorize('viewAny', Customer::class);
 
-        $table = TableQuery::fromRequest($request, ['total_due', 'oldest_at', 'invoices'], ['bucket', 'group', 'credit'], '-total_due');
+        $table = $this->listTable($request);
         $bindings = $this->bucketBindings();
-
-        $query = $this->openDues()
-            ->selectRaw('customer_id, COUNT(*) AS invoices, SUM(due) AS total_due, MIN(sold_at) AS oldest_at, '.self::BUCKET_SQL, $bindings)
-            ->groupBy('customer_id');
-        if ($table->search !== '') {
-            $like = '%'.addcslashes($table->search, '\\%_').'%';
-            $digits = preg_replace('/\D+/', '', $table->search) ?? '';
-            $query->whereIn('customer_id', Customer::query()->withTrashed()->select('id')->where(fn ($c) => $c
-                ->where('name', 'like', $like)
-                ->orWhere('shop_name', 'like', $like)
-                ->when(strlen($digits) >= 4, fn ($c) => $c->orWhere('phone', 'like', '%'.$digits)->orWhere('customer_no', 'like', $digits.'%'))));
-        }
-        if (isset($table->filters['group'])) {
-            $query->whereIn('customer_id', Customer::query()->withTrashed()->select('id')->where('customer_group_id', (int) $table->filters['group']));
-        }
-        // Credit utilisation of the customer's account balance against the credit limit.
-        match ($table->filters['credit'] ?? null) {
-            'near_limit' => $query->whereIn('customer_id', Customer::query()->withTrashed()->select('id')->whereNotNull('credit_limit')->whereRaw('balance * 100 > credit_limit * 75')),
-            'over_limit' => $query->whereIn('customer_id', Customer::query()->withTrashed()->select('id')->whereNotNull('credit_limit')->whereColumn('balance', '>', 'credit_limit')),
-            default => null,
-        };
-        $bucket = $table->filters['bucket'] ?? null;
-        if (in_array($bucket, DueAging::BUCKETS, true)) {
-            $query->havingRaw('SUM('.self::BUCKET_CASE[$bucket].') > 0', $this->bucketBindings($bucket));
-        }
+        $query = $this->listQuery($table, $bindings);
         $page = $table->paginate($query);
+        $accounts = app(CustomerAccounts::class);
 
         /** @var list<Sale> $groups */
         $groups = $page->items();
@@ -106,7 +94,7 @@ final class DueController extends Controller
         $debtors = $this->openDues()->selectRaw(self::DEBTOR_SQL, $bindings)->toBase()->first();
 
         return Inertia::render('dues/index', [
-            'rows' => array_map(function (Sale $g) use ($customers, $lastSale): array {
+            'rows' => array_map(function (Sale $g) use ($customers, $lastSale, $accounts): array {
                 $customer = $customers->get((int) $g->getAttribute('customer_id'));
                 $oldest = $g->getAttribute('oldest_at');
 
@@ -115,7 +103,7 @@ final class DueController extends Controller
                         ...($this->customerSummary($customer) ?? []),
                         'name_bn' => $customer->name_bn,
                         'balance' => $customer->balance->paisa,
-                        'credit_limit' => $customer->credit_limit?->paisa,
+                        'credit_limit' => $accounts->creditLimit($customer)?->paisa,
                     ] : null,
                     'invoices' => (int) $g->getAttribute('invoices'),
                     'total_due' => (int) $g->getAttribute('total_due'),
@@ -135,9 +123,113 @@ final class DueController extends Controller
             ],
             'groups' => fn (): array => array_values(CustomerGroup::query()->where('is_active', true)->orderBy('name')->get(['id', 'name'])
                 ->map(static fn (CustomerGroup $g): array => ['id' => $g->id, 'name' => $g->name])->all()),
+            'messaging' => fn (): array => app(MessagingUi::class)->props($this->actor($request)),
             // The collect dialog for one row (reloaded alone with ?collect=<customer uuid>).
             'collect' => Inertia::optional(fn (): ?array => $this->collectPayload($request)),
         ]);
+    }
+
+    private function listTable(Request $request): TableQuery
+    {
+        return TableQuery::fromRequest($request, ['total_due', 'oldest_at', 'invoices'], ['bucket', 'group', 'credit', 'from', 'to', 'period'], '-total_due');
+    }
+
+    /**
+     * Open dues grouped per customer with the page's filters (same query string), shared by the page and the export.
+     *
+     * @param  list<CarbonImmutable>  $bindings
+     * @return Builder<Sale>
+     */
+    private function listQuery(TableQuery $table, array $bindings): Builder
+    {
+        $query = $this->openDues()
+            ->selectRaw('customer_id, COUNT(*) AS invoices, SUM(due) AS total_due, MIN(sold_at) AS oldest_at, '.self::BUCKET_SQL, $bindings)
+            ->groupBy('customer_id');
+        $this->dateRange($query, 'sold_at', $table->filters['from'] ?? null, $table->filters['to'] ?? null, $table->filters['period'] ?? null);
+        if ($table->search !== '') {
+            $like = '%'.addcslashes($table->search, '\\%_').'%';
+            $digits = preg_replace('/\D+/', '', $table->search) ?? '';
+            $query->whereIn('customer_id', Customer::query()->withTrashed()->select('id')->where(fn ($c) => $c
+                ->where('name', 'like', $like)
+                ->orWhere('shop_name', 'like', $like)
+                ->when(strlen($digits) >= 4, fn ($c) => $c->orWhere('phone', 'like', '%'.$digits)->orWhere('customer_no', 'like', $digits.'%'))));
+        }
+        if (isset($table->filters['group'])) {
+            $query->whereIn('customer_id', Customer::query()->withTrashed()->select('id')->where('customer_group_id', (int) $table->filters['group']));
+        }
+        // Credit utilisation of the customer's account balance against the effective credit limit
+        // (the customer's own limit, else the tenant default; as CustomerAccounts::creditLimit).
+        $default = $this->defaultCreditLimit();
+        $limit = 'COALESCE(credit_limit, ?)';
+        match ($table->filters['credit'] ?? null) {
+            'near_limit' => $query->whereIn('customer_id', Customer::query()->withTrashed()->select('id')
+                ->whereRaw("{$limit} IS NOT NULL AND balance * 100 > {$limit} * 75", [$default, $default])),
+            'over_limit' => $query->whereIn('customer_id', Customer::query()->withTrashed()->select('id')
+                ->whereRaw("{$limit} IS NOT NULL AND balance > {$limit}", [$default, $default])),
+            default => null,
+        };
+        $bucket = $table->filters['bucket'] ?? null;
+        if (in_array($bucket, DueAging::BUCKETS, true)) {
+            $query->havingRaw('SUM('.self::BUCKET_CASE[$bucket].') > 0', $this->bucketBindings($bucket));
+        }
+
+        return $query;
+    }
+
+    /** GET /app/dues/export.{csv|xlsx|pdf}: every debtor of the filtered list, same query string as the page. */
+    public function export(Request $request, string $format, TabularExport $export, TenantContext $context): HttpResponse|StreamedResponse
+    {
+        $this->authorize('viewAny', Customer::class);
+        $table = $this->listTable($request);
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Sale> $groups */
+        $groups = $table->applySort($this->listQuery($table, $this->bucketBindings()))->get();
+        $accounts = app(CustomerAccounts::class);
+        $tz = $this->timezone();
+
+        $customers = Customer::query()->withTrashed()
+            ->whereIn('id', $groups->map(static fn (Sale $g): int => (int) $g->getAttribute('customer_id'))->all())
+            ->get()->keyBy('id');
+        $lastSale = Sale::query()->where('status', SaleStatus::Completed)
+            ->whereIn('customer_id', $customers->keys()->all())
+            ->groupBy('customer_id')
+            ->selectRaw('customer_id, MAX(sold_at) AS last_at')
+            ->toBase()->pluck('last_at', 'customer_id');
+
+        $columns = [
+            new ReportColumn('customer_no', 'Customer No', ColumnType::Text),
+            new ReportColumn('name', 'Customer', ColumnType::Text),
+            new ReportColumn('shop_name', 'Shop', ColumnType::Text),
+            new ReportColumn('phone', 'Phone', ColumnType::Text),
+            new ReportColumn('invoices', 'Invoices', ColumnType::Int),
+            new ReportColumn('total_due', 'Total due', ColumnType::Money),
+            new ReportColumn('credit_limit', 'Credit limit', ColumnType::Money),
+            new ReportColumn('oldest', 'Oldest invoice', ColumnType::Date),
+            new ReportColumn('last_sale', 'Last sale', ColumnType::Date),
+        ];
+        $rows = [];
+        $totals = ['invoices' => 0, 'total_due' => 0];
+        foreach ($groups as $g) {
+            $customer = $customers->get((int) $g->getAttribute('customer_id'));
+            $summary = $customer instanceof Customer ? $this->customerSummary($customer) : null;
+            $lastAt = $lastSale->get((int) $g->getAttribute('customer_id'));
+            $oldest = $g->getAttribute('oldest_at');
+            $row = [
+                'customer_no' => $summary['customer_no'] ?? null,
+                'name' => $summary['name'] ?? null,
+                'shop_name' => $summary['shop_name'] ?? null,
+                'phone' => $summary['phone'] ?? null,
+                'invoices' => (int) $g->getAttribute('invoices'),
+                'total_due' => (int) $g->getAttribute('total_due'),
+                'credit_limit' => $customer instanceof Customer ? $accounts->creditLimit($customer)?->paisa : null,
+                'oldest' => is_string($oldest) ? BusinessDay::localDate(CarbonImmutable::parse($oldest, 'UTC'), $tz) : null,
+                'last_sale' => is_string($lastAt) ? BusinessDay::localDate(CarbonImmutable::parse($lastAt, 'UTC'), $tz) : null,
+            ];
+            $rows[] = $row;
+            $totals['invoices'] += $row['invoices'];
+            $totals['total_due'] += $row['total_due'];
+        }
+
+        return $export->respond(new ReportResult($columns, $rows, $totals), ExportFormat::from($format), 'dues-'.now($tz)->format('Ymd-His'), ExportMeta::for($context, 'Customer dues'));
     }
 
     public function show(Request $request, string $customer): Response
@@ -173,7 +265,7 @@ final class DueController extends Controller
             'customer' => [
                 ...($this->customerSummary($model) ?? []),
                 'balance' => $model->balance->paisa,
-                'credit_limit' => $model->credit_limit?->paisa,
+                'credit_limit' => app(CustomerAccounts::class)->creditLimit($model)?->paisa,
                 'advance' => app(CustomerAccounts::class)->advance($model)->paisa,
             ],
             'invoices' => array_values($invoices->map(function (Sale $s) use ($now, $tz): array {
@@ -206,6 +298,8 @@ final class DueController extends Controller
             'receipt' => $receiptId > 0 && Payment::query()->whereKey($receiptId)->where('party_id', $model->id)->exists() ? $receiptId : null,
             'methods' => $this->moneyMethods(),
             'can' => ['collect' => $actor->can('collect', Payment::class) && ! $model->is_walk_in],
+            'messaging' => fn (): array => app(MessagingUi::class)->props($actor),
+            'last_payment' => fn (): ?array => $receiptId > 0 ? $this->lastPayment($model, $receiptId) : null,
         ]);
     }
 
@@ -252,7 +346,7 @@ final class DueController extends Controller
             'customer' => [
                 ...($this->customerSummary($model) ?? []),
                 'balance' => $model->balance->paisa,
-                'credit_limit' => $model->credit_limit?->paisa,
+                'credit_limit' => app(CustomerAccounts::class)->creditLimit($model)?->paisa,
             ],
             'invoices' => array_values($this->openDues()->where('customer_id', $model->id)->orderBy('sold_at')->orderBy('id')->get()
                 ->map(fn (Sale $s): array => [
@@ -264,6 +358,25 @@ final class DueController extends Controller
             'methods' => $this->moneyMethods(),
             'can' => ['collect' => $this->actor($request)->can('collect', Payment::class) && ! $model->is_walk_in],
         ];
+    }
+
+    /**
+     * The amount of the receipt just collected, for the WhatsApp thank-you text ({amount}).
+     *
+     * @return array{id: int, amount: int}|null
+     */
+    private function lastPayment(Customer $customer, int $receiptId): ?array
+    {
+        $payment = Payment::query()->whereKey($receiptId)->where('party_type', PartyType::Customer)->where('party_id', $customer->id)->first();
+
+        return $payment instanceof Payment ? ['id' => $payment->id, 'amount' => $payment->amount->paisa] : null;
+    }
+
+    private function defaultCreditLimit(): ?int
+    {
+        $default = app(TenantContext::class)->tenant()->setting('default_credit_limit');
+
+        return is_int($default) ? $default : null;
     }
 
     /** A raw UTC timestamp from an aggregate (MIN / MAX) in tenant-local time. */

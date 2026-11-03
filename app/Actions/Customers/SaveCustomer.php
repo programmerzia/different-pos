@@ -14,6 +14,7 @@ use App\Support\Audit\Audit;
 use App\Support\Catalog\Values;
 use App\Support\Customers\CustomerNumber;
 use App\Support\Database\Transaction;
+use App\Support\Geo\GeoCatalog;
 use App\Support\Money\Money;
 use App\Support\Phone\BdPhone;
 use DateTimeInterface;
@@ -23,14 +24,15 @@ use Illuminate\Support\Carbon;
  * Creates or updates a customer. The phone is normalised to E.164 (+880…) and must be unique in the
  * tenant: a clash throws DuplicateCustomerPhone carrying the existing customer. On create the
  * customer_no is allocated from the tenant sequence (server-assigned, Luhn-checked, never reused).
- * The walk-in customer cannot be edited.
+ * The walk-in customer cannot be edited. A location (geo ids) is checked to be one chain and its
+ * parents are filled from the deepest child; a location saved by a user is `location_verified`.
  */
 final readonly class SaveCustomer
 {
-    public function __construct(private CustomerNumber $numbers) {}
+    public function __construct(private CustomerNumber $numbers, private GeoCatalog $geo) {}
 
     /**
-     * @param  array{name?: string, name_bn?: string|null, shop_name?: string|null, phone?: string, alt_phone?: string|null, email?: string|null, gender?: Gender|string|null, dob?: DateTimeInterface|string|null, anniversary_date?: DateTimeInterface|string|null, customer_group_id?: int|null, credit_limit?: Money|string|null, vat_bin?: string|null, address_line?: string|null, area?: string|null, post_code?: string|null, notes?: string|null, origin_client_uuid?: string|null}  $data
+     * @param  array{name?: string, name_bn?: string|null, shop_name?: string|null, phone?: string, alt_phone?: string|null, email?: string|null, gender?: Gender|string|null, dob?: DateTimeInterface|string|null, anniversary_date?: DateTimeInterface|string|null, customer_group_id?: int|null, credit_limit?: Money|string|null, vat_bin?: string|null, geo_division_id?: int|null, geo_district_id?: int|null, geo_upazila_id?: int|null, geo_union_id?: int|null, address_line?: string|null, area?: string|null, post_code?: string|null, notes?: string|null, origin_client_uuid?: string|null}  $data
      */
     public function handle(User $actor, array $data, ?Customer $customer = null): Customer
     {
@@ -100,6 +102,20 @@ final readonly class SaveCustomer
                 if (array_key_exists($key, $data)) {
                     $attributes[$key] = $data[$key] === null || $data[$key] === '' ? null : $data[$key];
                 }
+            }
+
+            $geoKeys = ['geo_division_id', 'geo_district_id', 'geo_upazila_id', 'geo_union_id'];
+            if (array_intersect_key($data, array_flip($geoKeys)) !== []) {
+                $ids = [];
+                foreach ($geoKeys as $key) {
+                    // Any given level replaces the whole location: absent levels are cleared, parents re-derived below.
+                    $ids[$key] = isset($data[$key]) ? (int) $data[$key] : null;
+                }
+                $chain = $this->geo->resolve($ids['geo_division_id'], $ids['geo_district_id'], $ids['geo_upazila_id'], $ids['geo_union_id']);
+                if ($chain === null) {
+                    throw InvalidPartyData::invalid('The chosen district, upazila and union do not belong together.');
+                }
+                $attributes = [...$attributes, ...$chain, 'location_verified' => true];
             }
 
             if (array_key_exists('customer_group_id', $data)) {

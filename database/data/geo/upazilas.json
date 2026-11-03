@@ -1,0 +1,5631 @@
+[
+{
+"id": 1,
+"code": "01-01-001",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Debidwar",
+"name_bn": "দেবিদ্বার",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 2,
+"code": "01-01-002",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Barura",
+"name_bn": "বরুড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 3,
+"code": "01-01-003",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Brahmanpara",
+"name_bn": "ব্রাহ্মণপাড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 4,
+"code": "01-01-004",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Chandina",
+"name_bn": "চান্দিনা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 5,
+"code": "01-01-005",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Chauddagram",
+"name_bn": "চৌদ্দগ্রাম",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 6,
+"code": "01-01-006",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Daudkandi",
+"name_bn": "দাউদকান্দি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 7,
+"code": "01-01-007",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Homna",
+"name_bn": "হোমনা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 8,
+"code": "01-01-008",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Laksam",
+"name_bn": "লাকসাম",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 9,
+"code": "01-01-009",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Muradnagar",
+"name_bn": "মুরাদনগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 10,
+"code": "01-01-010",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Nangalkot",
+"name_bn": "নাঙ্গলকোট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 11,
+"code": "01-01-011",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Comilla Sadar",
+"name_bn": "কুমিল্লা সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 12,
+"code": "01-01-012",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Meghna",
+"name_bn": "মেঘনা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 13,
+"code": "01-01-013",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Monohargonj",
+"name_bn": "মনোহরগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 14,
+"code": "01-01-014",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Sadarsouth",
+"name_bn": "সদর দক্ষিণ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 15,
+"code": "01-01-015",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Titas",
+"name_bn": "তিতাস",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 16,
+"code": "01-01-016",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Burichang",
+"name_bn": "বুড়িচং",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 17,
+"code": "01-01-017",
+"district_code": "01-01",
+"type": "upazila",
+"name_en": "Lalmai",
+"name_bn": "লালমাই",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 18,
+"code": "01-02-018",
+"district_code": "01-02",
+"type": "upazila",
+"name_en": "Chhagalnaiya",
+"name_bn": "ছাগলনাইয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 19,
+"code": "01-02-019",
+"district_code": "01-02",
+"type": "upazila",
+"name_en": "Feni Sadar",
+"name_bn": "ফেনী সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 20,
+"code": "01-02-020",
+"district_code": "01-02",
+"type": "upazila",
+"name_en": "Sonagazi",
+"name_bn": "সোনাগাজী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 21,
+"code": "01-02-021",
+"district_code": "01-02",
+"type": "upazila",
+"name_en": "Fulgazi",
+"name_bn": "ফুলগাজী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 22,
+"code": "01-02-022",
+"district_code": "01-02",
+"type": "upazila",
+"name_en": "Parshuram",
+"name_bn": "পরশুরাম",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 23,
+"code": "01-02-023",
+"district_code": "01-02",
+"type": "upazila",
+"name_en": "Daganbhuiyan",
+"name_bn": "দাগনভূঞা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 24,
+"code": "01-03-024",
+"district_code": "01-03",
+"type": "upazila",
+"name_en": "Brahmanbaria Sadar",
+"name_bn": "ব্রাহ্মণবাড়িয়া সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 25,
+"code": "01-03-025",
+"district_code": "01-03",
+"type": "upazila",
+"name_en": "Kasba",
+"name_bn": "কসবা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 26,
+"code": "01-03-026",
+"district_code": "01-03",
+"type": "upazila",
+"name_en": "Nasirnagar",
+"name_bn": "নাসিরনগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 27,
+"code": "01-03-027",
+"district_code": "01-03",
+"type": "upazila",
+"name_en": "Sarail",
+"name_bn": "সরাইল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 28,
+"code": "01-03-028",
+"district_code": "01-03",
+"type": "upazila",
+"name_en": "Ashuganj",
+"name_bn": "আশুগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 29,
+"code": "01-03-029",
+"district_code": "01-03",
+"type": "upazila",
+"name_en": "Akhaura",
+"name_bn": "আখাউড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 30,
+"code": "01-03-030",
+"district_code": "01-03",
+"type": "upazila",
+"name_en": "Nabinagar",
+"name_bn": "নবীনগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 31,
+"code": "01-03-031",
+"district_code": "01-03",
+"type": "upazila",
+"name_en": "Bancharampur",
+"name_bn": "বাঞ্ছারামপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 32,
+"code": "01-03-032",
+"district_code": "01-03",
+"type": "upazila",
+"name_en": "Bijoynagar",
+"name_bn": "বিজয়নগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 33,
+"code": "01-04-033",
+"district_code": "01-04",
+"type": "upazila",
+"name_en": "Rangamati Sadar",
+"name_bn": "রাঙ্গামাটি সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 34,
+"code": "01-04-034",
+"district_code": "01-04",
+"type": "upazila",
+"name_en": "Kaptai",
+"name_bn": "কাপ্তাই",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 35,
+"code": "01-04-035",
+"district_code": "01-04",
+"type": "upazila",
+"name_en": "Kawkhali",
+"name_bn": "কাউখালী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 36,
+"code": "01-04-036",
+"district_code": "01-04",
+"type": "upazila",
+"name_en": "Baghaichari",
+"name_bn": "বাঘাইছড়ি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 37,
+"code": "01-04-037",
+"district_code": "01-04",
+"type": "upazila",
+"name_en": "Barkal",
+"name_bn": "বরকল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 38,
+"code": "01-04-038",
+"district_code": "01-04",
+"type": "upazila",
+"name_en": "Langadu",
+"name_bn": "লংগদু",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 39,
+"code": "01-04-039",
+"district_code": "01-04",
+"type": "upazila",
+"name_en": "Rajasthali",
+"name_bn": "রাজস্থলী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 40,
+"code": "01-04-040",
+"district_code": "01-04",
+"type": "upazila",
+"name_en": "Belaichari",
+"name_bn": "বিলাইছড়ি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 41,
+"code": "01-04-041",
+"district_code": "01-04",
+"type": "upazila",
+"name_en": "Juraichari",
+"name_bn": "জুরাছড়ি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 42,
+"code": "01-04-042",
+"district_code": "01-04",
+"type": "upazila",
+"name_en": "Naniarchar",
+"name_bn": "নানিয়ারচর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 43,
+"code": "01-05-043",
+"district_code": "01-05",
+"type": "upazila",
+"name_en": "Noakhali Sadar",
+"name_bn": "নোয়াখালী সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 44,
+"code": "01-05-044",
+"district_code": "01-05",
+"type": "upazila",
+"name_en": "Companiganj",
+"name_bn": "কোম্পানীগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 45,
+"code": "01-05-045",
+"district_code": "01-05",
+"type": "upazila",
+"name_en": "Begumganj",
+"name_bn": "বেগমগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 46,
+"code": "01-05-046",
+"district_code": "01-05",
+"type": "upazila",
+"name_en": "Hatia",
+"name_bn": "হাতিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 47,
+"code": "01-05-047",
+"district_code": "01-05",
+"type": "upazila",
+"name_en": "Subarnachar",
+"name_bn": "সুবর্ণচর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 48,
+"code": "01-05-048",
+"district_code": "01-05",
+"type": "upazila",
+"name_en": "Kabirhat",
+"name_bn": "কবিরহাট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 49,
+"code": "01-05-049",
+"district_code": "01-05",
+"type": "upazila",
+"name_en": "Senbug",
+"name_bn": "সেনবাগ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 50,
+"code": "01-05-050",
+"district_code": "01-05",
+"type": "upazila",
+"name_en": "Chatkhil",
+"name_bn": "চাটখিল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 51,
+"code": "01-05-051",
+"district_code": "01-05",
+"type": "upazila",
+"name_en": "Sonaimori",
+"name_bn": "সোনাইমুড়ী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 52,
+"code": "01-06-052",
+"district_code": "01-06",
+"type": "upazila",
+"name_en": "Haimchar",
+"name_bn": "হাইমচর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 53,
+"code": "01-06-053",
+"district_code": "01-06",
+"type": "upazila",
+"name_en": "Kachua",
+"name_bn": "কচুয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 54,
+"code": "01-06-054",
+"district_code": "01-06",
+"type": "upazila",
+"name_en": "Shahrasti",
+"name_bn": "শাহরাস্তি\t",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 55,
+"code": "01-06-055",
+"district_code": "01-06",
+"type": "upazila",
+"name_en": "Chandpur Sadar",
+"name_bn": "চাঁদপুর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 56,
+"code": "01-06-056",
+"district_code": "01-06",
+"type": "upazila",
+"name_en": "Matlab South",
+"name_bn": "মতলব দক্ষিণ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 57,
+"code": "01-06-057",
+"district_code": "01-06",
+"type": "upazila",
+"name_en": "Hajiganj",
+"name_bn": "হাজীগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 58,
+"code": "01-06-058",
+"district_code": "01-06",
+"type": "upazila",
+"name_en": "Matlab North",
+"name_bn": "মতলব উত্তর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 59,
+"code": "01-06-059",
+"district_code": "01-06",
+"type": "upazila",
+"name_en": "Faridgonj",
+"name_bn": "ফরিদগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 60,
+"code": "01-07-060",
+"district_code": "01-07",
+"type": "upazila",
+"name_en": "Lakshmipur Sadar",
+"name_bn": "লক্ষ্মীপুর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 61,
+"code": "01-07-061",
+"district_code": "01-07",
+"type": "upazila",
+"name_en": "Kamalnagar",
+"name_bn": "কমলনগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 62,
+"code": "01-07-062",
+"district_code": "01-07",
+"type": "upazila",
+"name_en": "Raipur",
+"name_bn": "রায়পুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 63,
+"code": "01-07-063",
+"district_code": "01-07",
+"type": "upazila",
+"name_en": "Ramgati",
+"name_bn": "রামগতি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 64,
+"code": "01-07-064",
+"district_code": "01-07",
+"type": "upazila",
+"name_en": "Ramganj",
+"name_bn": "রামগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 65,
+"code": "01-08-065",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Rangunia",
+"name_bn": "রাঙ্গুনিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 66,
+"code": "01-08-066",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Sitakunda",
+"name_bn": "সীতাকুন্ড",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 67,
+"code": "01-08-067",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Mirsharai",
+"name_bn": "মীরসরাই",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 68,
+"code": "01-08-068",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Patiya",
+"name_bn": "পটিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 69,
+"code": "01-08-069",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Sandwip",
+"name_bn": "সন্দ্বীপ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 70,
+"code": "01-08-070",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Banshkhali",
+"name_bn": "বাঁশখালী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 71,
+"code": "01-08-071",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Boalkhali",
+"name_bn": "বোয়ালখালী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 72,
+"code": "01-08-072",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Anwara",
+"name_bn": "আনোয়ারা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 73,
+"code": "01-08-073",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Chandanaish",
+"name_bn": "চন্দনাইশ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 74,
+"code": "01-08-074",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Satkania",
+"name_bn": "সাতকানিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 75,
+"code": "01-08-075",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Lohagara",
+"name_bn": "লোহাগাড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 76,
+"code": "01-08-076",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Hathazari",
+"name_bn": "হাটহাজারী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 77,
+"code": "01-08-077",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Fatikchhari",
+"name_bn": "ফটিকছড়ি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 78,
+"code": "01-08-078",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Raozan",
+"name_bn": "রাউজান",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 79,
+"code": "01-08-079",
+"district_code": "01-08",
+"type": "upazila",
+"name_en": "Karnafuli",
+"name_bn": "কর্ণফুলী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 80,
+"code": "01-09-080",
+"district_code": "01-09",
+"type": "upazila",
+"name_en": "Coxsbazar Sadar",
+"name_bn": "কক্সবাজার সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 81,
+"code": "01-09-081",
+"district_code": "01-09",
+"type": "upazila",
+"name_en": "Chakaria",
+"name_bn": "চকরিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 82,
+"code": "01-09-082",
+"district_code": "01-09",
+"type": "upazila",
+"name_en": "Kutubdia",
+"name_bn": "কুতুবদিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 83,
+"code": "01-09-083",
+"district_code": "01-09",
+"type": "upazila",
+"name_en": "Ukhiya",
+"name_bn": "উখিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 84,
+"code": "01-09-084",
+"district_code": "01-09",
+"type": "upazila",
+"name_en": "Moheshkhali",
+"name_bn": "মহেশখালী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 85,
+"code": "01-09-085",
+"district_code": "01-09",
+"type": "upazila",
+"name_en": "Pekua",
+"name_bn": "পেকুয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 86,
+"code": "01-09-086",
+"district_code": "01-09",
+"type": "upazila",
+"name_en": "Ramu",
+"name_bn": "রামু",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 87,
+"code": "01-09-087",
+"district_code": "01-09",
+"type": "upazila",
+"name_en": "Teknaf",
+"name_bn": "টেকনাফ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 88,
+"code": "01-10-088",
+"district_code": "01-10",
+"type": "upazila",
+"name_en": "Khagrachhari Sadar",
+"name_bn": "খাগড়াছড়ি সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 89,
+"code": "01-10-089",
+"district_code": "01-10",
+"type": "upazila",
+"name_en": "Dighinala",
+"name_bn": "দিঘীনালা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 90,
+"code": "01-10-090",
+"district_code": "01-10",
+"type": "upazila",
+"name_en": "Panchari",
+"name_bn": "পানছড়ি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 91,
+"code": "01-10-091",
+"district_code": "01-10",
+"type": "upazila",
+"name_en": "Laxmichhari",
+"name_bn": "লক্ষীছড়ি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 92,
+"code": "01-10-092",
+"district_code": "01-10",
+"type": "upazila",
+"name_en": "Mohalchari",
+"name_bn": "মহালছড়ি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 93,
+"code": "01-10-093",
+"district_code": "01-10",
+"type": "upazila",
+"name_en": "Manikchari",
+"name_bn": "মানিকছড়ি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 94,
+"code": "01-10-094",
+"district_code": "01-10",
+"type": "upazila",
+"name_en": "Ramgarh",
+"name_bn": "রামগড়",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 95,
+"code": "01-10-095",
+"district_code": "01-10",
+"type": "upazila",
+"name_en": "Matiranga",
+"name_bn": "মাটিরাঙ্গা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 96,
+"code": "01-10-096",
+"district_code": "01-10",
+"type": "upazila",
+"name_en": "Guimara",
+"name_bn": "গুইমারা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 97,
+"code": "01-11-097",
+"district_code": "01-11",
+"type": "upazila",
+"name_en": "Bandarban Sadar",
+"name_bn": "বান্দরবান সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 98,
+"code": "01-11-098",
+"district_code": "01-11",
+"type": "upazila",
+"name_en": "Alikadam",
+"name_bn": "আলীকদম",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 99,
+"code": "01-11-099",
+"district_code": "01-11",
+"type": "upazila",
+"name_en": "Naikhongchhari",
+"name_bn": "নাইক্ষ্যংছড়ি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 100,
+"code": "01-11-100",
+"district_code": "01-11",
+"type": "upazila",
+"name_en": "Rowangchhari",
+"name_bn": "রোয়াংছড়ি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 101,
+"code": "01-11-101",
+"district_code": "01-11",
+"type": "upazila",
+"name_en": "Lama",
+"name_bn": "লামা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 102,
+"code": "01-11-102",
+"district_code": "01-11",
+"type": "upazila",
+"name_en": "Ruma",
+"name_bn": "রুমা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 103,
+"code": "01-11-103",
+"district_code": "01-11",
+"type": "upazila",
+"name_en": "Thanchi",
+"name_bn": "থানচি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 104,
+"code": "02-12-104",
+"district_code": "02-12",
+"type": "upazila",
+"name_en": "Belkuchi",
+"name_bn": "বেলকুচি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 105,
+"code": "02-12-105",
+"district_code": "02-12",
+"type": "upazila",
+"name_en": "Chauhali",
+"name_bn": "চৌহালি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 106,
+"code": "02-12-106",
+"district_code": "02-12",
+"type": "upazila",
+"name_en": "Kamarkhand",
+"name_bn": "কামারখন্দ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 107,
+"code": "02-12-107",
+"district_code": "02-12",
+"type": "upazila",
+"name_en": "Kazipur",
+"name_bn": "কাজীপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 108,
+"code": "02-12-108",
+"district_code": "02-12",
+"type": "upazila",
+"name_en": "Raigonj",
+"name_bn": "রায়গঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 109,
+"code": "02-12-109",
+"district_code": "02-12",
+"type": "upazila",
+"name_en": "Shahjadpur",
+"name_bn": "শাহজাদপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 110,
+"code": "02-12-110",
+"district_code": "02-12",
+"type": "upazila",
+"name_en": "Sirajganj Sadar",
+"name_bn": "সিরাজগঞ্জ সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 111,
+"code": "02-12-111",
+"district_code": "02-12",
+"type": "upazila",
+"name_en": "Tarash",
+"name_bn": "তাড়াশ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 112,
+"code": "02-12-112",
+"district_code": "02-12",
+"type": "upazila",
+"name_en": "Ullapara",
+"name_bn": "উল্লাপাড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 113,
+"code": "02-13-113",
+"district_code": "02-13",
+"type": "upazila",
+"name_en": "Sujanagar",
+"name_bn": "সুজানগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 114,
+"code": "02-13-114",
+"district_code": "02-13",
+"type": "upazila",
+"name_en": "Ishurdi",
+"name_bn": "ঈশ্বরদী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 115,
+"code": "02-13-115",
+"district_code": "02-13",
+"type": "upazila",
+"name_en": "Bhangura",
+"name_bn": "ভাঙ্গুড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 116,
+"code": "02-13-116",
+"district_code": "02-13",
+"type": "upazila",
+"name_en": "Pabna Sadar",
+"name_bn": "পাবনা সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 117,
+"code": "02-13-117",
+"district_code": "02-13",
+"type": "upazila",
+"name_en": "Bera",
+"name_bn": "বেড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 118,
+"code": "02-13-118",
+"district_code": "02-13",
+"type": "upazila",
+"name_en": "Atghoria",
+"name_bn": "আটঘরিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 119,
+"code": "02-13-119",
+"district_code": "02-13",
+"type": "upazila",
+"name_en": "Chatmohar",
+"name_bn": "চাটমোহর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 120,
+"code": "02-13-120",
+"district_code": "02-13",
+"type": "upazila",
+"name_en": "Santhia",
+"name_bn": "সাঁথিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 121,
+"code": "02-13-121",
+"district_code": "02-13",
+"type": "upazila",
+"name_en": "Faridpur",
+"name_bn": "ফরিদপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 122,
+"code": "02-14-122",
+"district_code": "02-14",
+"type": "upazila",
+"name_en": "Kahaloo",
+"name_bn": "কাহালু",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 123,
+"code": "02-14-123",
+"district_code": "02-14",
+"type": "upazila",
+"name_en": "Bogra Sadar",
+"name_bn": "বগুড়া সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 124,
+"code": "02-14-124",
+"district_code": "02-14",
+"type": "upazila",
+"name_en": "Shariakandi",
+"name_bn": "সারিয়াকান্দি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 125,
+"code": "02-14-125",
+"district_code": "02-14",
+"type": "upazila",
+"name_en": "Shajahanpur",
+"name_bn": "শাজাহানপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 126,
+"code": "02-14-126",
+"district_code": "02-14",
+"type": "upazila",
+"name_en": "Dupchanchia",
+"name_bn": "দুপচাচিঁয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 127,
+"code": "02-14-127",
+"district_code": "02-14",
+"type": "upazila",
+"name_en": "Adamdighi",
+"name_bn": "আদমদিঘি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 128,
+"code": "02-14-128",
+"district_code": "02-14",
+"type": "upazila",
+"name_en": "Nondigram",
+"name_bn": "নন্দিগ্রাম",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 129,
+"code": "02-14-129",
+"district_code": "02-14",
+"type": "upazila",
+"name_en": "Sonatala",
+"name_bn": "সোনাতলা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 130,
+"code": "02-14-130",
+"district_code": "02-14",
+"type": "upazila",
+"name_en": "Dhunot",
+"name_bn": "ধুনট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 131,
+"code": "02-14-131",
+"district_code": "02-14",
+"type": "upazila",
+"name_en": "Gabtali",
+"name_bn": "গাবতলী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 132,
+"code": "02-14-132",
+"district_code": "02-14",
+"type": "upazila",
+"name_en": "Sherpur",
+"name_bn": "শেরপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 133,
+"code": "02-14-133",
+"district_code": "02-14",
+"type": "upazila",
+"name_en": "Shibganj",
+"name_bn": "শিবগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 134,
+"code": "02-15-134",
+"district_code": "02-15",
+"type": "upazila",
+"name_en": "Paba",
+"name_bn": "পবা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 135,
+"code": "02-15-135",
+"district_code": "02-15",
+"type": "upazila",
+"name_en": "Durgapur",
+"name_bn": "দুর্গাপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 136,
+"code": "02-15-136",
+"district_code": "02-15",
+"type": "upazila",
+"name_en": "Mohonpur",
+"name_bn": "মোহনপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 137,
+"code": "02-15-137",
+"district_code": "02-15",
+"type": "upazila",
+"name_en": "Charghat",
+"name_bn": "চারঘাট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 138,
+"code": "02-15-138",
+"district_code": "02-15",
+"type": "upazila",
+"name_en": "Puthia",
+"name_bn": "পুঠিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 139,
+"code": "02-15-139",
+"district_code": "02-15",
+"type": "upazila",
+"name_en": "Bagha",
+"name_bn": "বাঘা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 140,
+"code": "02-15-140",
+"district_code": "02-15",
+"type": "upazila",
+"name_en": "Godagari",
+"name_bn": "গোদাগাড়ী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 141,
+"code": "02-15-141",
+"district_code": "02-15",
+"type": "upazila",
+"name_en": "Tanore",
+"name_bn": "তানোর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 142,
+"code": "02-15-142",
+"district_code": "02-15",
+"type": "upazila",
+"name_en": "Bagmara",
+"name_bn": "বাগমারা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 143,
+"code": "02-16-143",
+"district_code": "02-16",
+"type": "upazila",
+"name_en": "Natore Sadar",
+"name_bn": "নাটোর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 144,
+"code": "02-16-144",
+"district_code": "02-16",
+"type": "upazila",
+"name_en": "Singra",
+"name_bn": "সিংড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 145,
+"code": "02-16-145",
+"district_code": "02-16",
+"type": "upazila",
+"name_en": "Baraigram",
+"name_bn": "বড়াইগ্রাম",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 146,
+"code": "02-16-146",
+"district_code": "02-16",
+"type": "upazila",
+"name_en": "Bagatipara",
+"name_bn": "বাগাতিপাড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 147,
+"code": "02-16-147",
+"district_code": "02-16",
+"type": "upazila",
+"name_en": "Lalpur",
+"name_bn": "লালপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 148,
+"code": "02-16-148",
+"district_code": "02-16",
+"type": "upazila",
+"name_en": "Gurudaspur",
+"name_bn": "গুরুদাসপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 149,
+"code": "02-16-149",
+"district_code": "02-16",
+"type": "upazila",
+"name_en": "Naldanga",
+"name_bn": "নলডাঙ্গা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 150,
+"code": "02-17-150",
+"district_code": "02-17",
+"type": "upazila",
+"name_en": "Akkelpur",
+"name_bn": "আক্কেলপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 151,
+"code": "02-17-151",
+"district_code": "02-17",
+"type": "upazila",
+"name_en": "Kalai",
+"name_bn": "কালাই",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 152,
+"code": "02-17-152",
+"district_code": "02-17",
+"type": "upazila",
+"name_en": "Khetlal",
+"name_bn": "ক্ষেতলাল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 153,
+"code": "02-17-153",
+"district_code": "02-17",
+"type": "upazila",
+"name_en": "Panchbibi",
+"name_bn": "পাঁচবিবি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 154,
+"code": "02-17-154",
+"district_code": "02-17",
+"type": "upazila",
+"name_en": "Joypurhat Sadar",
+"name_bn": "জয়পুরহাট সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 155,
+"code": "02-18-155",
+"district_code": "02-18",
+"type": "upazila",
+"name_en": "Chapainawabganj Sadar",
+"name_bn": "চাঁপাইনবাবগঞ্জ সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 156,
+"code": "02-18-156",
+"district_code": "02-18",
+"type": "upazila",
+"name_en": "Gomostapur",
+"name_bn": "গোমস্তাপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 157,
+"code": "02-18-157",
+"district_code": "02-18",
+"type": "upazila",
+"name_en": "Nachol",
+"name_bn": "নাচোল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 158,
+"code": "02-18-158",
+"district_code": "02-18",
+"type": "upazila",
+"name_en": "Bholahat",
+"name_bn": "ভোলাহাট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 159,
+"code": "02-18-159",
+"district_code": "02-18",
+"type": "upazila",
+"name_en": "Shibganj",
+"name_bn": "শিবগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 160,
+"code": "02-19-160",
+"district_code": "02-19",
+"type": "upazila",
+"name_en": "Mohadevpur",
+"name_bn": "মহাদেবপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 161,
+"code": "02-19-161",
+"district_code": "02-19",
+"type": "upazila",
+"name_en": "Badalgachi",
+"name_bn": "বদলগাছী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 162,
+"code": "02-19-162",
+"district_code": "02-19",
+"type": "upazila",
+"name_en": "Patnitala",
+"name_bn": "পত্নিতলা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 163,
+"code": "02-19-163",
+"district_code": "02-19",
+"type": "upazila",
+"name_en": "Dhamoirhat",
+"name_bn": "ধামইরহাট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 164,
+"code": "02-19-164",
+"district_code": "02-19",
+"type": "upazila",
+"name_en": "Niamatpur",
+"name_bn": "নিয়ামতপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 165,
+"code": "02-19-165",
+"district_code": "02-19",
+"type": "upazila",
+"name_en": "Manda",
+"name_bn": "মান্দা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 166,
+"code": "02-19-166",
+"district_code": "02-19",
+"type": "upazila",
+"name_en": "Atrai",
+"name_bn": "আত্রাই",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 167,
+"code": "02-19-167",
+"district_code": "02-19",
+"type": "upazila",
+"name_en": "Raninagar",
+"name_bn": "রাণীনগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 168,
+"code": "02-19-168",
+"district_code": "02-19",
+"type": "upazila",
+"name_en": "Naogaon Sadar",
+"name_bn": "নওগাঁ সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 169,
+"code": "02-19-169",
+"district_code": "02-19",
+"type": "upazila",
+"name_en": "Porsha",
+"name_bn": "পোরশা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 170,
+"code": "02-19-170",
+"district_code": "02-19",
+"type": "upazila",
+"name_en": "Sapahar",
+"name_bn": "সাপাহার",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 171,
+"code": "03-20-171",
+"district_code": "03-20",
+"type": "upazila",
+"name_en": "Manirampur",
+"name_bn": "মণিরামপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 172,
+"code": "03-20-172",
+"district_code": "03-20",
+"type": "upazila",
+"name_en": "Abhaynagar",
+"name_bn": "অভয়নগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 173,
+"code": "03-20-173",
+"district_code": "03-20",
+"type": "upazila",
+"name_en": "Bagherpara",
+"name_bn": "বাঘারপাড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 174,
+"code": "03-20-174",
+"district_code": "03-20",
+"type": "upazila",
+"name_en": "Chougachha",
+"name_bn": "চৌগাছা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 175,
+"code": "03-20-175",
+"district_code": "03-20",
+"type": "upazila",
+"name_en": "Jhikargacha",
+"name_bn": "ঝিকরগাছা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 176,
+"code": "03-20-176",
+"district_code": "03-20",
+"type": "upazila",
+"name_en": "Keshabpur",
+"name_bn": "কেশবপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 177,
+"code": "03-20-177",
+"district_code": "03-20",
+"type": "upazila",
+"name_en": "Jessore Sadar",
+"name_bn": "যশোর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 178,
+"code": "03-20-178",
+"district_code": "03-20",
+"type": "upazila",
+"name_en": "Sharsha",
+"name_bn": "শার্শা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 179,
+"code": "03-21-179",
+"district_code": "03-21",
+"type": "upazila",
+"name_en": "Assasuni",
+"name_bn": "আশাশুনি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 180,
+"code": "03-21-180",
+"district_code": "03-21",
+"type": "upazila",
+"name_en": "Debhata",
+"name_bn": "দেবহাটা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 181,
+"code": "03-21-181",
+"district_code": "03-21",
+"type": "upazila",
+"name_en": "Kalaroa",
+"name_bn": "কলারোয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 182,
+"code": "03-21-182",
+"district_code": "03-21",
+"type": "upazila",
+"name_en": "Satkhira Sadar",
+"name_bn": "সাতক্ষীরা সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 183,
+"code": "03-21-183",
+"district_code": "03-21",
+"type": "upazila",
+"name_en": "Shyamnagar",
+"name_bn": "শ্যামনগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 184,
+"code": "03-21-184",
+"district_code": "03-21",
+"type": "upazila",
+"name_en": "Tala",
+"name_bn": "তালা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 185,
+"code": "03-21-185",
+"district_code": "03-21",
+"type": "upazila",
+"name_en": "Kaliganj",
+"name_bn": "কালিগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 186,
+"code": "03-22-186",
+"district_code": "03-22",
+"type": "upazila",
+"name_en": "Mujibnagar",
+"name_bn": "মুজিবনগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 187,
+"code": "03-22-187",
+"district_code": "03-22",
+"type": "upazila",
+"name_en": "Meherpur Sadar",
+"name_bn": "মেহেরপুর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 188,
+"code": "03-22-188",
+"district_code": "03-22",
+"type": "upazila",
+"name_en": "Gangni",
+"name_bn": "গাংনী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 189,
+"code": "03-23-189",
+"district_code": "03-23",
+"type": "upazila",
+"name_en": "Narail Sadar",
+"name_bn": "নড়াইল সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 190,
+"code": "03-23-190",
+"district_code": "03-23",
+"type": "upazila",
+"name_en": "Lohagara",
+"name_bn": "লোহাগড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 191,
+"code": "03-23-191",
+"district_code": "03-23",
+"type": "upazila",
+"name_en": "Kalia",
+"name_bn": "কালিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 192,
+"code": "03-24-192",
+"district_code": "03-24",
+"type": "upazila",
+"name_en": "Chuadanga Sadar",
+"name_bn": "চুয়াডাঙ্গা সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 193,
+"code": "03-24-193",
+"district_code": "03-24",
+"type": "upazila",
+"name_en": "Alamdanga",
+"name_bn": "আলমডাঙ্গা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 194,
+"code": "03-24-194",
+"district_code": "03-24",
+"type": "upazila",
+"name_en": "Damurhuda",
+"name_bn": "দামুড়হুদা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 195,
+"code": "03-24-195",
+"district_code": "03-24",
+"type": "upazila",
+"name_en": "Jibannagar",
+"name_bn": "জীবননগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 196,
+"code": "03-25-196",
+"district_code": "03-25",
+"type": "upazila",
+"name_en": "Kushtia Sadar",
+"name_bn": "কুষ্টিয়া সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 197,
+"code": "03-25-197",
+"district_code": "03-25",
+"type": "upazila",
+"name_en": "Kumarkhali",
+"name_bn": "কুমারখালী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 198,
+"code": "03-25-198",
+"district_code": "03-25",
+"type": "upazila",
+"name_en": "Khoksa",
+"name_bn": "খোকসা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 199,
+"code": "03-25-199",
+"district_code": "03-25",
+"type": "upazila",
+"name_en": "Mirpur",
+"name_bn": "মিরপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 200,
+"code": "03-25-200",
+"district_code": "03-25",
+"type": "upazila",
+"name_en": "Daulatpur",
+"name_bn": "দৌলতপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 201,
+"code": "03-25-201",
+"district_code": "03-25",
+"type": "upazila",
+"name_en": "Bheramara",
+"name_bn": "ভেড়ামারা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 202,
+"code": "03-26-202",
+"district_code": "03-26",
+"type": "upazila",
+"name_en": "Shalikha",
+"name_bn": "শালিখা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 203,
+"code": "03-26-203",
+"district_code": "03-26",
+"type": "upazila",
+"name_en": "Sreepur",
+"name_bn": "শ্রীপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 204,
+"code": "03-26-204",
+"district_code": "03-26",
+"type": "upazila",
+"name_en": "Magura Sadar",
+"name_bn": "মাগুরা সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 205,
+"code": "03-26-205",
+"district_code": "03-26",
+"type": "upazila",
+"name_en": "Mohammadpur",
+"name_bn": "মহম্মদপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 206,
+"code": "03-27-206",
+"district_code": "03-27",
+"type": "upazila",
+"name_en": "Paikgasa",
+"name_bn": "পাইকগাছা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 207,
+"code": "03-27-207",
+"district_code": "03-27",
+"type": "upazila",
+"name_en": "Fultola",
+"name_bn": "ফুলতলা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 208,
+"code": "03-27-208",
+"district_code": "03-27",
+"type": "upazila",
+"name_en": "Digholia",
+"name_bn": "দিঘলিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 209,
+"code": "03-27-209",
+"district_code": "03-27",
+"type": "upazila",
+"name_en": "Rupsha",
+"name_bn": "রূপসা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 210,
+"code": "03-27-210",
+"district_code": "03-27",
+"type": "upazila",
+"name_en": "Terokhada",
+"name_bn": "তেরখাদা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 211,
+"code": "03-27-211",
+"district_code": "03-27",
+"type": "upazila",
+"name_en": "Dumuria",
+"name_bn": "ডুমুরিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 212,
+"code": "03-27-212",
+"district_code": "03-27",
+"type": "upazila",
+"name_en": "Botiaghata",
+"name_bn": "বটিয়াঘাটা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 213,
+"code": "03-27-213",
+"district_code": "03-27",
+"type": "upazila",
+"name_en": "Dakop",
+"name_bn": "দাকোপ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 214,
+"code": "03-27-214",
+"district_code": "03-27",
+"type": "upazila",
+"name_en": "Koyra",
+"name_bn": "কয়রা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 215,
+"code": "03-28-215",
+"district_code": "03-28",
+"type": "upazila",
+"name_en": "Fakirhat",
+"name_bn": "ফকিরহাট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 216,
+"code": "03-28-216",
+"district_code": "03-28",
+"type": "upazila",
+"name_en": "Bagerhat Sadar",
+"name_bn": "বাগেরহাট সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 217,
+"code": "03-28-217",
+"district_code": "03-28",
+"type": "upazila",
+"name_en": "Mollahat",
+"name_bn": "মোল্লাহাট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 218,
+"code": "03-28-218",
+"district_code": "03-28",
+"type": "upazila",
+"name_en": "Sarankhola",
+"name_bn": "শরণখোলা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 219,
+"code": "03-28-219",
+"district_code": "03-28",
+"type": "upazila",
+"name_en": "Rampal",
+"name_bn": "রামপাল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 220,
+"code": "03-28-220",
+"district_code": "03-28",
+"type": "upazila",
+"name_en": "Morrelganj",
+"name_bn": "মোড়েলগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 221,
+"code": "03-28-221",
+"district_code": "03-28",
+"type": "upazila",
+"name_en": "Kachua",
+"name_bn": "কচুয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 222,
+"code": "03-28-222",
+"district_code": "03-28",
+"type": "upazila",
+"name_en": "Mongla",
+"name_bn": "মোংলা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 223,
+"code": "03-28-223",
+"district_code": "03-28",
+"type": "upazila",
+"name_en": "Chitalmari",
+"name_bn": "চিতলমারী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 224,
+"code": "03-29-224",
+"district_code": "03-29",
+"type": "upazila",
+"name_en": "Jhenaidah Sadar",
+"name_bn": "ঝিনাইদহ সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 225,
+"code": "03-29-225",
+"district_code": "03-29",
+"type": "upazila",
+"name_en": "Shailkupa",
+"name_bn": "শৈলকুপা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 226,
+"code": "03-29-226",
+"district_code": "03-29",
+"type": "upazila",
+"name_en": "Harinakundu",
+"name_bn": "হরিণাকুন্ডু",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 227,
+"code": "03-29-227",
+"district_code": "03-29",
+"type": "upazila",
+"name_en": "Kaliganj",
+"name_bn": "কালীগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 228,
+"code": "03-29-228",
+"district_code": "03-29",
+"type": "upazila",
+"name_en": "Kotchandpur",
+"name_bn": "কোটচাঁদপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 229,
+"code": "03-29-229",
+"district_code": "03-29",
+"type": "upazila",
+"name_en": "Moheshpur",
+"name_bn": "মহেশপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 230,
+"code": "04-30-230",
+"district_code": "04-30",
+"type": "upazila",
+"name_en": "Jhalakathi Sadar",
+"name_bn": "ঝালকাঠি সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 231,
+"code": "04-30-231",
+"district_code": "04-30",
+"type": "upazila",
+"name_en": "Kathalia",
+"name_bn": "কাঠালিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 232,
+"code": "04-30-232",
+"district_code": "04-30",
+"type": "upazila",
+"name_en": "Nalchity",
+"name_bn": "নলছিটি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 233,
+"code": "04-30-233",
+"district_code": "04-30",
+"type": "upazila",
+"name_en": "Rajapur",
+"name_bn": "রাজাপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 234,
+"code": "04-31-234",
+"district_code": "04-31",
+"type": "upazila",
+"name_en": "Bauphal",
+"name_bn": "বাউফল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 235,
+"code": "04-31-235",
+"district_code": "04-31",
+"type": "upazila",
+"name_en": "Patuakhali Sadar",
+"name_bn": "পটুয়াখালী সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 236,
+"code": "04-31-236",
+"district_code": "04-31",
+"type": "upazila",
+"name_en": "Dumki",
+"name_bn": "দুমকি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 237,
+"code": "04-31-237",
+"district_code": "04-31",
+"type": "upazila",
+"name_en": "Dashmina",
+"name_bn": "দশমিনা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 238,
+"code": "04-31-238",
+"district_code": "04-31",
+"type": "upazila",
+"name_en": "Kalapara",
+"name_bn": "কলাপাড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 239,
+"code": "04-31-239",
+"district_code": "04-31",
+"type": "upazila",
+"name_en": "Mirzaganj",
+"name_bn": "মির্জাগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 240,
+"code": "04-31-240",
+"district_code": "04-31",
+"type": "upazila",
+"name_en": "Galachipa",
+"name_bn": "গলাচিপা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 241,
+"code": "04-31-241",
+"district_code": "04-31",
+"type": "upazila",
+"name_en": "Rangabali",
+"name_bn": "রাঙ্গাবালী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 242,
+"code": "04-32-242",
+"district_code": "04-32",
+"type": "upazila",
+"name_en": "Pirojpur Sadar",
+"name_bn": "পিরোজপুর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 243,
+"code": "04-32-243",
+"district_code": "04-32",
+"type": "upazila",
+"name_en": "Nazirpur",
+"name_bn": "নাজিরপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 244,
+"code": "04-32-244",
+"district_code": "04-32",
+"type": "upazila",
+"name_en": "Kawkhali",
+"name_bn": "কাউখালী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 245,
+"code": "04-32-245",
+"district_code": "04-32",
+"type": "upazila",
+"name_en": "Zianagar",
+"name_bn": "জিয়ানগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 246,
+"code": "04-32-246",
+"district_code": "04-32",
+"type": "upazila",
+"name_en": "Bhandaria",
+"name_bn": "ভান্ডারিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 247,
+"code": "04-32-247",
+"district_code": "04-32",
+"type": "upazila",
+"name_en": "Mathbaria",
+"name_bn": "মঠবাড়ীয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 248,
+"code": "04-32-248",
+"district_code": "04-32",
+"type": "upazila",
+"name_en": "Nesarabad",
+"name_bn": "নেছারাবাদ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 249,
+"code": "04-33-249",
+"district_code": "04-33",
+"type": "upazila",
+"name_en": "Barisal Sadar",
+"name_bn": "বরিশাল সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 250,
+"code": "04-33-250",
+"district_code": "04-33",
+"type": "upazila",
+"name_en": "Bakerganj",
+"name_bn": "বাকেরগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 251,
+"code": "04-33-251",
+"district_code": "04-33",
+"type": "upazila",
+"name_en": "Babuganj",
+"name_bn": "বাবুগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 252,
+"code": "04-33-252",
+"district_code": "04-33",
+"type": "upazila",
+"name_en": "Wazirpur",
+"name_bn": "উজিরপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 253,
+"code": "04-33-253",
+"district_code": "04-33",
+"type": "upazila",
+"name_en": "Banaripara",
+"name_bn": "বানারীপাড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 254,
+"code": "04-33-254",
+"district_code": "04-33",
+"type": "upazila",
+"name_en": "Gournadi",
+"name_bn": "গৌরনদী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 255,
+"code": "04-33-255",
+"district_code": "04-33",
+"type": "upazila",
+"name_en": "Agailjhara",
+"name_bn": "আগৈলঝাড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 256,
+"code": "04-33-256",
+"district_code": "04-33",
+"type": "upazila",
+"name_en": "Mehendiganj",
+"name_bn": "মেহেন্দিগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 257,
+"code": "04-33-257",
+"district_code": "04-33",
+"type": "upazila",
+"name_en": "Muladi",
+"name_bn": "মুলাদী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 258,
+"code": "04-33-258",
+"district_code": "04-33",
+"type": "upazila",
+"name_en": "Hizla",
+"name_bn": "হিজলা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 259,
+"code": "04-34-259",
+"district_code": "04-34",
+"type": "upazila",
+"name_en": "Bhola Sadar",
+"name_bn": "ভোলা সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 260,
+"code": "04-34-260",
+"district_code": "04-34",
+"type": "upazila",
+"name_en": "Borhan Sddin",
+"name_bn": "বোরহান উদ্দিন",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 261,
+"code": "04-34-261",
+"district_code": "04-34",
+"type": "upazila",
+"name_en": "Charfesson",
+"name_bn": "চরফ্যাশন",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 262,
+"code": "04-34-262",
+"district_code": "04-34",
+"type": "upazila",
+"name_en": "Doulatkhan",
+"name_bn": "দৌলতখান",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 263,
+"code": "04-34-263",
+"district_code": "04-34",
+"type": "upazila",
+"name_en": "Monpura",
+"name_bn": "মনপুরা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 264,
+"code": "04-34-264",
+"district_code": "04-34",
+"type": "upazila",
+"name_en": "Tazumuddin",
+"name_bn": "তজুমদ্দিন",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 265,
+"code": "04-34-265",
+"district_code": "04-34",
+"type": "upazila",
+"name_en": "Lalmohan",
+"name_bn": "লালমোহন",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 266,
+"code": "04-35-266",
+"district_code": "04-35",
+"type": "upazila",
+"name_en": "Amtali",
+"name_bn": "আমতলী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 267,
+"code": "04-35-267",
+"district_code": "04-35",
+"type": "upazila",
+"name_en": "Barguna Sadar",
+"name_bn": "বরগুনা সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 268,
+"code": "04-35-268",
+"district_code": "04-35",
+"type": "upazila",
+"name_en": "Betagi",
+"name_bn": "বেতাগী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 269,
+"code": "04-35-269",
+"district_code": "04-35",
+"type": "upazila",
+"name_en": "Bamna",
+"name_bn": "বামনা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 270,
+"code": "04-35-270",
+"district_code": "04-35",
+"type": "upazila",
+"name_en": "Pathorghata",
+"name_bn": "পাথরঘাটা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 271,
+"code": "04-35-271",
+"district_code": "04-35",
+"type": "upazila",
+"name_en": "Taltali",
+"name_bn": "তালতলি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 272,
+"code": "05-36-272",
+"district_code": "05-36",
+"type": "upazila",
+"name_en": "Balaganj",
+"name_bn": "বালাগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 273,
+"code": "05-36-273",
+"district_code": "05-36",
+"type": "upazila",
+"name_en": "Beanibazar",
+"name_bn": "বিয়ানীবাজার",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 274,
+"code": "05-36-274",
+"district_code": "05-36",
+"type": "upazila",
+"name_en": "Bishwanath",
+"name_bn": "বিশ্বনাথ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 275,
+"code": "05-36-275",
+"district_code": "05-36",
+"type": "upazila",
+"name_en": "Companiganj",
+"name_bn": "কোম্পানীগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 276,
+"code": "05-36-276",
+"district_code": "05-36",
+"type": "upazila",
+"name_en": "Fenchuganj",
+"name_bn": "ফেঞ্চুগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 277,
+"code": "05-36-277",
+"district_code": "05-36",
+"type": "upazila",
+"name_en": "Golapganj",
+"name_bn": "গোলাপগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 278,
+"code": "05-36-278",
+"district_code": "05-36",
+"type": "upazila",
+"name_en": "Gowainghat",
+"name_bn": "গোয়াইনঘাট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 279,
+"code": "05-36-279",
+"district_code": "05-36",
+"type": "upazila",
+"name_en": "Jaintiapur",
+"name_bn": "জৈন্তাপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 280,
+"code": "05-36-280",
+"district_code": "05-36",
+"type": "upazila",
+"name_en": "Kanaighat",
+"name_bn": "কানাইঘাট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 281,
+"code": "05-36-281",
+"district_code": "05-36",
+"type": "upazila",
+"name_en": "Sylhet Sadar",
+"name_bn": "সিলেট সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 282,
+"code": "05-36-282",
+"district_code": "05-36",
+"type": "upazila",
+"name_en": "Zakiganj",
+"name_bn": "জকিগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 283,
+"code": "05-36-283",
+"district_code": "05-36",
+"type": "upazila",
+"name_en": "Dakshinsurma",
+"name_bn": "দক্ষিণ সুরমা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 284,
+"code": "05-36-284",
+"district_code": "05-36",
+"type": "upazila",
+"name_en": "Osmaninagar",
+"name_bn": "ওসমানী নগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 285,
+"code": "05-37-285",
+"district_code": "05-37",
+"type": "upazila",
+"name_en": "Barlekha",
+"name_bn": "বড়লেখা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 286,
+"code": "05-37-286",
+"district_code": "05-37",
+"type": "upazila",
+"name_en": "Kamolganj",
+"name_bn": "কমলগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 287,
+"code": "05-37-287",
+"district_code": "05-37",
+"type": "upazila",
+"name_en": "Kulaura",
+"name_bn": "কুলাউড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 288,
+"code": "05-37-288",
+"district_code": "05-37",
+"type": "upazila",
+"name_en": "Moulvibazar Sadar",
+"name_bn": "মৌলভীবাজার সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 289,
+"code": "05-37-289",
+"district_code": "05-37",
+"type": "upazila",
+"name_en": "Rajnagar",
+"name_bn": "রাজনগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 290,
+"code": "05-37-290",
+"district_code": "05-37",
+"type": "upazila",
+"name_en": "Sreemangal",
+"name_bn": "শ্রীমঙ্গল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 291,
+"code": "05-37-291",
+"district_code": "05-37",
+"type": "upazila",
+"name_en": "Juri",
+"name_bn": "জুড়ী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 292,
+"code": "05-38-292",
+"district_code": "05-38",
+"type": "upazila",
+"name_en": "Nabiganj",
+"name_bn": "নবীগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 293,
+"code": "05-38-293",
+"district_code": "05-38",
+"type": "upazila",
+"name_en": "Bahubal",
+"name_bn": "বাহুবল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 294,
+"code": "05-38-294",
+"district_code": "05-38",
+"type": "upazila",
+"name_en": "Ajmiriganj",
+"name_bn": "আজমিরীগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 295,
+"code": "05-38-295",
+"district_code": "05-38",
+"type": "upazila",
+"name_en": "Baniachong",
+"name_bn": "বানিয়াচং",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 296,
+"code": "05-38-296",
+"district_code": "05-38",
+"type": "upazila",
+"name_en": "Lakhai",
+"name_bn": "লাখাই",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 297,
+"code": "05-38-297",
+"district_code": "05-38",
+"type": "upazila",
+"name_en": "Chunarughat",
+"name_bn": "চুনারুঘাট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 298,
+"code": "05-38-298",
+"district_code": "05-38",
+"type": "upazila",
+"name_en": "Habiganj Sadar",
+"name_bn": "হবিগঞ্জ সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 299,
+"code": "05-38-299",
+"district_code": "05-38",
+"type": "upazila",
+"name_en": "Madhabpur",
+"name_bn": "মাধবপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 300,
+"code": "05-39-300",
+"district_code": "05-39",
+"type": "upazila",
+"name_en": "Sunamganj Sadar",
+"name_bn": "সুনামগঞ্জ সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 301,
+"code": "05-39-301",
+"district_code": "05-39",
+"type": "upazila",
+"name_en": "South Sunamganj",
+"name_bn": "দক্ষিণ সুনামগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 302,
+"code": "05-39-302",
+"district_code": "05-39",
+"type": "upazila",
+"name_en": "Bishwambarpur",
+"name_bn": "বিশ্বম্ভরপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 303,
+"code": "05-39-303",
+"district_code": "05-39",
+"type": "upazila",
+"name_en": "Chhatak",
+"name_bn": "ছাতক",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 304,
+"code": "05-39-304",
+"district_code": "05-39",
+"type": "upazila",
+"name_en": "Jagannathpur",
+"name_bn": "জগন্নাথপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 305,
+"code": "05-39-305",
+"district_code": "05-39",
+"type": "upazila",
+"name_en": "Dowarabazar",
+"name_bn": "দোয়ারাবাজার",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 306,
+"code": "05-39-306",
+"district_code": "05-39",
+"type": "upazila",
+"name_en": "Tahirpur",
+"name_bn": "তাহিরপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 307,
+"code": "05-39-307",
+"district_code": "05-39",
+"type": "upazila",
+"name_en": "Dharmapasha",
+"name_bn": "ধর্মপাশা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 308,
+"code": "05-39-308",
+"district_code": "05-39",
+"type": "upazila",
+"name_en": "Jamalganj",
+"name_bn": "জামালগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 309,
+"code": "05-39-309",
+"district_code": "05-39",
+"type": "upazila",
+"name_en": "Shalla",
+"name_bn": "শাল্লা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 310,
+"code": "05-39-310",
+"district_code": "05-39",
+"type": "upazila",
+"name_en": "Derai",
+"name_bn": "দিরাই",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 311,
+"code": "06-40-311",
+"district_code": "06-40",
+"type": "upazila",
+"name_en": "Belabo",
+"name_bn": "বেলাবো",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 312,
+"code": "06-40-312",
+"district_code": "06-40",
+"type": "upazila",
+"name_en": "Monohardi",
+"name_bn": "মনোহরদী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 313,
+"code": "06-40-313",
+"district_code": "06-40",
+"type": "upazila",
+"name_en": "Narsingdi Sadar",
+"name_bn": "নরসিংদী সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 314,
+"code": "06-40-314",
+"district_code": "06-40",
+"type": "upazila",
+"name_en": "Palash",
+"name_bn": "পলাশ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 315,
+"code": "06-40-315",
+"district_code": "06-40",
+"type": "upazila",
+"name_en": "Raipura",
+"name_bn": "রায়পুরা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 316,
+"code": "06-40-316",
+"district_code": "06-40",
+"type": "upazila",
+"name_en": "Shibpur",
+"name_bn": "শিবপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 317,
+"code": "06-41-317",
+"district_code": "06-41",
+"type": "upazila",
+"name_en": "Kaliganj",
+"name_bn": "কালীগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 318,
+"code": "06-41-318",
+"district_code": "06-41",
+"type": "upazila",
+"name_en": "Kaliakair",
+"name_bn": "কালিয়াকৈর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 319,
+"code": "06-41-319",
+"district_code": "06-41",
+"type": "upazila",
+"name_en": "Kapasia",
+"name_bn": "কাপাসিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 320,
+"code": "06-41-320",
+"district_code": "06-41",
+"type": "upazila",
+"name_en": "Gazipur Sadar",
+"name_bn": "গাজীপুর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 321,
+"code": "06-41-321",
+"district_code": "06-41",
+"type": "upazila",
+"name_en": "Sreepur",
+"name_bn": "শ্রীপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 322,
+"code": "06-42-322",
+"district_code": "06-42",
+"type": "upazila",
+"name_en": "Shariatpur Sadar",
+"name_bn": "শরিয়তপুর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 323,
+"code": "06-42-323",
+"district_code": "06-42",
+"type": "upazila",
+"name_en": "Naria",
+"name_bn": "নড়িয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 324,
+"code": "06-42-324",
+"district_code": "06-42",
+"type": "upazila",
+"name_en": "Zajira",
+"name_bn": "জাজিরা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 325,
+"code": "06-42-325",
+"district_code": "06-42",
+"type": "upazila",
+"name_en": "Gosairhat",
+"name_bn": "গোসাইরহাট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 326,
+"code": "06-42-326",
+"district_code": "06-42",
+"type": "upazila",
+"name_en": "Bhedarganj",
+"name_bn": "ভেদরগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 327,
+"code": "06-42-327",
+"district_code": "06-42",
+"type": "upazila",
+"name_en": "Damudya",
+"name_bn": "ডামুড্যা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 328,
+"code": "06-43-328",
+"district_code": "06-43",
+"type": "upazila",
+"name_en": "Araihazar",
+"name_bn": "আড়াইহাজার",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 329,
+"code": "06-43-329",
+"district_code": "06-43",
+"type": "upazila",
+"name_en": "Bandar",
+"name_bn": "বন্দর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 330,
+"code": "06-43-330",
+"district_code": "06-43",
+"type": "upazila",
+"name_en": "Narayanganj Sadar",
+"name_bn": "নারায়নগঞ্জ সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 331,
+"code": "06-43-331",
+"district_code": "06-43",
+"type": "upazila",
+"name_en": "Rupganj",
+"name_bn": "রূপগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 332,
+"code": "06-43-332",
+"district_code": "06-43",
+"type": "upazila",
+"name_en": "Sonargaon",
+"name_bn": "সোনারগাঁ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 333,
+"code": "06-44-333",
+"district_code": "06-44",
+"type": "upazila",
+"name_en": "Basail",
+"name_bn": "বাসাইল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 334,
+"code": "06-44-334",
+"district_code": "06-44",
+"type": "upazila",
+"name_en": "Bhuapur",
+"name_bn": "ভুয়াপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 335,
+"code": "06-44-335",
+"district_code": "06-44",
+"type": "upazila",
+"name_en": "Delduar",
+"name_bn": "দেলদুয়ার",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 336,
+"code": "06-44-336",
+"district_code": "06-44",
+"type": "upazila",
+"name_en": "Ghatail",
+"name_bn": "ঘাটাইল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 337,
+"code": "06-44-337",
+"district_code": "06-44",
+"type": "upazila",
+"name_en": "Gopalpur",
+"name_bn": "গোপালপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 338,
+"code": "06-44-338",
+"district_code": "06-44",
+"type": "upazila",
+"name_en": "Madhupur",
+"name_bn": "মধুপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 339,
+"code": "06-44-339",
+"district_code": "06-44",
+"type": "upazila",
+"name_en": "Mirzapur",
+"name_bn": "মির্জাপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 340,
+"code": "06-44-340",
+"district_code": "06-44",
+"type": "upazila",
+"name_en": "Nagarpur",
+"name_bn": "নাগরপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 341,
+"code": "06-44-341",
+"district_code": "06-44",
+"type": "upazila",
+"name_en": "Sakhipur",
+"name_bn": "সখিপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 342,
+"code": "06-44-342",
+"district_code": "06-44",
+"type": "upazila",
+"name_en": "Tangail Sadar",
+"name_bn": "টাঙ্গাইল সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 343,
+"code": "06-44-343",
+"district_code": "06-44",
+"type": "upazila",
+"name_en": "Kalihati",
+"name_bn": "কালিহাতী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 344,
+"code": "06-44-344",
+"district_code": "06-44",
+"type": "upazila",
+"name_en": "Dhanbari",
+"name_bn": "ধনবাড়ী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 345,
+"code": "06-45-345",
+"district_code": "06-45",
+"type": "upazila",
+"name_en": "Itna",
+"name_bn": "ইটনা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 346,
+"code": "06-45-346",
+"district_code": "06-45",
+"type": "upazila",
+"name_en": "Katiadi",
+"name_bn": "কটিয়াদী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 347,
+"code": "06-45-347",
+"district_code": "06-45",
+"type": "upazila",
+"name_en": "Bhairab",
+"name_bn": "ভৈরব",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 348,
+"code": "06-45-348",
+"district_code": "06-45",
+"type": "upazila",
+"name_en": "Tarail",
+"name_bn": "তাড়াইল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 349,
+"code": "06-45-349",
+"district_code": "06-45",
+"type": "upazila",
+"name_en": "Hossainpur",
+"name_bn": "হোসেনপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 350,
+"code": "06-45-350",
+"district_code": "06-45",
+"type": "upazila",
+"name_en": "Pakundia",
+"name_bn": "পাকুন্দিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 351,
+"code": "06-45-351",
+"district_code": "06-45",
+"type": "upazila",
+"name_en": "Kuliarchar",
+"name_bn": "কুলিয়ারচর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 352,
+"code": "06-45-352",
+"district_code": "06-45",
+"type": "upazila",
+"name_en": "Kishoreganj Sadar",
+"name_bn": "কিশোরগঞ্জ সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 353,
+"code": "06-45-353",
+"district_code": "06-45",
+"type": "upazila",
+"name_en": "Karimgonj",
+"name_bn": "করিমগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 354,
+"code": "06-45-354",
+"district_code": "06-45",
+"type": "upazila",
+"name_en": "Bajitpur",
+"name_bn": "বাজিতপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 355,
+"code": "06-45-355",
+"district_code": "06-45",
+"type": "upazila",
+"name_en": "Austagram",
+"name_bn": "অষ্টগ্রাম",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 356,
+"code": "06-45-356",
+"district_code": "06-45",
+"type": "upazila",
+"name_en": "Mithamoin",
+"name_bn": "মিঠামইন",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 357,
+"code": "06-45-357",
+"district_code": "06-45",
+"type": "upazila",
+"name_en": "Nikli",
+"name_bn": "নিকলী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 358,
+"code": "06-46-358",
+"district_code": "06-46",
+"type": "upazila",
+"name_en": "Harirampur",
+"name_bn": "হরিরামপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 359,
+"code": "06-46-359",
+"district_code": "06-46",
+"type": "upazila",
+"name_en": "Saturia",
+"name_bn": "সাটুরিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 360,
+"code": "06-46-360",
+"district_code": "06-46",
+"type": "upazila",
+"name_en": "Manikganj Sadar",
+"name_bn": "মানিকগঞ্জ সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 361,
+"code": "06-46-361",
+"district_code": "06-46",
+"type": "upazila",
+"name_en": "Gior",
+"name_bn": "ঘিওর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 362,
+"code": "06-46-362",
+"district_code": "06-46",
+"type": "upazila",
+"name_en": "Shibaloy",
+"name_bn": "শিবালয়",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 363,
+"code": "06-46-363",
+"district_code": "06-46",
+"type": "upazila",
+"name_en": "Doulatpur",
+"name_bn": "দৌলতপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 364,
+"code": "06-46-364",
+"district_code": "06-46",
+"type": "upazila",
+"name_en": "Singiar",
+"name_bn": "সিংগাইর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 365,
+"code": "06-47-365",
+"district_code": "06-47",
+"type": "upazila",
+"name_en": "Savar",
+"name_bn": "সাভার",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 366,
+"code": "06-47-366",
+"district_code": "06-47",
+"type": "upazila",
+"name_en": "Dhamrai",
+"name_bn": "ধামরাই",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 367,
+"code": "06-47-367",
+"district_code": "06-47",
+"type": "upazila",
+"name_en": "Keraniganj",
+"name_bn": "কেরাণীগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 368,
+"code": "06-47-368",
+"district_code": "06-47",
+"type": "upazila",
+"name_en": "Nawabganj",
+"name_bn": "নবাবগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 369,
+"code": "06-47-369",
+"district_code": "06-47",
+"type": "upazila",
+"name_en": "Dohar",
+"name_bn": "দোহার",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 370,
+"code": "06-48-370",
+"district_code": "06-48",
+"type": "upazila",
+"name_en": "Munshiganj Sadar",
+"name_bn": "মুন্সিগঞ্জ সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 371,
+"code": "06-48-371",
+"district_code": "06-48",
+"type": "upazila",
+"name_en": "Sreenagar",
+"name_bn": "শ্রীনগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 372,
+"code": "06-48-372",
+"district_code": "06-48",
+"type": "upazila",
+"name_en": "Sirajdikhan",
+"name_bn": "সিরাজদিখান",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 373,
+"code": "06-48-373",
+"district_code": "06-48",
+"type": "upazila",
+"name_en": "Louhajanj",
+"name_bn": "লৌহজং",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 374,
+"code": "06-48-374",
+"district_code": "06-48",
+"type": "upazila",
+"name_en": "Gajaria",
+"name_bn": "গজারিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 375,
+"code": "06-48-375",
+"district_code": "06-48",
+"type": "upazila",
+"name_en": "Tongibari",
+"name_bn": "টংগীবাড়ি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 376,
+"code": "06-49-376",
+"district_code": "06-49",
+"type": "upazila",
+"name_en": "Rajbari Sadar",
+"name_bn": "রাজবাড়ী সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 377,
+"code": "06-49-377",
+"district_code": "06-49",
+"type": "upazila",
+"name_en": "Goalanda",
+"name_bn": "গোয়ালন্দ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 378,
+"code": "06-49-378",
+"district_code": "06-49",
+"type": "upazila",
+"name_en": "Pangsa",
+"name_bn": "পাংশা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 379,
+"code": "06-49-379",
+"district_code": "06-49",
+"type": "upazila",
+"name_en": "Baliakandi",
+"name_bn": "বালিয়াকান্দি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 380,
+"code": "06-49-380",
+"district_code": "06-49",
+"type": "upazila",
+"name_en": "Kalukhali",
+"name_bn": "কালুখালী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 381,
+"code": "06-50-381",
+"district_code": "06-50",
+"type": "upazila",
+"name_en": "Madaripur Sadar",
+"name_bn": "মাদারীপুর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 382,
+"code": "06-50-382",
+"district_code": "06-50",
+"type": "upazila",
+"name_en": "Shibchar",
+"name_bn": "শিবচর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 383,
+"code": "06-50-383",
+"district_code": "06-50",
+"type": "upazila",
+"name_en": "Kalkini",
+"name_bn": "কালকিনি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 384,
+"code": "06-50-384",
+"district_code": "06-50",
+"type": "upazila",
+"name_en": "Rajoir",
+"name_bn": "রাজৈর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 385,
+"code": "06-51-385",
+"district_code": "06-51",
+"type": "upazila",
+"name_en": "Gopalganj Sadar",
+"name_bn": "গোপালগঞ্জ সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 386,
+"code": "06-51-386",
+"district_code": "06-51",
+"type": "upazila",
+"name_en": "Kashiani",
+"name_bn": "কাশিয়ানী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 387,
+"code": "06-51-387",
+"district_code": "06-51",
+"type": "upazila",
+"name_en": "Tungipara",
+"name_bn": "টুংগীপাড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 388,
+"code": "06-51-388",
+"district_code": "06-51",
+"type": "upazila",
+"name_en": "Kotalipara",
+"name_bn": "কোটালীপাড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 389,
+"code": "06-51-389",
+"district_code": "06-51",
+"type": "upazila",
+"name_en": "Muksudpur",
+"name_bn": "মুকসুদপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 390,
+"code": "06-52-390",
+"district_code": "06-52",
+"type": "upazila",
+"name_en": "Faridpur Sadar",
+"name_bn": "ফরিদপুর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 391,
+"code": "06-52-391",
+"district_code": "06-52",
+"type": "upazila",
+"name_en": "Alfadanga",
+"name_bn": "আলফাডাঙ্গা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 392,
+"code": "06-52-392",
+"district_code": "06-52",
+"type": "upazila",
+"name_en": "Boalmari",
+"name_bn": "বোয়ালমারী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 393,
+"code": "06-52-393",
+"district_code": "06-52",
+"type": "upazila",
+"name_en": "Sadarpur",
+"name_bn": "সদরপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 394,
+"code": "06-52-394",
+"district_code": "06-52",
+"type": "upazila",
+"name_en": "Nagarkanda",
+"name_bn": "নগরকান্দা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 395,
+"code": "06-52-395",
+"district_code": "06-52",
+"type": "upazila",
+"name_en": "Bhanga",
+"name_bn": "ভাঙ্গা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 396,
+"code": "06-52-396",
+"district_code": "06-52",
+"type": "upazila",
+"name_en": "Charbhadrasan",
+"name_bn": "চরভদ্রাসন",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 397,
+"code": "06-52-397",
+"district_code": "06-52",
+"type": "upazila",
+"name_en": "Madhukhali",
+"name_bn": "মধুখালী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 398,
+"code": "06-52-398",
+"district_code": "06-52",
+"type": "upazila",
+"name_en": "Saltha",
+"name_bn": "সালথা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 399,
+"code": "07-53-399",
+"district_code": "07-53",
+"type": "upazila",
+"name_en": "Panchagarh Sadar",
+"name_bn": "পঞ্চগড় সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 400,
+"code": "07-53-400",
+"district_code": "07-53",
+"type": "upazila",
+"name_en": "Debiganj",
+"name_bn": "দেবীগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 401,
+"code": "07-53-401",
+"district_code": "07-53",
+"type": "upazila",
+"name_en": "Boda",
+"name_bn": "বোদা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 402,
+"code": "07-53-402",
+"district_code": "07-53",
+"type": "upazila",
+"name_en": "Atwari",
+"name_bn": "আটোয়ারী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 403,
+"code": "07-53-403",
+"district_code": "07-53",
+"type": "upazila",
+"name_en": "Tetulia",
+"name_bn": "তেতুলিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 404,
+"code": "07-54-404",
+"district_code": "07-54",
+"type": "upazila",
+"name_en": "Nawabganj",
+"name_bn": "নবাবগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 405,
+"code": "07-54-405",
+"district_code": "07-54",
+"type": "upazila",
+"name_en": "Birganj",
+"name_bn": "বীরগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 406,
+"code": "07-54-406",
+"district_code": "07-54",
+"type": "upazila",
+"name_en": "Ghoraghat",
+"name_bn": "ঘোড়াঘাট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 407,
+"code": "07-54-407",
+"district_code": "07-54",
+"type": "upazila",
+"name_en": "Birampur",
+"name_bn": "বিরামপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 408,
+"code": "07-54-408",
+"district_code": "07-54",
+"type": "upazila",
+"name_en": "Parbatipur",
+"name_bn": "পার্বতীপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 409,
+"code": "07-54-409",
+"district_code": "07-54",
+"type": "upazila",
+"name_en": "Bochaganj",
+"name_bn": "বোচাগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 410,
+"code": "07-54-410",
+"district_code": "07-54",
+"type": "upazila",
+"name_en": "Kaharol",
+"name_bn": "কাহারোল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 411,
+"code": "07-54-411",
+"district_code": "07-54",
+"type": "upazila",
+"name_en": "Fulbari",
+"name_bn": "ফুলবাড়ী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 412,
+"code": "07-54-412",
+"district_code": "07-54",
+"type": "upazila",
+"name_en": "Dinajpur Sadar",
+"name_bn": "দিনাজপুর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 413,
+"code": "07-54-413",
+"district_code": "07-54",
+"type": "upazila",
+"name_en": "Hakimpur",
+"name_bn": "হাকিমপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 414,
+"code": "07-54-414",
+"district_code": "07-54",
+"type": "upazila",
+"name_en": "Khansama",
+"name_bn": "খানসামা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 415,
+"code": "07-54-415",
+"district_code": "07-54",
+"type": "upazila",
+"name_en": "Birol",
+"name_bn": "বিরল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 416,
+"code": "07-54-416",
+"district_code": "07-54",
+"type": "upazila",
+"name_en": "Chirirbandar",
+"name_bn": "চিরিরবন্দর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 417,
+"code": "07-55-417",
+"district_code": "07-55",
+"type": "upazila",
+"name_en": "Lalmonirhat Sadar",
+"name_bn": "লালমনিরহাট সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 418,
+"code": "07-55-418",
+"district_code": "07-55",
+"type": "upazila",
+"name_en": "Kaliganj",
+"name_bn": "কালীগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 419,
+"code": "07-55-419",
+"district_code": "07-55",
+"type": "upazila",
+"name_en": "Hatibandha",
+"name_bn": "হাতীবান্ধা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 420,
+"code": "07-55-420",
+"district_code": "07-55",
+"type": "upazila",
+"name_en": "Patgram",
+"name_bn": "পাটগ্রাম",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 421,
+"code": "07-55-421",
+"district_code": "07-55",
+"type": "upazila",
+"name_en": "Aditmari",
+"name_bn": "আদিতমারী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 422,
+"code": "07-56-422",
+"district_code": "07-56",
+"type": "upazila",
+"name_en": "Syedpur",
+"name_bn": "সৈয়দপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 423,
+"code": "07-56-423",
+"district_code": "07-56",
+"type": "upazila",
+"name_en": "Domar",
+"name_bn": "ডোমার",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 424,
+"code": "07-56-424",
+"district_code": "07-56",
+"type": "upazila",
+"name_en": "Dimla",
+"name_bn": "ডিমলা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 425,
+"code": "07-56-425",
+"district_code": "07-56",
+"type": "upazila",
+"name_en": "Jaldhaka",
+"name_bn": "জলঢাকা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 426,
+"code": "07-56-426",
+"district_code": "07-56",
+"type": "upazila",
+"name_en": "Kishorganj",
+"name_bn": "কিশোরগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 427,
+"code": "07-56-427",
+"district_code": "07-56",
+"type": "upazila",
+"name_en": "Nilphamari Sadar",
+"name_bn": "নীলফামারী সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 428,
+"code": "07-57-428",
+"district_code": "07-57",
+"type": "upazila",
+"name_en": "Sadullapur",
+"name_bn": "সাদুল্লাপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 429,
+"code": "07-57-429",
+"district_code": "07-57",
+"type": "upazila",
+"name_en": "Gaibandha Sadar",
+"name_bn": "গাইবান্ধা সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 430,
+"code": "07-57-430",
+"district_code": "07-57",
+"type": "upazila",
+"name_en": "Palashbari",
+"name_bn": "পলাশবাড়ী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 431,
+"code": "07-57-431",
+"district_code": "07-57",
+"type": "upazila",
+"name_en": "Saghata",
+"name_bn": "সাঘাটা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 432,
+"code": "07-57-432",
+"district_code": "07-57",
+"type": "upazila",
+"name_en": "Gobindaganj",
+"name_bn": "গোবিন্দগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 433,
+"code": "07-57-433",
+"district_code": "07-57",
+"type": "upazila",
+"name_en": "Sundarganj",
+"name_bn": "সুন্দরগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 434,
+"code": "07-57-434",
+"district_code": "07-57",
+"type": "upazila",
+"name_en": "Phulchari",
+"name_bn": "ফুলছড়ি",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 435,
+"code": "07-58-435",
+"district_code": "07-58",
+"type": "upazila",
+"name_en": "Thakurgaon Sadar",
+"name_bn": "ঠাকুরগাঁও সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 436,
+"code": "07-58-436",
+"district_code": "07-58",
+"type": "upazila",
+"name_en": "Pirganj",
+"name_bn": "পীরগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 437,
+"code": "07-58-437",
+"district_code": "07-58",
+"type": "upazila",
+"name_en": "Ranisankail",
+"name_bn": "রাণীশংকৈল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 438,
+"code": "07-58-438",
+"district_code": "07-58",
+"type": "upazila",
+"name_en": "Haripur",
+"name_bn": "হরিপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 439,
+"code": "07-58-439",
+"district_code": "07-58",
+"type": "upazila",
+"name_en": "Baliadangi",
+"name_bn": "বালিয়াডাঙ্গী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 440,
+"code": "07-59-440",
+"district_code": "07-59",
+"type": "upazila",
+"name_en": "Rangpur Sadar",
+"name_bn": "রংপুর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 441,
+"code": "07-59-441",
+"district_code": "07-59",
+"type": "upazila",
+"name_en": "Gangachara",
+"name_bn": "গংগাচড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 442,
+"code": "07-59-442",
+"district_code": "07-59",
+"type": "upazila",
+"name_en": "Taragonj",
+"name_bn": "তারাগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 443,
+"code": "07-59-443",
+"district_code": "07-59",
+"type": "upazila",
+"name_en": "Badargonj",
+"name_bn": "বদরগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 444,
+"code": "07-59-444",
+"district_code": "07-59",
+"type": "upazila",
+"name_en": "Mithapukur",
+"name_bn": "মিঠাপুকুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 445,
+"code": "07-59-445",
+"district_code": "07-59",
+"type": "upazila",
+"name_en": "Pirgonj",
+"name_bn": "পীরগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 446,
+"code": "07-59-446",
+"district_code": "07-59",
+"type": "upazila",
+"name_en": "Kaunia",
+"name_bn": "কাউনিয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 447,
+"code": "07-59-447",
+"district_code": "07-59",
+"type": "upazila",
+"name_en": "Pirgacha",
+"name_bn": "পীরগাছা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 448,
+"code": "07-60-448",
+"district_code": "07-60",
+"type": "upazila",
+"name_en": "Kurigram Sadar",
+"name_bn": "কুড়িগ্রাম সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 449,
+"code": "07-60-449",
+"district_code": "07-60",
+"type": "upazila",
+"name_en": "Nageshwari",
+"name_bn": "নাগেশ্বরী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 450,
+"code": "07-60-450",
+"district_code": "07-60",
+"type": "upazila",
+"name_en": "Bhurungamari",
+"name_bn": "ভুরুঙ্গামারী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 451,
+"code": "07-60-451",
+"district_code": "07-60",
+"type": "upazila",
+"name_en": "Phulbari",
+"name_bn": "ফুলবাড়ী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 452,
+"code": "07-60-452",
+"district_code": "07-60",
+"type": "upazila",
+"name_en": "Rajarhat",
+"name_bn": "রাজারহাট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 453,
+"code": "07-60-453",
+"district_code": "07-60",
+"type": "upazila",
+"name_en": "Ulipur",
+"name_bn": "উলিপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 454,
+"code": "07-60-454",
+"district_code": "07-60",
+"type": "upazila",
+"name_en": "Chilmari",
+"name_bn": "চিলমারী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 455,
+"code": "07-60-455",
+"district_code": "07-60",
+"type": "upazila",
+"name_en": "Rowmari",
+"name_bn": "রৌমারী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 456,
+"code": "07-60-456",
+"district_code": "07-60",
+"type": "upazila",
+"name_en": "Charrajibpur",
+"name_bn": "চর রাজিবপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 457,
+"code": "08-61-457",
+"district_code": "08-61",
+"type": "upazila",
+"name_en": "Sherpur Sadar",
+"name_bn": "শেরপুর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 458,
+"code": "08-61-458",
+"district_code": "08-61",
+"type": "upazila",
+"name_en": "Nalitabari",
+"name_bn": "নালিতাবাড়ী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 459,
+"code": "08-61-459",
+"district_code": "08-61",
+"type": "upazila",
+"name_en": "Sreebordi",
+"name_bn": "শ্রীবরদী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 460,
+"code": "08-61-460",
+"district_code": "08-61",
+"type": "upazila",
+"name_en": "Nokla",
+"name_bn": "নকলা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 461,
+"code": "08-61-461",
+"district_code": "08-61",
+"type": "upazila",
+"name_en": "Jhenaigati",
+"name_bn": "ঝিনাইগাতী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 462,
+"code": "08-62-462",
+"district_code": "08-62",
+"type": "upazila",
+"name_en": "Fulbaria",
+"name_bn": "ফুলবাড়ীয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 463,
+"code": "08-62-463",
+"district_code": "08-62",
+"type": "upazila",
+"name_en": "Trishal",
+"name_bn": "ত্রিশাল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 464,
+"code": "08-62-464",
+"district_code": "08-62",
+"type": "upazila",
+"name_en": "Bhaluka",
+"name_bn": "ভালুকা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 465,
+"code": "08-62-465",
+"district_code": "08-62",
+"type": "upazila",
+"name_en": "Muktagacha",
+"name_bn": "মুক্তাগাছা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 466,
+"code": "08-62-466",
+"district_code": "08-62",
+"type": "upazila",
+"name_en": "Mymensingh Sadar",
+"name_bn": "ময়মনসিংহ সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 467,
+"code": "08-62-467",
+"district_code": "08-62",
+"type": "upazila",
+"name_en": "Dhobaura",
+"name_bn": "ধোবাউড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 468,
+"code": "08-62-468",
+"district_code": "08-62",
+"type": "upazila",
+"name_en": "Phulpur",
+"name_bn": "ফুলপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 469,
+"code": "08-62-469",
+"district_code": "08-62",
+"type": "upazila",
+"name_en": "Haluaghat",
+"name_bn": "হালুয়াঘাট",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 470,
+"code": "08-62-470",
+"district_code": "08-62",
+"type": "upazila",
+"name_en": "Gouripur",
+"name_bn": "গৌরীপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 471,
+"code": "08-62-471",
+"district_code": "08-62",
+"type": "upazila",
+"name_en": "Gafargaon",
+"name_bn": "গফরগাঁও",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 472,
+"code": "08-62-472",
+"district_code": "08-62",
+"type": "upazila",
+"name_en": "Iswarganj",
+"name_bn": "ঈশ্বরগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 473,
+"code": "08-62-473",
+"district_code": "08-62",
+"type": "upazila",
+"name_en": "Nandail",
+"name_bn": "নান্দাইল",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 474,
+"code": "08-62-474",
+"district_code": "08-62",
+"type": "upazila",
+"name_en": "Tarakanda",
+"name_bn": "তারাকান্দা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 475,
+"code": "08-63-475",
+"district_code": "08-63",
+"type": "upazila",
+"name_en": "Jamalpur Sadar",
+"name_bn": "জামালপুর সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 476,
+"code": "08-63-476",
+"district_code": "08-63",
+"type": "upazila",
+"name_en": "Melandah",
+"name_bn": "মেলান্দহ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 477,
+"code": "08-63-477",
+"district_code": "08-63",
+"type": "upazila",
+"name_en": "Islampur",
+"name_bn": "ইসলামপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 478,
+"code": "08-63-478",
+"district_code": "08-63",
+"type": "upazila",
+"name_en": "Dewangonj",
+"name_bn": "দেওয়ানগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 479,
+"code": "08-63-479",
+"district_code": "08-63",
+"type": "upazila",
+"name_en": "Sarishabari",
+"name_bn": "সরিষাবাড়ী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 480,
+"code": "08-63-480",
+"district_code": "08-63",
+"type": "upazila",
+"name_en": "Madarganj",
+"name_bn": "মাদারগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 481,
+"code": "08-63-481",
+"district_code": "08-63",
+"type": "upazila",
+"name_en": "Bokshiganj",
+"name_bn": "বকশীগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 482,
+"code": "08-64-482",
+"district_code": "08-64",
+"type": "upazila",
+"name_en": "Barhatta",
+"name_bn": "বারহাট্টা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 483,
+"code": "08-64-483",
+"district_code": "08-64",
+"type": "upazila",
+"name_en": "Durgapur",
+"name_bn": "দুর্গাপুর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 484,
+"code": "08-64-484",
+"district_code": "08-64",
+"type": "upazila",
+"name_en": "Kendua",
+"name_bn": "কেন্দুয়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 485,
+"code": "08-64-485",
+"district_code": "08-64",
+"type": "upazila",
+"name_en": "Atpara",
+"name_bn": "আটপাড়া",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 486,
+"code": "08-64-486",
+"district_code": "08-64",
+"type": "upazila",
+"name_en": "Madan",
+"name_bn": "মদন",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 487,
+"code": "08-64-487",
+"district_code": "08-64",
+"type": "upazila",
+"name_en": "Khaliajuri",
+"name_bn": "খালিয়াজুরী",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 488,
+"code": "08-64-488",
+"district_code": "08-64",
+"type": "upazila",
+"name_en": "Kalmakanda",
+"name_bn": "কলমাকান্দা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 489,
+"code": "08-64-489",
+"district_code": "08-64",
+"type": "upazila",
+"name_en": "Mohongonj",
+"name_bn": "মোহনগঞ্জ",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 490,
+"code": "08-64-490",
+"district_code": "08-64",
+"type": "upazila",
+"name_en": "Purbadhala",
+"name_bn": "পূর্বধলা",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 491,
+"code": "08-64-491",
+"district_code": "08-64",
+"type": "upazila",
+"name_en": "Netrokona Sadar",
+"name_bn": "নেত্রকোণা সদর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 492,
+"code": "01-09-492",
+"district_code": "01-09",
+"type": "upazila",
+"name_en": "Eidgaon",
+"name_bn": "ঈদগাঁও",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 493,
+"code": "05-39-493",
+"district_code": "05-39",
+"type": "upazila",
+"name_en": "Madhyanagar",
+"name_bn": "মধ্যনগর",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 494,
+"code": "06-50-494",
+"district_code": "06-50",
+"type": "upazila",
+"name_en": "Dasar",
+"name_bn": "ডাসার",
+"city_name_en": null,
+"aliases": []
+},
+{
+"id": 1001,
+"code": "06-47-M01",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Ramna",
+"name_bn": "রমনা",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1002,
+"code": "06-47-M02",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Shahbagh",
+"name_bn": "শাহবাগ",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": [
+"Shahbag"
+]
+},
+{
+"id": 1003,
+"code": "06-47-M03",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Dhanmondi",
+"name_bn": "ধানমন্ডি",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1004,
+"code": "06-47-M04",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Kalabagan",
+"name_bn": "কলাবাগান",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1005,
+"code": "06-47-M05",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "New Market",
+"name_bn": "নিউমার্কেট",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": [
+"Newmarket"
+]
+},
+{
+"id": 1006,
+"code": "06-47-M06",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Hazaribagh",
+"name_bn": "হাজারীবাগ",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1007,
+"code": "06-47-M07",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Lalbagh",
+"name_bn": "লালবাগ",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": [
+"Lalbag"
+]
+},
+{
+"id": 1008,
+"code": "06-47-M08",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Kotwali",
+"name_bn": "কোতোয়ালী",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1009,
+"code": "06-47-M09",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Chawkbazar",
+"name_bn": "চকবাজার",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": [
+"Chowkbazar"
+]
+},
+{
+"id": 1010,
+"code": "06-47-M10",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Bangshal",
+"name_bn": "বংশাল",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": [
+"Bongshal"
+]
+},
+{
+"id": 1011,
+"code": "06-47-M11",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Kamrangirchar",
+"name_bn": "কামরাঙ্গীরচর",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1012,
+"code": "06-47-M12",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Wari",
+"name_bn": "ওয়ারী",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1013,
+"code": "06-47-M13",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Sutrapur",
+"name_bn": "সূত্রাপুর",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1014,
+"code": "06-47-M14",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Gendaria",
+"name_bn": "গেন্ডারিয়া",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1015,
+"code": "06-47-M15",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Demra",
+"name_bn": "ডেমরা",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1016,
+"code": "06-47-M16",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Jatrabari",
+"name_bn": "যাত্রাবাড়ী",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1017,
+"code": "06-47-M17",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Kadamtali",
+"name_bn": "কদমতলী",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": [
+"Kadamtoli"
+]
+},
+{
+"id": 1018,
+"code": "06-47-M18",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Shyampur",
+"name_bn": "শ্যামপুর",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": [
+"Shampur"
+]
+},
+{
+"id": 1019,
+"code": "06-47-M19",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Motijheel",
+"name_bn": "মতিঝিল",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1020,
+"code": "06-47-M20",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Paltan",
+"name_bn": "পল্টন",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": [
+"Palton"
+]
+},
+{
+"id": 1021,
+"code": "06-47-M21",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Khilgaon",
+"name_bn": "খিলগাঁও",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1022,
+"code": "06-47-M22",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Sabujbagh",
+"name_bn": "সবুজবাগ",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": [
+"Sabujbag"
+]
+},
+{
+"id": 1023,
+"code": "06-47-M23",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Mugda",
+"name_bn": "মুগদা",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1024,
+"code": "06-47-M24",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Shahjahanpur",
+"name_bn": "শাহজাহানপুর",
+"city_name_en": "Dhaka South City Corporation",
+"aliases": []
+},
+{
+"id": 1025,
+"code": "06-47-M25",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Rampura",
+"name_bn": "রামপুরা",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1026,
+"code": "06-47-M26",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Mirpur",
+"name_bn": "মিরপুর",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1027,
+"code": "06-47-M27",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Pallabi",
+"name_bn": "পল্লবী",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1028,
+"code": "06-47-M28",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Kafrul",
+"name_bn": "কাফরুল",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1029,
+"code": "06-47-M29",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Shah Ali",
+"name_bn": "শাহ আলী",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1030,
+"code": "06-47-M30",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Darus Salam",
+"name_bn": "দারুস সালাম",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": [
+"Darussalam"
+]
+},
+{
+"id": 1031,
+"code": "06-47-M31",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Rupnagar",
+"name_bn": "রূপনগর",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1032,
+"code": "06-47-M32",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Bhashantek",
+"name_bn": "ভাষানটেক",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1033,
+"code": "06-47-M33",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Gulshan",
+"name_bn": "গুলশান",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1034,
+"code": "06-47-M34",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Badda",
+"name_bn": "বাড্ডা",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1035,
+"code": "06-47-M35",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Vatara",
+"name_bn": "ভাটারা",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": [
+"Bhatara"
+]
+},
+{
+"id": 1036,
+"code": "06-47-M36",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Khilkhet",
+"name_bn": "খিলক্ষেত",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1037,
+"code": "06-47-M37",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Banani",
+"name_bn": "বনানী",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1038,
+"code": "06-47-M38",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Cantonment",
+"name_bn": "ক্যান্টনমেন্ট",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": [
+"Dhaka Cantonment",
+"Dhaka Cantt."
+]
+},
+{
+"id": 1039,
+"code": "06-47-M39",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Uttara East",
+"name_bn": "উত্তরা পূর্ব",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": [
+"Uttara"
+]
+},
+{
+"id": 1040,
+"code": "06-47-M40",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Uttara West",
+"name_bn": "উত্তরা পশ্চিম",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1041,
+"code": "06-47-M41",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Bimanbandar",
+"name_bn": "বিমানবন্দর",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": [
+"Airport"
+]
+},
+{
+"id": 1042,
+"code": "06-47-M42",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Dakshinkhan",
+"name_bn": "দক্ষিণখান",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1043,
+"code": "06-47-M43",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Uttarkhan",
+"name_bn": "উত্তরখান",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": [
+"Uttar Khan"
+]
+},
+{
+"id": 1044,
+"code": "06-47-M44",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Turag",
+"name_bn": "তুরাগ",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1045,
+"code": "06-47-M45",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Tejgaon",
+"name_bn": "তেজগাঁও",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1046,
+"code": "06-47-M46",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Tejgaon Industrial Area",
+"name_bn": "তেজগাঁও শিল্পাঞ্চল",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1047,
+"code": "06-47-M47",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Mohammadpur",
+"name_bn": "মোহাম্মদপুর",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1048,
+"code": "06-47-M48",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Adabor",
+"name_bn": "আদাবর",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": [
+"Adabar"
+]
+},
+{
+"id": 1049,
+"code": "06-47-M49",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Sher-e-Bangla Nagar",
+"name_bn": "শেরেবাংলা নগর",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1050,
+"code": "06-47-M50",
+"district_code": "06-47",
+"type": "metro_thana",
+"name_en": "Hatirjheel",
+"name_bn": "হাতিরঝিল",
+"city_name_en": "Dhaka North City Corporation",
+"aliases": []
+},
+{
+"id": 1051,
+"code": "01-08-M01",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Kotwali",
+"name_bn": "কোতোয়ালী",
+"city_name_en": "Chattogram City Corporation",
+"aliases": []
+},
+{
+"id": 1052,
+"code": "01-08-M02",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Chawkbazar",
+"name_bn": "চকবাজার",
+"city_name_en": "Chattogram City Corporation",
+"aliases": [
+"Chowkbazar"
+]
+},
+{
+"id": 1053,
+"code": "01-08-M03",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Panchlaish",
+"name_bn": "পাঁচলাইশ",
+"city_name_en": "Chattogram City Corporation",
+"aliases": []
+},
+{
+"id": 1054,
+"code": "01-08-M04",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Khulshi",
+"name_bn": "খুলশী",
+"city_name_en": "Chattogram City Corporation",
+"aliases": []
+},
+{
+"id": 1055,
+"code": "01-08-M05",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Bayezid Bostami",
+"name_bn": "বায়েজিদ বোস্তামী",
+"city_name_en": "Chattogram City Corporation",
+"aliases": [
+"Bayazid"
+]
+},
+{
+"id": 1056,
+"code": "01-08-M06",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Chandgaon",
+"name_bn": "চান্দগাঁও",
+"city_name_en": "Chattogram City Corporation",
+"aliases": []
+},
+{
+"id": 1057,
+"code": "01-08-M07",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Bakalia",
+"name_bn": "বাকলিয়া",
+"city_name_en": "Chattogram City Corporation",
+"aliases": []
+},
+{
+"id": 1058,
+"code": "01-08-M08",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Double Mooring",
+"name_bn": "ডবলমুরিং",
+"city_name_en": "Chattogram City Corporation",
+"aliases": [
+"Doublemooring"
+]
+},
+{
+"id": 1059,
+"code": "01-08-M09",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Halishahar",
+"name_bn": "হালিশহর",
+"city_name_en": "Chattogram City Corporation",
+"aliases": []
+},
+{
+"id": 1060,
+"code": "01-08-M10",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Pahartali",
+"name_bn": "পাহাড়তলী",
+"city_name_en": "Chattogram City Corporation",
+"aliases": []
+},
+{
+"id": 1061,
+"code": "01-08-M11",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Akbar Shah",
+"name_bn": "আকবর শাহ",
+"city_name_en": "Chattogram City Corporation",
+"aliases": []
+},
+{
+"id": 1062,
+"code": "01-08-M12",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Sadarghat",
+"name_bn": "সদরঘাট",
+"city_name_en": "Chattogram City Corporation",
+"aliases": []
+},
+{
+"id": 1063,
+"code": "01-08-M13",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Bandar",
+"name_bn": "বন্দর",
+"city_name_en": "Chattogram City Corporation",
+"aliases": []
+},
+{
+"id": 1064,
+"code": "01-08-M14",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "EPZ",
+"name_bn": "ইপিজেড",
+"city_name_en": "Chattogram City Corporation",
+"aliases": []
+},
+{
+"id": 1065,
+"code": "01-08-M15",
+"district_code": "01-08",
+"type": "metro_thana",
+"name_en": "Patenga",
+"name_bn": "পতেঙ্গা",
+"city_name_en": "Chattogram City Corporation",
+"aliases": []
+}
+]

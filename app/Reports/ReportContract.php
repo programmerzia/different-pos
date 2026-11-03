@@ -10,14 +10,14 @@ interface ReportContract
     /** URL slug and i18n key part (`reports.{key}.title`). */
     public function name(): string;
 
-    /** Catalogue group: sales | customers | inventory | money. */
+    /** Catalogue group: sales | customers | inventory | money | purchases | tax. */
     public function group(): string;
 
     /** False for point-in-time reports (aging, valuation, last purchase). */
     public function usesPeriod(): bool;
 
     /**
-     * Extra filters the parameter bar offers: category, brand, bucket, limit.
+     * Extra filters the parameter bar offers: category, brand, bucket, limit, cashier, vendor, reason, level.
      *
      * @return list<string>
      */

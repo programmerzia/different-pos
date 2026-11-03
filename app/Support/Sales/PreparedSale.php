@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Sales;
 
 use App\Actions\Sales\Data\SaleDraft;
+use App\Enums\MemberAuth;
 use App\Enums\PaymentMethodType;
 use App\Enums\SaleOrigin;
 use App\Models\Branch;
@@ -54,6 +55,7 @@ final readonly class PreparedSale
         public ?array $clientTotals,
         public string $clientUuid,
         public array $overrides,
+        public MemberAuth $memberAuth = MemberAuth::None,
     ) {}
 
     public function total(): Money

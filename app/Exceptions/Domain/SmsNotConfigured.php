@@ -9,6 +9,6 @@ final class SmsNotConfigured extends DomainException
 {
     public static function make(): self
     {
-        return new self('No SMS provider is configured. Choose one in Settings, SMS.');
+        return new self((string) __('sms.not_configured'));
     }
 }

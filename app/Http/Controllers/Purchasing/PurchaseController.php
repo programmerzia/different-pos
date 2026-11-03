@@ -23,71 +23,43 @@ use App\Models\Purchase;
 use App\Models\StockBatch;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Reports\ColumnType;
+use App\Reports\ReportColumn;
+use App\Reports\ReportResult;
 use App\Support\Catalog\ProductLookup;
+use App\Support\Dates\Period;
+use App\Support\Export\ExportFormat;
+use App\Support\Export\ExportMeta;
+use App\Support\Export\TabularExport;
 use App\Support\Http\TableQuery;
 use App\Support\Money\Money;
 use App\Support\Quantity\Quantity;
+use App\Support\Sales\BusinessDay;
 use App\Support\Stock\BranchStockColumns;
 use App\Support\Tenancy\TenantContext;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class PurchaseController extends Controller
 {
     use AuthorizesRequests;
     use TranslatesDomainErrors;
 
-    public function index(Request $request, BranchStockColumns $branches): Response
+    public function index(Request $request): Response
     {
         $this->authorize('viewAny', Purchase::class);
-        $table = TableQuery::fromRequest($request, sortable: ['number', 'purchased_at', 'total', 'paid', 'due', 'vendor_ref'], filterable: ['status', 'payment', 'vendor', 'branch', 'from', 'to'], defaultSort: '-purchased_at');
-        $user = $this->actor($request);
-        $currentBranchId = app(TenantContext::class)->branchId();
-
-        // Branch chips exist only for users with reports.all_branches (default "All Branches", as the mockup);
-        // everyone else stays on the current branch.
-        $branchList = $user->can('reports.all_branches') ? $branches->present($branches->branchesFor($user)) : [];
-        $branchFilter = $branchList === [] ? '' : ($table->filters['branch'] ?? 'all');
-        $filtered = static function () use ($table, $branchFilter, $branchList, $currentBranchId): Builder {
-            $query = Purchase::query();
-            if ($branchFilter === 'all') {
-                $query->withoutBranchScope();
-            } elseif ($branchFilter !== '' && (int) $branchFilter !== $currentBranchId) {
-                abort_unless(collect($branchList)->contains('id', (int) $branchFilter), 404);
-                $query->withoutBranchScope()->where('branch_id', (int) $branchFilter);
-            }
-            if ($table->search !== '') {
-                $like = '%'.addcslashes($table->search, '\\%_').'%';
-                $query->where(static fn ($q) => $q->where('number', 'like', $like)->orWhere('vendor_ref', 'like', $like)
-                    ->orWhereHas('vendor', static fn ($v) => $v->where('name', 'like', $like)));
-            }
-            if (isset($table->filters['status'])) {
-                $query->where('status', $table->filters['status']);
-            }
-            if (isset($table->filters['payment'])) {
-                // `due` is the mockup's "Outstanding balance (> 0)": unpaid and partly paid bills.
-                $table->filters['payment'] === 'due'
-                    ? $query->where('due', '>', 0)->where('status', PurchaseStatus::Received->value)
-                    : $query->where('payment_status', $table->filters['payment']);
-            }
-            foreach (['from' => '>=', 'to' => '<='] as $key => $operator) {
-                $day = preg_match('/^\d{4}-\d{2}-\d{2}$/', $table->filters[$key] ?? '') === 1 ? $table->filters[$key] : null;
-                if ($day !== null) {
-                    $query->whereDate('purchased_at', $operator, $day);
-                }
-            }
-            if (isset($table->filters['vendor'])) {
-                $query->where('vendor_id', (int) $table->filters['vendor']);
-            }
-
-            return $query;
-        };
+        $table = TableQuery::fromRequest($request, sortable: ['number', 'purchased_at', 'total', 'paid', 'due', 'vendor_ref'], filterable: ['status', 'payment', 'vendor', 'branch', 'from', 'to', 'period'], defaultSort: '-purchased_at');
+        [$filtered, $branchList] = $this->filtered($request, $table);
+        $tz = $this->timezone();
         $query = $filtered()->with(['vendor:id,name', 'branch:id,name,code'])->withSum('items as qty_sum', 'qty')->withCount('items');
 
         // KPI strip and totals row: the whole filtered set, not only this page. Cancelled bills carry no stock or payable.
@@ -108,7 +80,7 @@ final class PurchaseController extends Controller
                 'vendor_ref' => $p->vendor_ref,
                 'status' => $p->status->value,
                 'payment_status' => $p->payment_status->value,
-                'purchased_at' => $p->purchased_at->toDateString(),
+                'purchased_at' => BusinessDay::localDate($p->purchased_at, $tz),
                 'branch' => $p->branch instanceof Branch ? ['name' => $p->branch->name, 'code' => (string) $p->branch->code] : null,
                 'current_branch' => $p->branch_id === app(TenantContext::class)->branchId(),
                 'items' => (int) $p->getAttribute('items_count'),
@@ -131,6 +103,109 @@ final class PurchaseController extends Controller
         ]);
     }
 
+    /**
+     * The filtered purchases query (same query string as the page) as a factory, plus the branch chips; shared by the page and the export.
+     *
+     * @return array{0: Closure(): Builder<Purchase>, 1: list<array<string, mixed>>}
+     */
+    private function filtered(Request $request, TableQuery $table): array
+    {
+        $branches = app(BranchStockColumns::class);
+        $user = $this->actor($request);
+        $currentBranchId = app(TenantContext::class)->branchId();
+
+        // Branch chips exist only for users with reports.all_branches (default "All Branches", as the mockup);
+        // everyone else stays on the current branch.
+        $branchList = $user->can('reports.all_branches') ? $branches->present($branches->branchesFor($user)) : [];
+        $branchFilter = $branchList === [] ? '' : ($table->filters['branch'] ?? 'all');
+        $tz = $this->timezone();
+        $filtered = static function () use ($table, $branchFilter, $branchList, $currentBranchId, $tz): Builder {
+            $query = Purchase::query();
+            if ($branchFilter === 'all') {
+                $query->withoutBranchScope();
+            } elseif ($branchFilter !== '' && (int) $branchFilter !== $currentBranchId) {
+                abort_unless(collect($branchList)->contains('id', (int) $branchFilter), 404);
+                $query->withoutBranchScope()->where('branch_id', (int) $branchFilter);
+            }
+            if ($table->search !== '') {
+                $like = '%'.addcslashes($table->search, '\\%_').'%';
+                $query->where(static fn ($q) => $q->where('number', 'like', $like)->orWhere('vendor_ref', 'like', $like)
+                    ->orWhereHas('vendor', static fn ($v) => $v->where('name', 'like', $like)));
+            }
+            if (isset($table->filters['status'])) {
+                $query->where('status', $table->filters['status']);
+            }
+            if (isset($table->filters['payment'])) {
+                // `due` is the mockup's "Outstanding balance (> 0)": unpaid and partly paid bills.
+                $table->filters['payment'] === 'due'
+                    ? $query->where('due', '>', 0)->where('status', PurchaseStatus::Received->value)
+                    : $query->where('payment_status', $table->filters['payment']);
+            }
+            // filter[from] / filter[to] are tenant-local days; purchased_at is stored in UTC.
+            $named = Period::range($table->filters['period'] ?? null, $tz);
+            BusinessDay::whereLocalDates($query, 'purchased_at', $named['from'] ?? $table->filters['from'] ?? null, $named['to'] ?? $table->filters['to'] ?? null, $tz);
+            if (isset($table->filters['vendor'])) {
+                $query->where('vendor_id', (int) $table->filters['vendor']);
+            }
+
+            return $query;
+        };
+
+        return [$filtered, $branchList];
+    }
+
+    /** GET /app/purchases/export.{csv|xlsx|pdf}: the whole filtered list, same query string as the page. */
+    public function export(Request $request, string $format, TabularExport $export, TenantContext $context): HttpResponse|StreamedResponse
+    {
+        $this->authorize('viewAny', Purchase::class);
+        $table = TableQuery::fromRequest($request, sortable: ['number', 'purchased_at', 'total', 'paid', 'due', 'vendor_ref'], filterable: ['status', 'payment', 'vendor', 'branch', 'from', 'to', 'period'], defaultSort: '-purchased_at');
+        [$filtered] = $this->filtered($request, $table);
+        $tz = $this->timezone();
+        $query = $table->applySort($filtered()->with(['vendor:id,name', 'branch:id,name,code'])->withSum('items as qty_sum', 'qty')->withCount('items'));
+
+        $columns = [
+            new ReportColumn('number', 'GRN', ColumnType::Text),
+            new ReportColumn('date', 'Date', ColumnType::Date),
+            new ReportColumn('vendor', 'Vendor', ColumnType::Text),
+            new ReportColumn('branch', 'Branch', ColumnType::Text),
+            new ReportColumn('vendor_ref', 'Bill ref', ColumnType::Text),
+            new ReportColumn('items', 'Items', ColumnType::Int),
+            new ReportColumn('qty', 'Qty', ColumnType::Qty),
+            new ReportColumn('total', 'Total bill', ColumnType::Money),
+            new ReportColumn('paid', 'Paid', ColumnType::Money),
+            new ReportColumn('due', 'Due', ColumnType::Money),
+            new ReportColumn('status', 'Status', ColumnType::Text),
+            new ReportColumn('payment_status', 'Payment', ColumnType::Text),
+        ];
+        $rows = [];
+        $totals = ['items' => 0, 'qty' => 0, 'total' => 0, 'paid' => 0, 'due' => 0];
+        foreach ($query->lazy(500) as $p) {
+            /** @var Purchase $p */
+            $row = [
+                'number' => $p->number,
+                'date' => BusinessDay::localDate($p->purchased_at, $tz),
+                'vendor' => $p->vendor->name ?? '',
+                'branch' => $p->branch instanceof Branch ? $p->branch->name : null,
+                'vendor_ref' => $p->vendor_ref,
+                'items' => (int) $p->getAttribute('items_count'),
+                'qty' => Quantity::parse((string) ($p->getAttribute('qty_sum') ?? '0'))->milli,
+                'total' => $p->total->paisa,
+                'paid' => $p->paid->paisa,
+                'due' => $p->due->paisa,
+                'status' => $p->status->value,
+                'payment_status' => $p->payment_status->value,
+            ];
+            $rows[] = $row;
+            if ($p->status === PurchaseStatus::Received) {
+                foreach (array_keys($totals) as $key) {
+                    $totals[$key] += (int) $row[$key];
+                }
+            }
+        }
+
+        return $export->respond(new ReportResult($columns, $rows, $totals), ExportFormat::from($format), 'purchases-'.now($tz)->format('Ymd-His'), ExportMeta::for($context, 'Purchases'));
+    }
+
     public function create(Request $request): Response
     {
         $this->authorize('create', Purchase::class);
@@ -138,8 +213,8 @@ final class PurchaseController extends Controller
         return Inertia::render('purchases/create', [
             'vendors' => Vendor::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
-            'canPay' => $this->actor($request)->checkPermissionTo('payments.pay'),
-            'today' => now()->toDateString(),
+            'canPay' => $this->actor($request)->can('payments.pay'),
+            'today' => BusinessDay::today($this->timezone()),
         ]);
     }
 
@@ -148,7 +223,7 @@ final class PurchaseController extends Controller
     {
         $this->authorize('create', Purchase::class);
 
-        return response()->json($lookup->find((string) $request->query('code', ''), $this->actor($request)->checkPermissionTo('products.view_cost')));
+        return response()->json($lookup->find((string) $request->query('code', ''), $this->actor($request)->can('products.view_cost')));
     }
 
     public function store(ReceivePurchaseRequest $request, ReceivePurchase $receive): RedirectResponse
@@ -180,7 +255,7 @@ final class PurchaseController extends Controller
             'note' => $v['note'] ?? null,
         ];
         if (isset($v['payment']) && is_array($v['payment'])) {
-            abort_unless($this->actor($request)->checkPermissionTo('payments.pay'), 403);
+            abort_unless($this->actor($request)->can('payments.pay'), 403);
             $input['payment'] = [
                 'amount' => Money::ofPaisa((int) $v['payment']['amount']),
                 'payment_method_id' => (int) $v['payment']['payment_method_id'],
@@ -197,10 +272,17 @@ final class PurchaseController extends Controller
     public function show(Request $request, Purchase $purchase): Response
     {
         $this->authorize('view', $purchase);
-        $purchase->load(['vendor:id,uuid,name,balance', 'items.product:id,name,sku,variant_label']);
+        $tz = $this->timezone();
+        $purchase->load(['vendor:id,uuid,name,balance,phone', 'branch:id,name,code', 'items.product:id,name,sku,variant_label,sale_price']);
 
+        // A received GRN's batches point at its lines (`purchase` source). The legacy import books the remainder of an
+        // imported bill as an `opening` batch on the same line, so those count too (product + line guard against id reuse).
         $itemIds = $purchase->items->pluck('id')->all();
-        $batches = StockBatch::query()->where('source_type', StockSourceType::Purchase)->whereIn('source_id', $itemIds)->orderBy('id')->get();
+        $productIds = $purchase->items->pluck('product_id')->all();
+        $batches = StockBatch::query()->withoutBranchScope()->where('branch_id', $purchase->branch_id)
+            ->whereIn('source_type', [StockSourceType::Purchase, StockSourceType::Opening])
+            ->whereIn('source_id', $itemIds)->whereIn('product_id', $productIds)->orderBy('id')->get();
+        $createdBy = $purchase->created_by === null ? null : User::query()->whereKey($purchase->created_by)->value('name');
         $payments = PaymentAllocation::query()
             ->where('allocatable_type', AllocatableType::Purchase)->where('allocatable_id', $purchase->id)
             ->with('payment:id,number,paid_at,reference')->orderBy('id')->get();
@@ -213,10 +295,15 @@ final class PurchaseController extends Controller
                 'vendor_id' => $purchase->vendor_id,
                 'vendor_uuid' => $purchase->vendor->uuid ?? '',
                 'vendor' => $purchase->vendor->name ?? '',
+                'vendor_phone' => $purchase->vendor->phone ?? null,
+                'vendor_balance' => $purchase->vendor instanceof Vendor ? $purchase->vendor->balance->paisa : 0,
                 'vendor_ref' => $purchase->vendor_ref,
+                'branch' => $purchase->branch instanceof Branch ? ['name' => $purchase->branch->name, 'code' => (string) $purchase->branch->code] : null,
+                'received_by' => is_string($createdBy) ? $createdBy : null,
+                'imported' => $purchase->legacy_id !== null,
                 'status' => $purchase->status->value,
                 'payment_status' => $purchase->payment_status->value,
-                'purchased_at' => $purchase->purchased_at->toDateString(),
+                'purchased_at' => BusinessDay::localDate($purchase->purchased_at, $tz),
                 'subtotal' => $purchase->subtotal->paisa,
                 'discount' => $purchase->discount->paisa,
                 'tax_total' => $purchase->tax_total->paisa,
@@ -235,10 +322,14 @@ final class PurchaseController extends Controller
                 'unit_cost' => $i->unit_cost->paisa,
                 'discount' => $i->discount->paisa,
                 'line_total' => $i->line_total->paisa,
+                'sale_price' => $i->product instanceof Product ? $i->product->sale_price->paisa : null,
             ])->all(),
             'batches' => $batches->map(static fn (StockBatch $b): array => [
                 'id' => $b->id,
                 'product_id' => $b->product_id,
+                'product' => $purchase->items->firstWhere('product_id', $b->product_id)?->product->name ?? '',
+                'sku' => $purchase->items->firstWhere('product_id', $b->product_id)?->product->sku ?? '',
+                'received_at' => BusinessDay::localDate($b->received_at, $tz),
                 'batch_no' => $b->batch_no,
                 'unit_cost' => $b->unit_cost->paisa,
                 'qty_received' => $b->qty_received->milli,
@@ -248,14 +339,14 @@ final class PurchaseController extends Controller
             'payments' => $payments->map(static fn (PaymentAllocation $a): array => [
                 'id' => $a->id,
                 'number' => $a->payment->number ?? '',
-                'paid_at' => $a->payment?->paid_at->toDateString(),
+                'paid_at' => BusinessDay::localDate($a->payment?->paid_at, $tz),
                 'amount' => $a->amount->paisa,
                 'reference' => $a->payment->reference ?? null,
             ])->all(),
             'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
             'can' => [
                 'cancel' => $this->actor($request)->can('cancel', $purchase),
-                'pay' => $this->actor($request)->checkPermissionTo('payments.pay'),
+                'pay' => $this->actor($request)->can('payments.pay'),
             ],
         ]);
     }
@@ -285,6 +376,11 @@ final class PurchaseController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Payment recorded.')]);
 
         return back();
+    }
+
+    private function timezone(): string
+    {
+        return BusinessDay::timezone(app(TenantContext::class)->tenant());
     }
 
     private function actor(Request $request): User

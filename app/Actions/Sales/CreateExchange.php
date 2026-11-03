@@ -7,6 +7,7 @@ namespace App\Actions\Sales;
 use App\Actions\Sales\Data\ExchangeDraft;
 use App\Actions\Sales\Data\ExchangeResult;
 use App\Actions\Sales\Data\SaleDraft;
+use App\Actions\Settings\EnsureSystemPaymentMethods;
 use App\Enums\RefundMode;
 use App\Enums\SaleOrigin;
 use App\Exceptions\Domain\InvalidSaleDocument;
@@ -42,6 +43,7 @@ final readonly class CreateExchange
         private TenantContext $context,
         private SaleGate $gate,
         private CustomerAccounts $accounts,
+        private EnsureSystemPaymentMethods $systemMethods,
     ) {}
 
     public function handle(User $actor, ExchangeDraft $draft): ExchangeResult
@@ -53,6 +55,7 @@ final readonly class CreateExchange
         }
 
         return Transaction::run(function () use ($actor, $draft): ExchangeResult {
+            $this->systemMethods->handle(); // exchange_credit / customer_credit, before any lock is taken
             $plan = $this->returns->plan($draft->saleId, $draft->returnLines);
             $customer = $plan->customer;
 

@@ -4,6 +4,8 @@ import { NativeSelect } from '@/components/native-select';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
+import { focusListEntryRow } from '@/components/data-table/row-focus';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export type ToolbarFilter = {
     key: string;
@@ -44,6 +46,7 @@ export function TableToolbar({
     search,
     onSearch,
     placeholderKey = 'common.search',
+    shortPlaceholderKey = 'common.search',
     filters = [],
     view,
     date,
@@ -57,6 +60,8 @@ export function TableToolbar({
     search: string;
     onSearch: (text: string) => void;
     placeholderKey?: string;
+    /** Placeholder on phones, where the full hint would be cut off (the aria-label stays the full one). */
+    shortPlaceholderKey?: string;
     filters?: ToolbarFilter[];
     /** "View:" saved-view select. */
     view?: ToolbarSelect;
@@ -75,6 +80,7 @@ export function TableToolbar({
     const { t } = useT();
     const digits = useDigits();
     const placeholder = t(placeholderKey);
+    const mobile = useIsMobile();
 
     return (
         <search
@@ -94,12 +100,25 @@ export function TableToolbar({
                         id="page-search"
                         type="search"
                         value={search}
-                        placeholder={placeholder}
+                        placeholder={
+                            mobile ? t(shortPlaceholderKey) : placeholder
+                        }
                         aria-label={placeholder}
                         onChange={(e) => onSearch(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === 'Escape') {
                                 e.currentTarget.blur();
+                            }
+                            // ↓ leaves the search for the list's first row (then J/K, Enter, Shift+F10).
+                            if (
+                                e.key === 'ArrowDown' &&
+                                !e.altKey &&
+                                !e.ctrlKey &&
+                                !e.metaKey &&
+                                !e.shiftKey &&
+                                focusListEntryRow()
+                            ) {
+                                e.preventDefault();
                             }
                         }}
                         className="h-8 w-full rounded-lg border bg-surface-sunken pr-7 pl-8 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-xs [&::-webkit-search-cancel-button]:appearance-none [@media(pointer:coarse)]:min-h-11"

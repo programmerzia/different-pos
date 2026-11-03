@@ -71,6 +71,11 @@ final readonly class Reconciliation
         ]), 'n'));
         $legacyCustomers = $ids($legacy->table(CustomerGroupsAndCustomers::TABLE)->where('store_id', $store));
         $count('customers', count($legacyCustomers), $this->countLegacy('customers', $tenantId, $legacyCustomers));
+        // Addresses that named a known district/upazila got geo ids; the diff is the "unparsed locations" (kept as street text).
+        $withAddress = $this->ids($legacy->table(CustomerGroupsAndCustomers::TABLE)->where('store_id', $store)->whereNotNull('address')->where('address', '!=', ''));
+        $count('customer_locations', count($withAddress), $this->sumInt($this->chunked($withAddress, fn (array $chunk): array => [
+            'n' => DB::table('customers')->where('tenant_id', $tenantId)->whereIn('legacy_id', $chunk)->whereNotNull('geo_district_id')->count(),
+        ]), 'n'));
 
         // Purchases and stock.
         $legacyInvoices = $ids($legacy->table(StockInvoicesToPurchasesAndBatches::TABLE)->where('store_id', $store));

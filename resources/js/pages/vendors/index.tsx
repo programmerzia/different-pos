@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { FileText, Plus, Truck } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import {
     ColumnChooser,
@@ -34,6 +35,8 @@ import { useCan } from '@/hooks/use-can';
 import { useDigits } from '@/hooks/use-digits';
 import { useHotkeyScope, useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useT } from '@/i18n';
+import { DownloadError, downloadFile } from '@/lib/download';
+import { exportItems, exportUrl, type ExportFormat } from '@/lib/export-items';
 import { downloadRowsCsv, type CsvColumn } from '@/lib/rows-csv';
 
 type Row = {
@@ -108,6 +111,17 @@ export default function VendorsIndex({
     const exportRows = (list: Row[]) =>
         downloadRowsCsv('vendors.csv', csvColumns, list);
 
+    const exportAs = (format: ExportFormat) => {
+        downloadFile(
+            exportUrl('/app/vendors', format, window.location.search),
+        ).catch((error: unknown) =>
+            toast.error(
+                error instanceof DownloadError && error.status === 422
+                    ? error.message
+                    : t('table.export_failed'),
+            ),
+        );
+    };
     useHotkeys('list', [
         {
             id: 'vendors.new',
@@ -127,8 +141,8 @@ export default function VendorsIndex({
         {
             id: 'vendors.export',
             keys: 'shift+e',
-            labelKey: 'vendors.export_csv',
-            handler: () => exportRows(rows),
+            labelKey: 'table.export_xlsx',
+            handler: () => exportAs('xlsx'),
         },
         {
             id: 'vendors.more_filters',
@@ -290,16 +304,7 @@ export default function VendorsIndex({
                                 visibility={columnState.visibility}
                                 onChange={columnState.setVisibility}
                             />
-                            <ExportMenu
-                                items={[
-                                    {
-                                        id: 'csv',
-                                        kind: 'csv',
-                                        label: t('vendors.export_csv'),
-                                        onSelect: () => exportRows(rows),
-                                    },
-                                ]}
-                            />
+                            <ExportMenu items={exportItems(t, exportAs)} />
                             <PrintButton />
                         </>
                     }
@@ -406,14 +411,13 @@ export default function VendorsIndex({
                 </div>
             </Page>
             <Dialog open={adding} onOpenChange={setAdding}>
+                {/* The content unmounts when closed (fresh form next time); keeping the form mounted through the close animation keeps its title and description. */}
                 <DialogContent layout="panel" size="lg">
-                    {adding ? (
-                        <VendorForm
-                            vendor={null}
-                            variant="dialog"
-                            onCancel={() => setAdding(false)}
-                        />
-                    ) : null}
+                    <VendorForm
+                        vendor={null}
+                        variant="dialog"
+                        onCancel={() => setAdding(false)}
+                    />
                 </DialogContent>
             </Dialog>
             <FiltersDialog

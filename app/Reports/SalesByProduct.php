@@ -6,6 +6,10 @@ namespace App\Reports;
 
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Product sales velocity and margin: units sold and returned, net units per day of the period,
+ * sales, FIFO cost of goods (sale_items.cogs, assigned by the stock ledger) and the gross margin.
+ */
 final class SalesByProduct extends AbstractReport
 {
     public function name(): string
@@ -55,6 +59,7 @@ final class SalesByProduct extends AbstractReport
             ->orderBy('products.id')
             ->get();
 
+        $days = max(1, count($this->days($parameters)));
         $rows = [];
         foreach ($records as $r) {
             $sold = $this->milli($r->sold);
@@ -69,9 +74,11 @@ final class SalesByProduct extends AbstractReport
                 'sold' => $sold,
                 'returned' => $returned,
                 'net_qty' => $sold - $returned,
+                'velocity' => intdiv(2 * ($sold - $returned) + $days, 2 * $days),
                 'sales' => $sales,
                 'cogs' => $cogs,
                 'profit' => $sales - $cogs,
+                'margin_bp' => $this->bp($sales - $cogs, $sales),
             ];
         }
 
@@ -83,11 +90,16 @@ final class SalesByProduct extends AbstractReport
             new ReportColumn('sold', 'Qty sold', ColumnType::Qty),
             new ReportColumn('returned', 'Qty returned', ColumnType::Qty),
             new ReportColumn('net_qty', 'Net qty', ColumnType::Qty),
+            new ReportColumn('velocity', 'Units / day', ColumnType::Qty),
             new ReportColumn('sales', 'Sales', ColumnType::Money),
-            new ReportColumn('cogs', 'Cost', ColumnType::Money, profit: true),
-            new ReportColumn('profit', 'Profit', ColumnType::Money, profit: true),
+            new ReportColumn('cogs', 'COGS', ColumnType::Money, profit: true),
+            new ReportColumn('profit', 'Gross profit', ColumnType::Money, profit: true),
+            new ReportColumn('margin_bp', 'Margin %', ColumnType::Percent, profit: true),
         ];
 
-        return new ReportResult($columns, $rows, $this->totals($columns, $rows));
+        $totals = $this->totals($columns, $rows);
+        $totals['margin_bp'] = $this->bp($totals['profit'], $totals['sales']);
+
+        return new ReportResult($columns, $rows, $totals);
     }
 }

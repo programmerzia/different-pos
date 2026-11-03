@@ -9,6 +9,7 @@ use App\Enums\AdjustmentReason;
 use App\Http\Controllers\Concerns\TranslatesDomainErrors;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Stock\AdjustStockRequest;
+use App\Models\BranchStock;
 use App\Models\Product;
 use App\Models\StockAdjustment;
 use App\Models\User;
@@ -63,6 +64,10 @@ final class AdjustmentController extends Controller
         $uuid = $request->query('product');
         $product = is_string($uuid) && $uuid !== '' ? Product::query()->where('uuid', $uuid)->where('track_stock', true)->first() : null;
 
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $canCost = $user->can('products.view_cost');
+
         return Inertia::render('adjustments/create', [
             'reasons' => array_map(static fn (AdjustmentReason $r): string => $r->value, AdjustmentReason::cases()),
             'prefill' => $product instanceof Product ? [
@@ -70,15 +75,20 @@ final class AdjustmentController extends Controller
                 'name' => $product->name,
                 'variant_label' => $product->variant_label,
                 'sku' => $product->sku,
+                'on_hand' => self::onHand($product)->milli,
+                'cost_price' => $canCost ? $product->cost_price->paisa : 0,
             ] : null,
+            'canCost' => $canCost,
         ]);
     }
 
     public function lookup(Request $request, ProductLookup $lookup): JsonResponse
     {
         $this->authorize('create', StockAdjustment::class);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
 
-        return response()->json($lookup->find((string) $request->query('code', ''), false));
+        return response()->json($lookup->find((string) $request->query('code', ''), $user->can('products.view_cost')));
     }
 
     public function store(AdjustStockRequest $request, AdjustStock $adjust): RedirectResponse
@@ -102,5 +112,13 @@ final class AdjustmentController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Stock adjusted.')]);
 
         return to_route('adjustments.index');
+    }
+
+    /** The current branch's quantity on hand (zero when the product has never been stocked here). */
+    private static function onHand(Product $product): Quantity
+    {
+        $stock = BranchStock::query()->where('product_id', $product->id)->first();
+
+        return $stock instanceof BranchStock ? $stock->qty_on_hand : Quantity::zero();
     }
 }

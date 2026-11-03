@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Sales;
 
 use App\Actions\Sales\Data\CustomerPaymentDraft;
+use App\Actions\Settings\EnsureSystemPaymentMethods;
 use App\Enums\AllocatableType;
 use App\Enums\PaymentDirection;
 use App\Enums\PaymentStatus;
@@ -42,6 +43,7 @@ final readonly class CollectCustomerPayment
         private TenantContext $context,
         private SaleGate $gate,
         private CustomerAccounts $accounts,
+        private EnsureSystemPaymentMethods $systemMethods,
     ) {}
 
     public function handle(User $actor, CustomerPaymentDraft $draft): Payment
@@ -53,6 +55,7 @@ final readonly class CollectCustomerPayment
         }
 
         return Transaction::run(function () use ($actor, $draft): Payment {
+            $this->systemMethods->handle(); // customer_credit backs the account pool, before any lock is taken
             $method = PaymentMethod::query()->findOrFail($draft->paymentMethodId);
             if (! $method->is_active) {
                 throw InvalidTender::inactive($method->name);

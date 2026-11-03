@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Models\User;
 use App\Reports\Dashboard\TodayTicker;
+use App\Support\Platform\Impersonation;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -59,9 +60,12 @@ final class HandleInertiaRequests extends Middleware
                 ? ['name' => $context->tenant()->name, 'logo_url' => $context->tenant()->logoUrl()]
                 : null,
             // The top bar's today ticker (current branch, 60 s cache); null without dashboard.view.
-            'today' => fn (): ?array => $this->today($request, $context),
+            // Named todayTicker so it never collides with a page's own `today` date prop.
+            'todayTicker' => fn (): ?array => $this->today($request, $context),
             'preferences' => fn (): array => $this->preferences($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            // Platform admin signed in as a tenant Owner: the shell shows a banner with Exit (null otherwise).
+            'impersonation' => fn (): ?array => $this->impersonation($request, $context),
         ];
     }
 
@@ -69,11 +73,31 @@ final class HandleInertiaRequests extends Middleware
     private function permissions(Request $request, TenantContext $context): array
     {
         $user = $request->user();
+        // Platform admins hold no tenant permissions; `platform.admin` is the gate name the console nav checks.
+        if ($user instanceof User && $user->is_platform_admin && $user->tenant_id === null) {
+            return ['platform.admin'];
+        }
         if (! $user instanceof User || ! $context->hasTenant() || $user->tenant_id !== $context->tenantId()) {
             return [];
         }
 
         return array_values($user->getAllPermissions()->map(static fn ($permission): string => (string) $permission->name)->values()->all());
+    }
+
+    /** @return array{user: string, tenant: string|null, expires_at: string|null}|null */
+    private function impersonation(Request $request, TenantContext $context): ?array
+    {
+        $user = $request->user();
+        $impersonation = app(Impersonation::class);
+        if (! $user instanceof User || ! $request->hasSession() || ! $impersonation->isActive()) {
+            return null;
+        }
+
+        return [
+            'user' => $user->name,
+            'tenant' => $context->hasTenant() ? $context->tenant()->name : $user->tenant?->name,
+            'expires_at' => $impersonation->expiresAt()?->toIso8601String(),
+        ];
     }
 
     /** @return array{total_paisa: int, sales: int}|null */

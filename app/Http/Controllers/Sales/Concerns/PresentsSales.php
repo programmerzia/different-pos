@@ -12,11 +12,11 @@ use App\Models\PaymentMethod;
 use App\Models\Sale;
 use App\Models\User;
 use App\Support\Customers\CustomerNumber;
+use App\Support\Dates\Period;
 use App\Support\Quantity\Quantity;
 use App\Support\Receipts\ReceiptRenderer;
 use App\Support\Sales\BusinessDay;
 use App\Support\Tenancy\TenantContext;
-use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -63,29 +63,22 @@ trait PresentsSales
     }
 
     /**
-     * Applies filter[from] / filter[to] (tenant-local YYYY-MM-DD) to a timestamp column.
+     * Applies filter[from] / filter[to] (tenant-local YYYY-MM-DD) to a timestamp column. A named
+     * filter[period] (Period::keys(): today, week = Saturday to today, month, ...) wins over from/to.
      *
      * @template TModel of \Illuminate\Database\Eloquent\Model
      *
      * @param  Builder<TModel>  $query
      * @return Builder<TModel>
      */
-    protected function dateRange(Builder $query, string $column, ?string $from, ?string $to): Builder
+    protected function dateRange(Builder $query, string $column, ?string $from, ?string $to, ?string $period = null): Builder
     {
-        $tz = $this->timezone();
-        foreach (['>=' => $from, '<' => $to] as $operator => $value) {
-            if ($value === null || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
-                continue;
-            }
-            $day = CarbonImmutable::createFromFormat('Y-m-d', $value, $tz);
-            if (! $day instanceof CarbonImmutable) {
-                continue;
-            }
-            $edge = $operator === '<' ? $day->startOfDay()->addDay() : $day->startOfDay();
-            $query->where($column, $operator, $edge->utc());
+        $named = Period::range($period, $this->timezone());
+        if ($named !== null) {
+            [$from, $to] = [$named['from'], $named['to']];
         }
 
-        return $query;
+        return BusinessDay::whereLocalDates($query, $column, $from, $to, $this->timezone());
     }
 
     /** True when VoidSale would accept the sale (same business day, completed, no returns, not an exchange replacement). */

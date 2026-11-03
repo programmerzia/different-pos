@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Legacy\Steps;
 
+use App\Actions\Settings\EnsureSystemPaymentMethods;
 use App\Legacy\ImportContext;
 use App\Legacy\Transform\Phone;
 use App\Legacy\Transform\Text;
@@ -14,12 +15,12 @@ use App\Support\Tenancy\TenantContext;
 use RuntimeException;
 use stdClass;
 
-/** Step 1: legacy stores -> the tenant (found or created by slug) + one branch and register R1 per store. */
+/** Step 1: legacy stores -> the tenant (found or created by slug, with its system tenders) + one branch and register R1 per store. */
 final readonly class StoresAndBranches implements Step
 {
     private const string TABLE = 'store_storelist';
 
-    public function __construct(private TenantContext $tenancy) {}
+    public function __construct(private TenantContext $tenancy, private EnsureSystemPaymentMethods $systemMethods) {}
 
     public function name(): string
     {
@@ -58,6 +59,8 @@ final readonly class StoresAndBranches implements Step
                 $context->skipped();
             }
             $context->setTenant($tenant);
+            // Store credit and exchange credit tenders: returns and exchanges need them.
+            $context->created($this->systemMethods->handle($tenant));
 
             foreach ($context->stores() as $storeId) {
                 $store = $stores->get($storeId) ?? throw new RuntimeException("Legacy store {$storeId} does not exist.");

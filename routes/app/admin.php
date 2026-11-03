@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TaxRateController;
 use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Backup\BackupController;
 use Illuminate\Support\Facades\Route;
 
 /* Business administration under /app/settings (02_AppFlow §2 rows 100-106). Loaded inside the branch-selected /app group. */
@@ -59,4 +60,9 @@ Route::prefix('settings')->group(function (): void {
     });
 
     Route::get('audit', [AuditController::class, 'index'])->middleware('can:audit.view')->name('settings.audit');
+
+    // Installation backup: history for backup.view, run + download for backup.run (Owner only by default).
+    Route::get('backups', [BackupController::class, 'index'])->name('settings.backups');
+    Route::post('backups', [BackupController::class, 'store'])->middleware('throttle:6,1')->name('settings.backups.run');
+    Route::get('backups/{backup}/download', [BackupController::class, 'download'])->whereNumber('backup')->name('settings.backups.download');
 });

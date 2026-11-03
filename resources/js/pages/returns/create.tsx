@@ -11,13 +11,19 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { navigateTo } from '@/command/navigate';
 import { timesQty, type Paisa } from '@/engine/money';
 import { useDigits } from '@/hooks/use-digits';
 import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useT } from '@/i18n';
 import { apiRequest } from '@/lib/api';
+import {
+    giveBackValue,
+    parseGiveBack,
+    settlementSummary,
+    type Settlement,
+} from '@/lib/exchange-settlement';
+import { cn } from '@/lib/utils';
 import {
     returnValue,
     salesUrl,
@@ -80,7 +86,6 @@ type CartLine = {
     qty: number;
 };
 type ProductHit = { id: number; label: string; sub: string; price: number };
-type Settlement = 'refund' | 'credit' | 'exchange';
 
 export default function ReturnCreate(props: Props) {
     const { t } = useT();
@@ -312,6 +317,12 @@ function ReturnForm({
     );
     const difference = cartTotal - value;
     const exchanging = settlement === 'exchange';
+    const summary = settlementSummary(settlement, value, cartTotal);
+    const settlements: { id: Settlement; disabled: boolean }[] = [
+        { id: 'refund', disabled: false },
+        { id: 'credit', disabled: walkIn },
+        ...(can.exchange ? [{ id: 'exchange' as const, disabled: false }] : []),
+    ];
     const tender = tenderAmount ?? Math.max(0, difference);
     const blocked =
         sale.window.expired ||
@@ -612,38 +623,34 @@ function ReturnForm({
                     <h2 id="settle-heading" className="font-semibold">
                         {t('returns.settlement')}
                     </h2>
-                    <ToggleGroup
-                        type="single"
-                        variant="outline"
-                        value={settlement}
-                        onValueChange={(v) =>
-                            v && setSettlement(v as Settlement)
-                        }
-                        aria-label={t('returns.settlement')}
-                        className="flex-wrap"
+                    <div
+                        role="radiogroup"
+                        aria-labelledby="settle-heading"
+                        className="grid gap-2 sm:grid-cols-3"
                     >
-                        <ToggleGroupItem
-                            value="refund"
-                            className="min-h-11 md:min-h-9"
-                        >
-                            {t('returns.mode_refund')}
-                        </ToggleGroupItem>
-                        <ToggleGroupItem
-                            value="credit"
-                            className="min-h-11 md:min-h-9"
-                            disabled={walkIn}
-                        >
-                            {t('returns.mode_credit')}
-                        </ToggleGroupItem>
-                        {can.exchange ? (
-                            <ToggleGroupItem
-                                value="exchange"
-                                className="min-h-11 md:min-h-9"
+                        {settlements.map((m) => (
+                            <label
+                                key={m.id}
+                                className={cn(
+                                    'flex min-h-11 cursor-pointer items-center justify-center rounded-md border px-3 text-sm font-semibold transition-colors has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50 md:min-h-9',
+                                    settlement === m.id
+                                        ? 'border-primary bg-primary-soft text-primary'
+                                        : 'bg-surface hover:bg-surface-sunken',
+                                )}
                             >
-                                {t('returns.mode_exchange')}
-                            </ToggleGroupItem>
-                        ) : null}
-                    </ToggleGroup>
+                                <input
+                                    type="radio"
+                                    name="settlement"
+                                    value={m.id}
+                                    className="sr-only"
+                                    checked={settlement === m.id}
+                                    disabled={m.disabled}
+                                    onChange={() => setSettlement(m.id)}
+                                />
+                                {t(`returns.mode_${m.id}`)}
+                            </label>
+                        ))}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                         {sale.due > 0
                             ? t('returns.due_first', {
@@ -651,8 +658,7 @@ function ReturnForm({
                               })
                             : t(`returns.hint_${settlement}`)}
                     </p>
-                    {settlement === 'refund' ||
-                    (exchanging && difference < 0 && surplus === 'refund') ? (
+                    {settlement === 'refund' ? (
                         <div className="grid gap-1.5">
                             <Label htmlFor="refund-method">
                                 {t('returns.refund_method')}
@@ -724,16 +730,21 @@ function ReturnForm({
                                 <dd className="num text-right">
                                     {digits.money(cartTotal)}
                                 </dd>
-                                <dt className="border-t pt-1 font-bold">
-                                    {difference >= 0
-                                        ? t('returns.customer_pays')
-                                        : t('returns.customer_gets')}
-                                </dt>
-                                <dd className="num border-t pt-1 text-right font-bold text-primary">
-                                    {digits.money(Math.abs(difference))}
-                                </dd>
                             </>
                         ) : null}
+                        <dt
+                            className="border-t pt-1 font-bold"
+                            data-test="settlement-summary"
+                        >
+                            {summary.kind === 'pays'
+                                ? t('returns.customer_pays')
+                                : summary.kind === 'gets'
+                                  ? t('returns.customer_gets')
+                                  : t('returns.even_exchange')}
+                        </dt>
+                        <dd className="num border-t pt-1 text-right font-bold text-primary">
+                            {digits.money(summary.amount)}
+                        </dd>
                     </dl>
                     <p className="text-xs text-muted-foreground">
                         {t('returns.estimate_hint')}
@@ -778,29 +789,46 @@ function ReturnForm({
                         </div>
                     ) : null}
                     {exchanging && difference < 0 ? (
-                        <ToggleGroup
-                            type="single"
-                            variant="outline"
-                            value={surplus}
-                            onValueChange={(v) =>
-                                v && setSurplus(v as 'refund' | 'credit')
-                            }
-                            aria-label={t('returns.surplus')}
-                        >
-                            <ToggleGroupItem
-                                value="refund"
-                                className="min-h-11 md:min-h-9"
+                        <div className="grid gap-1.5 border-t pt-2">
+                            <Label htmlFor="give-back">
+                                {t('returns.give_back_as')}
+                            </Label>
+                            <NativeSelect
+                                id="give-back"
+                                value={giveBackValue(
+                                    surplus === 'credit'
+                                        ? { mode: 'credit' }
+                                        : refundMethod === null
+                                          ? null
+                                          : {
+                                                mode: 'refund',
+                                                methodId: refundMethod,
+                                            },
+                                )}
+                                onChange={(e) => {
+                                    const next = parseGiveBack(e.target.value);
+                                    if (next?.mode === 'credit') {
+                                        setSurplus('credit');
+                                    } else if (next) {
+                                        setSurplus('refund');
+                                        setRefundMethod(next.methodId);
+                                    }
+                                }}
                             >
-                                {t('returns.mode_refund')}
-                            </ToggleGroupItem>
-                            <ToggleGroupItem
-                                value="credit"
-                                className="min-h-11 md:min-h-9"
-                                disabled={walkIn}
-                            >
-                                {t('returns.mode_credit')}
-                            </ToggleGroupItem>
-                        </ToggleGroup>
+                                {methods.map((m) => (
+                                    <option key={m.id} value={`m${m.id}`}>
+                                        {t('returns.give_back_refund', {
+                                            method: m.name,
+                                        })}
+                                    </option>
+                                ))}
+                                {walkIn ? null : (
+                                    <option value="credit">
+                                        {t('returns.mode_credit')}
+                                    </option>
+                                )}
+                            </NativeSelect>
+                        </div>
                     ) : null}
                     {errorList.length > 0 ? (
                         <div role="alert" className="grid gap-1">

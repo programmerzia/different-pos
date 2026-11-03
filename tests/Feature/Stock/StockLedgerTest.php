@@ -203,14 +203,53 @@ it('reverses a backorder allocation onto branch stock only', function (): void {
         ->and(StockMovement::query()->where('is_backorder', true)->count())->toBe(2);
 });
 
-it('refuses to put more back on a batch than it received', function (): void {
-    $batch = ($this->receive)(2, 10000);
+it('puts only the headroom back on a batch and the rest into a new return batch', function (): void {
+    $batch = ($this->receive)(2, 10000, 5);
     $allocations = ($this->issue)(1);
-    $allocations[0]['qty'] = Quantity::ofUnits(2);
+    $allocations[0]['qty'] = Quantity::ofUnits(2); // a legacy batch that sold more than it received
 
-    expect(fn () => Transaction::run(fn () => $this->ledger->reverse($this->product, $this->branch, $allocations, StockMovementType::SaleReturn, $this->ref)))
-        ->toThrow(LogicException::class, 'cannot hold more than it received');
-    expect(($this->remaining)($batch))->toBe('1.000');
+    Transaction::run(fn () => $this->ledger->reverse($this->product, $this->branch, $allocations, StockMovementType::SaleReturn, ['type' => 'sale_returns', 'id' => 42]));
+
+    $fresh = StockBatch::query()->whereKeyNot($batch->id)->sole();
+    expect(($this->remaining)($batch))->toBe('2.000')
+        ->and($fresh->source_type)->toBe(StockSourceType::Return)
+        ->and($fresh->source_id)->toBe(42)
+        ->and($fresh->unit_cost->paisa)->toBe(10000)
+        ->and($fresh->qty_received->toDecimalString())->toBe('1.000')
+        ->and($fresh->qty_remaining->toDecimalString())->toBe('1.000')
+        ->and(($this->onHand)())->toBe('3.000');
+
+    $returns = StockMovement::query()->where('type', StockMovementType::SaleReturn)->orderBy('id')->get();
+    expect($returns->map(fn (StockMovement $m): array => [$m->stock_batch_id, $m->qty->toDecimalString(), $m->unit_cost->paisa])->all())
+        ->toBe([[$batch->id, '1.000', 10000], [$fresh->id, '1.000', 10000]]);
+});
+
+it('creates a new return batch when the original batch has no headroom at all', function (): void {
+    $batch = ($this->receive)(2, 10000, 5);
+    $allocations = ($this->issue)(1);
+    // Simulate imported data: the batch is already full although a unit was sold from it.
+    DB::table('stock_batches')->where('id', $batch->id)->update(['qty_remaining' => '2.000']);
+
+    Transaction::run(fn () => $this->ledger->reverse($this->product, $this->branch, $allocations, StockMovementType::SaleReturn, $this->ref));
+
+    $fresh = StockBatch::query()->whereKeyNot($batch->id)->sole();
+    expect(($this->remaining)($batch))->toBe('2.000')
+        ->and($fresh->source_type)->toBe(StockSourceType::Return)
+        ->and($fresh->qty_remaining->toDecimalString())->toBe('1.000')
+        ->and(StockMovement::query()->where('type', StockMovementType::SaleReturn)->sole()->stock_batch_id)->toBe($fresh->id);
+});
+
+it('sells an overflow return batch only after the older batches (FIFO)', function (): void {
+    $old = ($this->receive)(1, 10000, 10);
+    $allocations = ($this->issue)(1);
+    DB::table('stock_batches')->where('id', $old->id)->update(['qty_remaining' => '1.000']);
+    Transaction::run(fn () => $this->ledger->reverse($this->product, $this->branch, $allocations, StockMovementType::SaleReturn, $this->ref));
+    $returned = StockBatch::query()->whereKeyNot($old->id)->sole();
+
+    expect(($this->summary)(($this->issue)(2)))->toBe([
+        ['batch' => $old->id, 'qty' => '1.000', 'cost' => 10000, 'backorder' => false],
+        ['batch' => $returned->id, 'qty' => '1.000', 'cost' => 10000, 'backorder' => false],
+    ]);
 });
 
 it('issues only from the chosen batch with manual batch selection', function (): void {

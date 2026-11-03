@@ -22,6 +22,8 @@ import {
 } from '@/components/ui/sheet';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
+import { DateTime, localStamp } from '@/components/sales/date-time';
+import { auditEventLabel } from '@/lib/labels';
 
 type Entry = {
     id: number;
@@ -32,6 +34,8 @@ type Entry = {
     ip: string | null;
     subject_type: string | null;
     subject_id: number | null;
+    /** "Role · Manager"; "Role #9" when the subject has no name any more. */
+    subject_label: string | null;
     properties: Record<string, unknown>;
     changes: Record<string, unknown>;
 };
@@ -44,8 +48,11 @@ type Props = {
     subjects: { value: string; label: string }[];
 };
 
-const stamp = (iso: string | null) =>
-    iso ? iso.slice(0, 19).replace('T', ' ') : '-';
+const stamp = (iso: string | null) => {
+    const { date, time } = localStamp(iso);
+
+    return date === '' ? '-' : `${date} ${time}`.trim();
+};
 
 export default function Audit({
     entries,
@@ -67,11 +74,7 @@ export default function Audit({
             sortKey: 'created_at',
             required: true,
             mobile: 'title',
-            cell: (r) => (
-                <span className="num font-mono text-muted-foreground">
-                    {digits.n(stamp(r.created_at))}
-                </span>
-            ),
+            cell: (r) => <DateTime value={r.created_at} />,
         },
         {
             id: 'user',
@@ -86,8 +89,11 @@ export default function Audit({
             id: 'event',
             headerKey: 'audit.event',
             cell: (r) => (
-                <span className="rounded-full border bg-surface-sunken px-2 py-0.5 font-mono text-[10px] font-bold">
-                    {r.event ?? r.description}
+                <span
+                    title={r.event ?? undefined}
+                    className="rounded-full border bg-surface-sunken px-2 py-0.5 text-[10px] font-bold"
+                >
+                    {r.event ? auditEventLabel(t, r.event) : r.description}
                 </span>
             ),
         },
@@ -108,9 +114,7 @@ export default function Audit({
             cell: (r) => (
                 <span className="flex items-center justify-between gap-2">
                     <span className="text-foreground">
-                        {r.subject_type
-                            ? `${r.subject_type} #${digits.n(r.subject_id ?? 0)}`
-                            : r.description}
+                        {r.subject_label ?? r.description}
                     </span>
                     <Button
                         type="button"
@@ -154,7 +158,7 @@ export default function Audit({
                             value: filters['event'] ?? '',
                             options: events.map((e) => ({
                                 value: e,
-                                label: e,
+                                label: auditEventLabel(t, e),
                             })),
                             onChange: (v) => table.setFilter('event', v),
                         },
@@ -238,7 +242,7 @@ export default function Audit({
                             <SheetTitle>{t('audit.details')}</SheetTitle>
                             <SheetDescription>
                                 {open
-                                    ? `${open.event ?? open.description} · ${digits.n(stamp(open.created_at))}`
+                                    ? `${open.event ? auditEventLabel(t, open.event) : open.description} · ${digits.n(stamp(open.created_at))}`
                                     : ''}
                             </SheetDescription>
                         </SheetHeader>
@@ -254,11 +258,7 @@ export default function Audit({
                                     <dt className="text-muted-foreground">
                                         {t('audit.subject')}
                                     </dt>
-                                    <dd>
-                                        {open.subject_type
-                                            ? `${open.subject_type} #${open.subject_id}`
-                                            : '-'}
-                                    </dd>
+                                    <dd>{open.subject_label ?? '-'}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-muted-foreground">

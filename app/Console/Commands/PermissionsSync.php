@@ -15,8 +15,9 @@ use Spatie\Permission\Models\Permission as PermissionModel;
 use Spatie\Permission\Models\Role;
 
 /**
- * Deploy hook: creates permission names added to Permission::ALL, grants each newly created one to every tenant's
- * Owner role (idempotent: a second run changes nothing). --reset-system-roles also re-applies the default permission
+ * Deploy hook: creates permission names added to Permission::ALL and grants every tenant's Owner role whatever
+ * of Permission::ALL it lacks (so a run that crashed between the two steps is repaired by the next one;
+ * idempotent: a second run changes nothing). --reset-system-roles also re-applies the default permission
  * sets of the five system roles (overwrites owner customisations of those roles).
  */
 final class PermissionsSync extends Command
@@ -32,7 +33,9 @@ final class PermissionsSync extends Command
 
         $seedPermissions->handle();
 
-        $context->withoutTenancy(function () use ($added, $seedRoles): void {
+        /** @var list<string> $granted */
+        $granted = [];
+        $context->withoutTenancy(function () use ($seedRoles, &$granted): void {
             foreach (Tenant::query()->get() as $tenant) {
                 if ($this->option('reset-system-roles')) {
                     $seedRoles->handle($tenant);
@@ -40,13 +43,22 @@ final class PermissionsSync extends Command
                     continue;
                 }
                 $owner = Role::query()->where('tenant_id', $tenant->id)->where('name', SystemRoles::OWNER)->first();
-                if ($owner !== null && $added !== []) {
-                    $owner->givePermissionTo($added);
+                if ($owner === null) {
+                    continue;
+                }
+                $missing = array_values(array_diff(Permission::ALL, $owner->permissions()->pluck('name')->all()));
+                if ($missing !== []) {
+                    $owner->givePermissionTo($missing);
+                    $granted = array_values(array_unique([...$granted, ...$missing]));
                 }
             }
         });
 
-        $this->info($added === [] ? 'Permissions already in sync.' : 'Added: '.implode(', ', $added));
+        $this->info(match (true) {
+            $added !== [] => 'Added: '.implode(', ', $added),
+            $granted !== [] => 'Granted to Owner: '.implode(', ', $granted),
+            default => 'Permissions already in sync.',
+        });
 
         return self::SUCCESS;
     }

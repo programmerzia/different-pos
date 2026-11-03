@@ -124,6 +124,28 @@ it('adds the last purchase, debtors per bucket, group and credit-use filters', f
         ->and($count(['credit' => 'over_limit']))->toBe(1);
 });
 
+it('uses the tenant default credit limit when the customer has none, in the filters and the payloads', function (): void {
+    $balance = $this->customer->refresh()->balance->paisa; // ৳1,900
+    Customer::query()->whereKey($this->customer->id)->update(['credit_limit' => null]);
+    $tenant = $this->world->tenant;
+    $user = $this->world->user('Cashier');
+    $count = fn (array $filter): int => count($this->actingAs($user)->get(route('dues.index', ['filter' => $filter]))->viewData('page')['props']['rows']);
+
+    // No own limit and no tenant default: never near or over a limit.
+    expect($count(['credit' => 'near_limit']))->toBe(0)->and($count(['credit' => 'over_limit']))->toBe(0);
+
+    $tenant->forceFill(['settings' => [...$tenant->settings, 'default_credit_limit' => $balance - 100]])->save();
+    $user->unsetRelation('tenant'); // the next requests resolve the saved tenant
+    expect($count(['credit' => 'over_limit']))->toBe(1)->and($count(['credit' => 'near_limit']))->toBe(1);
+    $this->actingAs($user)->get(route('dues.index'))->assertInertia(fn (Assert $page) => $page->where('rows.0.customer.credit_limit', $balance - 100));
+    $this->actingAs($user)->get(route('dues.show', $this->customer->uuid))->assertInertia(fn (Assert $page) => $page->where('customer.credit_limit', $balance - 100));
+
+    // The customer's own limit wins over the default.
+    Customer::query()->whereKey($this->customer->id)->update(['credit_limit' => $balance * 10]);
+    expect($count(['credit' => 'over_limit']))->toBe(0)->and($count(['credit' => 'near_limit']))->toBe(0);
+    $this->actingAs($user)->get(route('dues.index'))->assertInertia(fn (Assert $page) => $page->where('rows.0.customer.credit_limit', $balance * 10));
+});
+
 it('loads the collect dialog for one customer alone, never another tenant\'s', function (): void {
     $foreign = SalesUi::foreignSale();
     $foreignUuid = app(TenantContext::class)->withoutTenancy(fn () => Customer::query()->findOrFail($foreign->customer_id)->uuid);
@@ -141,4 +163,17 @@ it('loads the collect dialog for one customer alone, never another tenant\'s', f
         ->and($mine['collect']['customer']['name'])->toBe('Selim')
         ->and($mine['collect']['can']['collect'])->toBeTrue()
         ->and($partial($foreignUuid)['collect'])->toBeNull();
+});
+
+it('filters sales and dues by the Bangladesh week (Saturday start), not a rolling 7 days', function (): void {
+    // Today is Tuesday 3 Nov 2026: this week began on Saturday 31 Oct. 3 days ago = Saturday (in), 4 days ago = Friday (out).
+    $sat = SalesUi::age(SalesUi::sale($this->world, $this->shirt, $this->customer, 1, 0), 3);
+    $fri = SalesUi::age(SalesUi::sale($this->world, $this->shirt, $this->customer, 1, 0), 4);
+    $user = $this->world->user('Cashier');
+
+    $this->actingAs($user)->get(route('dues.index', ['filter' => ['period' => 'week']]))
+        ->assertInertia(fn (Assert $page) => $page->has('rows', 1)->where('rows.0.invoices', 1));
+
+    $ids = $this->get(route('sales.index', ['filter' => ['period' => 'week']]))->viewData('page')['props']['rows'];
+    expect(collect($ids)->pluck('id')->all())->toBe([$sat->id])->not->toContain($fri->id);
 });

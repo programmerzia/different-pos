@@ -1,4 +1,5 @@
 import type { KeyboardEvent, MouseEvent } from 'react';
+import { startOfWeek } from '@/lib/date-range';
 
 /** Mockup "Date:" presets (icons_and_helpers.py datePresets): All · Today · Yesterday · This week · This month · Custom range. */
 export const DATE_PRESETS = [
@@ -28,7 +29,8 @@ export function presetRange(
         case 'yesterday':
             return { from: iso(shift(-1)), to: iso(shift(-1)) };
         case 'week':
-            return { from: iso(shift(-6)), to: iso(day) };
+            // The Bangladesh week (Saturday to today), as in reports: never a rolling 7 days.
+            return { from: iso(startOfWeek(day)), to: iso(day) };
         case 'month':
             return {
                 from: iso(new Date(day.getFullYear(), day.getMonth(), 1)),

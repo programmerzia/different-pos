@@ -13,6 +13,21 @@ export function isoDate(date: Date): string {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+/**
+ * The Saturday on or before `day` (local calendar day): the Bangladesh week. Every "This week" (list
+ * toolbars and reports) starts here, as App\Support\Dates\Period::startOfWeek does on the server.
+ */
+export function startOfWeek(day: Date): Date {
+    // getDay(): 0 Sun … 6 Sat.
+    const sinceSaturday = (day.getDay() + 1) % 7;
+
+    return new Date(
+        day.getFullYear(),
+        day.getMonth(),
+        day.getDate() - sinceSaturday,
+    );
+}
+
 export function presetRange(
     preset: Exclude<RangePreset, 'custom'>,
     today: Date,

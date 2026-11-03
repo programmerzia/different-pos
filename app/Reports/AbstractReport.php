@@ -68,6 +68,19 @@ abstract class AbstractReport implements ReportContract
         return is_scalar($value) ? (string) $value : null;
     }
 
+    /** $part / $whole in basis points, rounded half-up (0 when the whole is 0). */
+    protected function bp(int $part, int $whole): int
+    {
+        if ($whole === 0) {
+            return 0;
+        }
+        $sign = ($part < 0) === ($whole < 0) ? 1 : -1;
+        $scaled = abs($part) * 10_000;
+        $whole = abs($whole);
+
+        return $sign * intdiv(2 * $scaled + $whole, 2 * $whole);
+    }
+
     /** Whole-number average, rounded half-up. */
     protected function average(int $sum, int $count): int
     {
@@ -83,7 +96,7 @@ abstract class AbstractReport implements ReportContract
     {
         $totals = [];
         foreach ($columns as $column) {
-            if ($column->type->isNumeric() && $column->key !== 'rank') {
+            if ($column->type->isSummable() && $column->key !== 'rank') {
                 $totals[$column->key] = array_sum(array_map(static fn (array $r): int => (int) ($r[$column->key] ?? 0), $rows));
             }
         }

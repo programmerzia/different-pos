@@ -1,8 +1,9 @@
 import { Head, Link } from '@inertiajs/react';
-import { PageHeader } from '@/components/page-header';
-import { Check, Trash2 } from 'lucide-react';
+import { Page, PageHeader } from '@/components/page-header';
+import { ArrowLeft, CheckCircle2, Package, PlusCircle, X } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { FormField } from '@/components/form-field';
+import { Kbd } from '@/components/kbd';
 import { MoneyInput } from '@/components/money-input';
 import { NativeSelect } from '@/components/native-select';
 import type { PaymentMethodOption } from '@/components/pay-dialog';
@@ -10,6 +11,10 @@ import { QtyStepper } from '@/components/qty-stepper';
 import { ScanField, type ScanProduct } from '@/components/scan-field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+    VendorPicker,
+    type VendorOption,
+} from '@/components/vendors/vendor-picker';
 import { useDigits } from '@/hooks/use-digits';
 import { useFormSubmit } from '@/hooks/use-form-submit';
 import { useHotkeys } from '@/hotkeys/use-hotkeys';
@@ -20,14 +25,20 @@ import {
     purchaseTotals,
     type Line,
 } from '@/lib/purchase-lines';
+import { cn } from '@/lib/utils';
 
+const TH = 'px-3 py-1.5 text-[10px] font-semibold text-muted-foreground';
+const SECTION_TITLE =
+    'text-[11px] font-bold tracking-wider text-foreground uppercase';
+
+/** The mockup "New Purchase & Goods Received Note (GRN)" form as a page: vendor bill header, scan-to-add lines, landed costs, settlement. */
 export default function PurchaseCreate({
     vendors,
     paymentMethods,
     canPay,
     today,
 }: {
-    vendors: { id: number; name: string }[];
+    vendors: VendorOption[];
     paymentMethods: PaymentMethodOption[];
     canPay: boolean;
     today: string;
@@ -48,6 +59,8 @@ export default function PurchaseCreate({
     const [date, setDate] = useState(today);
     const [note, setNote] = useState('');
     const [lines, setLines] = useState<Line[]>([]);
+    /** Retail price per product (the mockup's "Retail MRP" column and margin chip). */
+    const [retail, setRetail] = useState<Record<number, number>>({});
     const [discount, setDiscount] = useState<number | null>(null);
     const [shipping, setShipping] = useState<number | null>(null);
     const [paid, setPaid] = useState<number | null>(null);
@@ -59,8 +72,11 @@ export default function PurchaseCreate({
         () => purchaseTotals(lines, discount ?? 0, shipping ?? 0),
         [lines, discount, shipping],
     );
+    const pieces = lines.reduce((sum, l) => sum + l.qty, 0);
+    const balance = Math.max(totals.total - (paid ?? 0), 0);
 
-    const onPick = (p: ScanProduct) =>
+    const onPick = (p: ScanProduct) => {
+        setRetail((prev) => ({ ...prev, [p.id]: p.sale_price }));
         setLines((prev) =>
             addLine(prev, {
                 product_id: p.id,
@@ -71,11 +87,13 @@ export default function PurchaseCreate({
                 unit_cost: p.cost_price,
             }),
         );
+    };
     const setLine = (index: number, patch: Partial<Line>) =>
         setLines((prev) =>
             prev.map((l, i) => (i === index ? { ...l, ...patch } : l)),
         );
 
+    const ready = !processing && lines.length > 0 && vendorId !== '';
     const receive = () =>
         submit('post', '/app/purchases', {
             vendor_id: vendorId === '' ? null : Number(vendorId),
@@ -109,7 +127,7 @@ export default function PurchaseCreate({
             allowInInput: true,
             handler: (e) => {
                 e.preventDefault();
-                if (!processing && lines.length > 0) receive();
+                if (ready) receive();
             },
         },
         {
@@ -128,306 +146,478 @@ export default function PurchaseCreate({
     const lineError = Object.entries(errors).find(([k]) =>
         k.startsWith('items'),
     )?.[1];
+    const marginPct = (cost: number, price: number) =>
+        Math.round(((price - cost) / Math.max(1, cost)) * 100);
 
     return (
         <>
             <Head title={t('purchases.new')} />
-            <form
-                className="flex max-w-6xl flex-col gap-6 p-page"
-                noValidate
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    receive();
-                }}
-            >
-                <PageHeader title={t('purchases.new')} />
-                <div className="grid gap-4 lg:grid-cols-4">
-                    <FormField
-                        label={t('purchases.vendor')}
-                        error={err('vendor_id')}
+            <Page className="max-w-6xl">
+                <div className="flex items-center gap-3">
+                    <Button
+                        asChild
+                        variant="outline"
+                        size="icon"
+                        className="size-11 md:size-9"
                     >
-                        <NativeSelect
-                            value={vendorId}
-                            onChange={(e) => setVendorId(e.target.value)}
+                        <Link
+                            href="/app/purchases"
+                            aria-label={t('purchases.back')}
                         >
-                            <option value="">{t('common.choose')}</option>
-                            {vendors.map((v) => (
-                                <option key={v.id} value={v.id}>
-                                    {v.name}
-                                </option>
-                            ))}
-                        </NativeSelect>
-                    </FormField>
-                    <FormField
-                        label={t('purchases.vendor_ref')}
-                        error={err('vendor_ref')}
-                    >
-                        <Input
-                            className="min-h-11"
-                            value={vendorRef}
-                            onChange={(e) => setVendorRef(e.target.value)}
-                        />
-                    </FormField>
-                    <FormField
-                        label={t('purchases.date')}
-                        error={err('purchased_at')}
-                    >
-                        <Input
-                            className="min-h-11"
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                        />
-                    </FormField>
-                    <FormField label={t('purchases.note')} error={err('note')}>
-                        <Input
-                            className="min-h-11"
-                            value={note}
-                            onChange={(e) => setNote(e.target.value)}
-                        />
-                    </FormField>
+                            <ArrowLeft aria-hidden="true" />
+                        </Link>
+                    </Button>
+                    <PageHeader
+                        className="flex-1"
+                        title={
+                            <span className="inline-flex items-center gap-2">
+                                <Package
+                                    className="size-5 text-primary"
+                                    aria-hidden="true"
+                                />
+                                {t('purchases.new_title')}
+                            </span>
+                        }
+                        subtitle={t('purchases.new_subtitle')}
+                    />
                 </div>
 
-                <section aria-labelledby="pl-title" className="grid gap-3">
-                    <h2
-                        id="pl-title"
-                        className="text-xs font-bold tracking-wider uppercase"
+                <form
+                    className="flex flex-col gap-3 text-xs"
+                    noValidate
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        if (ready) receive();
+                    }}
+                >
+                    {/* Vendor bill header */}
+                    <div className="grid grid-cols-1 gap-3 rounded-xl border bg-surface-sunken p-3 sm:grid-cols-4">
+                        <FormField
+                            label={t('purchases.vendor_required')}
+                            error={err('vendor_id')}
+                        >
+                            <VendorPicker
+                                vendors={vendors}
+                                value={vendorId}
+                                onChange={setVendorId}
+                            />
+                        </FormField>
+                        <FormField
+                            label={t('purchases.bill_no')}
+                            error={err('vendor_ref')}
+                        >
+                            <Input
+                                className="num bg-surface font-semibold"
+                                value={vendorRef}
+                                placeholder={t('purchases.bill_no_ph')}
+                                onChange={(e) => setVendorRef(e.target.value)}
+                            />
+                        </FormField>
+                        <FormField
+                            label={t('purchases.date')}
+                            error={err('purchased_at')}
+                        >
+                            <Input
+                                className="num bg-surface"
+                                type="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                            />
+                        </FormField>
+                        <FormField
+                            label={t('purchases.note')}
+                            error={err('note')}
+                        >
+                            <Input
+                                className="bg-surface"
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                            />
+                        </FormField>
+                    </div>
+
+                    {/* Line adder */}
+                    <section
+                        aria-labelledby="pa-title"
+                        className="space-y-2 rounded-xl border-2 border-dashed bg-surface p-3.5"
                     >
-                        {t('purchases.items')}
-                    </h2>
-                    <ScanField
-                        ref={scan}
-                        lookupUrl="/app/purchases/lookup"
-                        onPick={onPick}
-                    />
-                    {lineError ? (
-                        <p role="alert" className="text-sm text-destructive">
-                            {lineError}
-                        </p>
-                    ) : null}
-                    {lines.length === 0 ? (
-                        <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-                            {t('purchases.scan_hint')}
-                        </p>
-                    ) : (
-                        <div className="overflow-x-auto rounded-xl border bg-surface shadow-xs">
-                            <table className="w-full text-sm">
-                                <caption className="sr-only">
-                                    {t('purchases.items')}
-                                </caption>
-                                <thead className="bg-surface-sunken text-left text-[11px] font-semibold text-muted-foreground">
-                                    <tr>
-                                        <th scope="col" className="px-3 py-2">
-                                            {t('products.product')}
-                                        </th>
-                                        <th scope="col" className="px-3 py-2">
-                                            {t('purchases.qty')}
-                                        </th>
-                                        <th
-                                            scope="col"
-                                            className="px-3 py-2 text-right"
-                                        >
-                                            {t('purchases.unit_cost')}
-                                        </th>
-                                        <th
-                                            scope="col"
-                                            className="px-3 py-2 text-right"
-                                        >
-                                            {t('purchases.line_discount')}
-                                        </th>
-                                        <th
-                                            scope="col"
-                                            className="px-3 py-2 text-right"
-                                        >
-                                            {t('purchases.line_total')}
-                                        </th>
-                                        <th scope="col" className="px-3 py-2">
-                                            <span className="sr-only">
-                                                {t('common.actions')}
-                                            </span>
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {lines.map((l, i) => (
-                                        <tr
-                                            key={l.product_id}
-                                            className="border-t"
-                                        >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <h2
+                                id="pa-title"
+                                className="flex items-center gap-1.5 text-xs font-bold text-foreground"
+                            >
+                                <PlusCircle
+                                    className="size-3.5 text-primary"
+                                    aria-hidden="true"
+                                />
+                                {t('purchases.add_items')}
+                            </h2>
+                            <span className="text-[10px] text-muted-foreground">
+                                {t('purchases.add_items_hint')}{' '}
+                                <Kbd keys="f2" className="ml-1" />
+                            </span>
+                        </div>
+                        <ScanField
+                            ref={scan}
+                            lookupUrl="/app/purchases/lookup"
+                            onPick={onPick}
+                        />
+                        {lineError ? (
+                            <p role="alert" className="text-destructive">
+                                {lineError}
+                            </p>
+                        ) : null}
+                    </section>
+
+                    {/* GRN items */}
+                    <section
+                        aria-labelledby="pl-title"
+                        className="overflow-hidden rounded-xl border bg-surface"
+                    >
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-surface-sunken p-2.5 text-xs font-bold">
+                            <h2 id="pl-title">
+                                {t('purchases.grn_items', {
+                                    items: digits.n(lines.length),
+                                    qty: digits.qty(pieces),
+                                })}
+                            </h2>
+                            <span className="text-[10px] font-normal text-muted-foreground">
+                                {t('purchases.grn_items_hint')}
+                            </span>
+                        </div>
+                        {lines.length === 0 ? (
+                            <p className="p-6 text-center text-muted-foreground">
+                                {t('purchases.scan_hint')}
+                            </p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-left text-xs">
+                                    <caption className="sr-only">
+                                        {t('purchases.items')}
+                                    </caption>
+                                    <thead className="border-b bg-surface-sunken">
+                                        <tr>
+                                            <th scope="col" className={TH}>
+                                                {t(
+                                                    'purchases.col_product_desc',
+                                                )}
+                                            </th>
+                                            <th scope="col" className={TH}>
+                                                {t('purchases.qty')}
+                                            </th>
                                             <th
-                                                scope="row"
-                                                className="px-3 py-2 text-left font-medium"
+                                                scope="col"
+                                                className={cn(TH, 'text-right')}
                                             >
-                                                {l.name}
-                                                <span className="num block text-xs font-normal text-muted-foreground">
-                                                    {l.sku}
+                                                {t('purchases.unit_cost')}
+                                            </th>
+                                            <th
+                                                scope="col"
+                                                className={cn(TH, 'text-right')}
+                                            >
+                                                {t('purchases.line_discount')}
+                                            </th>
+                                            <th
+                                                scope="col"
+                                                className={cn(TH, 'text-right')}
+                                            >
+                                                {t('purchases.line_total')}
+                                            </th>
+                                            <th
+                                                scope="col"
+                                                className={cn(TH, 'text-right')}
+                                            >
+                                                {t('purchases.col_retail')}
+                                            </th>
+                                            <th
+                                                scope="col"
+                                                className={cn(
+                                                    TH,
+                                                    'text-center',
+                                                )}
+                                            >
+                                                <span className="sr-only">
+                                                    {t('common.actions')}
                                                 </span>
                                             </th>
-                                            <td className="px-3 py-2">
-                                                <QtyStepper
-                                                    value={l.qty}
-                                                    min={1}
-                                                    onChange={(v) =>
-                                                        setLine(i, { qty: v })
-                                                    }
-                                                    aria-label={`${t('purchases.qty')} ${l.name}`}
-                                                />
-                                            </td>
-                                            <td className="px-3 py-2">
-                                                <MoneyInput
-                                                    value={l.unit_cost}
-                                                    onChange={(v) =>
-                                                        setLine(i, {
-                                                            unit_cost: v ?? 0,
-                                                        })
-                                                    }
-                                                />
-                                            </td>
-                                            <td className="px-3 py-2">
-                                                <MoneyInput
-                                                    value={l.discount}
-                                                    onChange={(v) =>
-                                                        setLine(i, {
-                                                            discount: v ?? 0,
-                                                        })
-                                                    }
-                                                />
-                                            </td>
-                                            <td className="num px-3 py-2 text-right">
-                                                {digits.money(lineNet(l))}
-                                            </td>
-                                            <td className="px-3 py-2 text-right">
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="size-11"
-                                                    aria-label={`${t('purchases.remove_line')} ${l.name}`}
-                                                    onClick={() =>
-                                                        setLines((prev) =>
-                                                            prev.filter(
-                                                                (_, idx) =>
-                                                                    idx !== i,
-                                                            ),
-                                                        )
-                                                    }
-                                                >
-                                                    <Trash2 aria-hidden="true" />
-                                                </Button>
-                                            </td>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </section>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {lines.map((l, i) => {
+                                            const mrp = retail[l.product_id];
 
-                <div className="grid gap-6 lg:grid-cols-2">
-                    <div className="grid content-start gap-3">
-                        {canPay ? (
-                            <>
-                                <FormField
-                                    label={t('purchases.pay_now')}
-                                    error={err('payment.amount')}
-                                    hint={t('purchases.pay_now_hint')}
-                                >
-                                    <MoneyInput
-                                        value={paid}
-                                        onChange={setPaid}
-                                    />
-                                </FormField>
-                                {paid !== null && paid > 0 ? (
-                                    <FormField
-                                        label={t('vendors.pay_method')}
-                                        error={err('payment.payment_method_id')}
-                                    >
-                                        <NativeSelect
-                                            value={methodId}
-                                            onChange={(e) =>
-                                                setMethodId(e.target.value)
-                                            }
-                                        >
-                                            {paymentMethods.map((m) => (
-                                                <option key={m.id} value={m.id}>
-                                                    {m.name}
-                                                </option>
-                                            ))}
-                                        </NativeSelect>
-                                    </FormField>
-                                ) : null}
-                            </>
-                        ) : null}
-                    </div>
-                    <dl className="grid content-start gap-2 rounded-xl border bg-surface p-4 shadow-xs">
-                        <div className="flex justify-between">
-                            <dt>{t('purchases.subtotal')}</dt>
-                            <dd className="num">
-                                {digits.money(totals.subtotal)}
-                            </dd>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                            <dt>
-                                <label htmlFor="order-discount">
-                                    {t('purchases.order_discount')}
-                                </label>
-                            </dt>
-                            <dd className="w-44">
+                                            return (
+                                                <tr
+                                                    key={l.product_id}
+                                                    className="hover:bg-surface-sunken"
+                                                >
+                                                    <th
+                                                        scope="row"
+                                                        className="px-3 py-1.5 text-left font-semibold text-foreground"
+                                                    >
+                                                        <div>{l.name}</div>
+                                                        <div className="num text-[10px] font-normal text-muted-foreground">
+                                                            {l.sku}
+                                                        </div>
+                                                    </th>
+                                                    <td className="px-3 py-1.5">
+                                                        <QtyStepper
+                                                            value={l.qty}
+                                                            min={1}
+                                                            onChange={(v) =>
+                                                                setLine(i, {
+                                                                    qty: v,
+                                                                })
+                                                            }
+                                                            aria-label={`${t('purchases.qty')} ${l.name}`}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-1.5">
+                                                        <MoneyInput
+                                                            className="w-32 font-bold"
+                                                            value={l.unit_cost}
+                                                            onChange={(v) =>
+                                                                setLine(i, {
+                                                                    unit_cost:
+                                                                        v ?? 0,
+                                                                })
+                                                            }
+                                                            aria-label={`${t('purchases.unit_cost')} ${l.name}`}
+                                                        />
+                                                    </td>
+                                                    <td className="px-3 py-1.5">
+                                                        <MoneyInput
+                                                            className="w-28"
+                                                            value={l.discount}
+                                                            onChange={(v) =>
+                                                                setLine(i, {
+                                                                    discount:
+                                                                        v ?? 0,
+                                                                })
+                                                            }
+                                                            aria-label={`${t('purchases.line_discount')} ${l.name}`}
+                                                        />
+                                                    </td>
+                                                    <td className="num px-3 py-1.5 text-right font-bold text-foreground">
+                                                        {digits.money(
+                                                            lineNet(l),
+                                                        )}
+                                                    </td>
+                                                    <td className="num px-3 py-1.5 text-right text-success">
+                                                        {mrp === undefined
+                                                            ? '—'
+                                                            : digits.money(mrp)}
+                                                        {mrp !== undefined &&
+                                                        l.unit_cost > 0 ? (
+                                                            <span className="num ml-1.5 rounded-sm bg-success-soft px-1.5 py-0.5 text-[10px] font-bold">
+                                                                {t(
+                                                                    'purchases.margin',
+                                                                    {
+                                                                        pct: digits.n(
+                                                                            marginPct(
+                                                                                l.unit_cost,
+                                                                                mrp,
+                                                                            ),
+                                                                        ),
+                                                                    },
+                                                                )}
+                                                            </span>
+                                                        ) : null}
+                                                    </td>
+                                                    <td className="px-2 py-1.5 text-center">
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="size-11 text-destructive hover:bg-danger-soft hover:text-destructive md:size-8"
+                                                            aria-label={`${t('purchases.remove_line')} ${l.name}`}
+                                                            onClick={() =>
+                                                                setLines(
+                                                                    (prev) =>
+                                                                        prev.filter(
+                                                                            (
+                                                                                _,
+                                                                                idx,
+                                                                            ) =>
+                                                                                idx !==
+                                                                                i,
+                                                                        ),
+                                                                )
+                                                            }
+                                                        >
+                                                            <X aria-hidden="true" />
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Landed costs, valuation, settlement */}
+                    <div className="grid grid-cols-1 gap-3 rounded-xl border bg-surface-sunken p-3 sm:grid-cols-3">
+                        <div className="space-y-2">
+                            <h2 className={SECTION_TITLE}>
+                                {t('purchases.landed_costs')}
+                            </h2>
+                            <FormField
+                                label={t('purchases.freight')}
+                                error={err('shipping')}
+                            >
                                 <MoneyInput
-                                    id="order-discount"
-                                    value={discount}
-                                    onChange={setDiscount}
-                                />
-                            </dd>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                            <dt>
-                                <label htmlFor="shipping">
-                                    {t('purchases.shipping')}
-                                </label>
-                            </dt>
-                            <dd className="w-44">
-                                <MoneyInput
-                                    id="shipping"
+                                    className="bg-surface font-bold"
                                     value={shipping}
                                     onChange={setShipping}
                                 />
-                            </dd>
+                            </FormField>
+                            <FormField
+                                label={t('purchases.order_discount')}
+                                error={err('discount')}
+                            >
+                                <MoneyInput
+                                    className="bg-surface font-bold"
+                                    value={discount}
+                                    onChange={setDiscount}
+                                />
+                            </FormField>
                         </div>
-                        <div className="flex justify-between border-t pt-2 text-lg font-bold">
-                            <dt>{t('purchases.total')}</dt>
-                            <dd className="num">
-                                {digits.money(totals.total)}
-                            </dd>
-                        </div>
-                        {paid !== null && paid > 0 ? (
-                            <div className="flex justify-between text-sm text-muted-foreground">
-                                <dt>{t('purchases.col_due')}</dt>
-                                <dd className="num">
-                                    {digits.money(
-                                        Math.max(totals.total - paid, 0),
-                                    )}
+                        <dl className="flex flex-col justify-between space-y-1 text-[11px] sm:border-x sm:px-3">
+                            <div>
+                                <h2 className={cn(SECTION_TITLE, 'mb-2')}>
+                                    {t('purchases.bill_valuation')}
+                                </h2>
+                                <div className="flex justify-between py-0.5 text-muted-foreground">
+                                    <dt>{t('purchases.goods_value')}</dt>
+                                    <dd className="num font-bold text-foreground">
+                                        {digits.money(totals.subtotal)}
+                                    </dd>
+                                </div>
+                                <div className="flex justify-between py-0.5 text-muted-foreground">
+                                    <dt>{t('purchases.freight')}</dt>
+                                    <dd className="num">
+                                        +{digits.money(shipping ?? 0)}
+                                    </dd>
+                                </div>
+                                <div className="flex justify-between py-0.5 text-muted-foreground">
+                                    <dt>{t('purchases.order_discount')}</dt>
+                                    <dd className="num">
+                                        −{digits.money(discount ?? 0)}
+                                    </dd>
+                                </div>
+                            </div>
+                            <div className="flex justify-between border-t pt-1 text-xs font-bold text-foreground">
+                                <dt>{t('purchases.grand_total')}</dt>
+                                <dd className="num text-sm text-primary">
+                                    {digits.money(totals.total)}
                                 </dd>
                             </div>
-                        ) : null}
-                    </dl>
-                </div>
+                        </dl>
+                        <div className="flex flex-col justify-between space-y-2">
+                            <div>
+                                <h2 className={SECTION_TITLE}>
+                                    {t('purchases.payment_settlement')}
+                                </h2>
+                                {canPay ? (
+                                    <div className="mt-1.5 grid gap-2">
+                                        <FormField
+                                            label={t(
+                                                'purchases.immediate_paid',
+                                            )}
+                                            error={err('payment.amount')}
+                                            hint={t('purchases.pay_now_hint')}
+                                        >
+                                            <MoneyInput
+                                                className="bg-surface font-bold text-success"
+                                                value={paid}
+                                                onChange={setPaid}
+                                            />
+                                        </FormField>
+                                        {paid !== null && paid > 0 ? (
+                                            <FormField
+                                                label={t('vendors.pay_method')}
+                                                error={err(
+                                                    'payment.payment_method_id',
+                                                )}
+                                            >
+                                                <NativeSelect
+                                                    className="bg-surface"
+                                                    value={methodId}
+                                                    onChange={(e) =>
+                                                        setMethodId(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                >
+                                                    {paymentMethods.map((m) => (
+                                                        <option
+                                                            key={m.id}
+                                                            value={m.id}
+                                                        >
+                                                            {m.name}
+                                                        </option>
+                                                    ))}
+                                                </NativeSelect>
+                                            </FormField>
+                                        ) : null}
+                                    </div>
+                                ) : (
+                                    <p className="mt-1.5 text-[11px] text-muted-foreground">
+                                        {t('purchases.pay_now_hint')}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border bg-surface p-2">
+                                <span className="text-[10px] font-semibold text-muted-foreground">
+                                    {t('purchases.balance_due')}
+                                </span>
+                                <span
+                                    className={cn(
+                                        'num text-xs font-bold',
+                                        balance > 0
+                                            ? 'text-destructive'
+                                            : 'text-success',
+                                    )}
+                                >
+                                    {balance > 0 || lines.length === 0
+                                        ? digits.money(balance)
+                                        : t('purchases.fully_paid')}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
 
-                <div className="flex gap-2">
-                    <Button
-                        type="submit"
-                        className="min-h-11"
-                        disabled={
-                            processing || lines.length === 0 || vendorId === ''
-                        }
-                    >
-                        <Check aria-hidden="true" /> {t('purchases.receive')}
-                    </Button>
-                    <Button asChild variant="outline" className="min-h-11">
-                        <Link href="/app/purchases">{t('common.cancel')}</Link>
-                    </Button>
-                </div>
-            </form>
+                    {/* Footer */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+                        <Button
+                            asChild
+                            type="button"
+                            variant="outline"
+                            className="min-h-11 md:min-h-9"
+                        >
+                            <Link href="/app/purchases">
+                                {t('common.cancel')}
+                            </Link>
+                        </Button>
+                        <div className="flex items-center gap-3">
+                            <span className="hidden text-[11px] text-muted-foreground md:inline">
+                                {t('purchases.receive_hint_keys')}
+                            </span>
+                            <Button
+                                type="submit"
+                                className="min-h-11 font-bold md:min-h-9"
+                                disabled={!ready}
+                            >
+                                <CheckCircle2 aria-hidden="true" />{' '}
+                                {t('purchases.receive')}
+                                <Kbd keys="mod+enter" onButton />
+                            </Button>
+                        </div>
+                    </div>
+                </form>
+            </Page>
         </>
     );
 }

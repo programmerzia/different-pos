@@ -8,6 +8,7 @@ use App\Http\Controllers\Catalog\ProductController;
 use App\Http\Controllers\Catalog\ProductFamilyController;
 use App\Http\Controllers\Catalog\ProductImageController;
 use App\Http\Controllers\Catalog\VariantOptionController;
+use App\Support\Export\ExportFormat;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('products', [ProductController::class, 'index'])->name('products.index');
 Route::get('products/create', [ProductController::class, 'create'])->name('products.create');
+Route::get('products/export.{format}', [ProductController::class, 'export'])->where('format', ExportFormat::pattern())->middleware('can:products.view')->name('products.export');
 Route::post('products', [ProductController::class, 'store'])->name('products.store');
 Route::get('products/images', ProductImageController::class)->name('products.images');
 

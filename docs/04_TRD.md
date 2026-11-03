@@ -48,11 +48,11 @@ Both frameworks could do the job. This choice minimises custom plumbing for keyb
 | `spatie/laravel-permission` | 8.3.2 | roles/permissions, teams = tenant |
 | `spatie/laravel-activitylog` | 5.1.3 | audit |
 | `spatie/laravel-backup` | 10.3.3 | backups |
-| `spatie/simple-excel` | 3.11.0 | XLSX/CSV streaming |
-| `mpdf/mpdf` | **deferred to step 2.4** (`^8.3`) | Bangla-shaped PDFs. Needs `ext-gd`, which is not installed on the dev machine yet |
+| `spatie/simple-excel` | 3.11.0 | XLSX streaming (`App\Support\Export\XlsxWriter`: typed money/qty/date cells); CSV stays `ReportCsv` |
+| `mpdf/mpdf` | 8.3.1 (`^8.3`), installed 2026-11-03 | Bangla-shaped PDFs (`App\Support\Pdf\PdfRenderer`, Hind Siliguri in `resources/fonts/`, ADR 0009). Needs `ext-gd` |
 | `brick/money` · `brick/math` | 0.15.2 · 1.0.0 | money / decimal qty |
 | `picqer/php-barcode-generator` | 3.3.0 | Code128/EAN-13 in PDFs |
-| `chillerlan/php-qrcode` | 6.0.1 | QR codes |
+| `chillerlan/php-qrcode` | 6.0.1 | QR codes: the only QR library (`App\Support\Qr\QrSvg`, used by receipts and membership cards). `bacon/bacon-qr-code` arrives transitively through Fortify 2FA and must not be used by app code |
 | `league/flysystem-aws-s3-v3` | 3.35.3 | S3 |
 | `sentry/sentry-laravel` | 4.29.0 | errors |
 | starter-kit extras | `laravel/chisel` 0.1.1, `laravel/tinker` 3.0.2 | kept as shipped |
@@ -173,7 +173,7 @@ Single DB, shared schema.
 - **FIFO by batch.** Sales split allocation across batches → `sale_item_batches` → COGS. Branch setting `batch_selection=auto|manual` (legacy `is_use_stock_invoice`).
 - **Locking order:** `document_sequences` → `branch_stocks` (ORDER BY product_id) FOR UPDATE → `stock_batches` (ORDER BY received_at,id) FOR UPDATE → party rows (`customers`/`vendors` balance, by id) → the documents being settled (`sales`/`purchases` rows, by id) → **`tenants.sync_counter` last**, immediately before commit. Holding the counter lock until commit makes `sync_version` values visible in commit order, so a pull cursor can never skip a row. Bulk writers reserve one range per chunk (ADR 0001 D6).
 - Negative stock: online sales are blocked unless `allow_negative_stock`. **Synced offline sales are always accepted.** A shortfall is costed at `products.cost_price` and the movement is flagged `is_backorder`. The sale is flagged `oversold`.
-- `App\Support\Stock\StockLedger` is the only writer of `branch_stocks`/`stock_batches`/`stock_movements` (`lock`, `receive`, `issue`/`issueMany` with optional forced batch for `batch_selection=manual`, `reverse`). A purchase can be cancelled only while all its batches are untouched and nothing is paid on it; batch unit cost = landed line total (net + tax ± prorated shipping/order discount) ÷ qty.
+- `App\Support\Stock\StockLedger` is the only writer of `branch_stocks`/`stock_batches`/`stock_movements` (`lock`, `receive`, `issue`/`issueMany` with optional forced batch for `batch_selection=manual`, `reverse`, and `moveInTransit` for the destination branch's `qty_in_transit`, the one branch_stocks write that may target a branch other than the context branch). A purchase can be cancelled only while all its batches are untouched and nothing is paid on it; batch unit cost = landed line total (net + tax ± prorated shipping/order discount) ÷ qty.
 
 ### 3.6 Numbering
 - Back-office documents: `DocumentNumberer::next(type, branch)` with FOR UPDATE: `{BR}-{TYPE}-{YY}{seq6}`. Types in use: `purchase`, `payment` (due collections, vendor payments), `adjustment`, `sale` (web/register sales until device numbering arrives), `return`.
@@ -192,7 +192,8 @@ pos.sell · pos.discount_override · pos.price_override · pos.backdate · pos.s
 devices.manage
 sales.view · sales.void · returns.view · returns.create
 payments.collect · payments.pay
-customers.view · customers.create · customers.update · customers.delete · customers.reset_pin
+customers.view · customers.create · customers.update · customers.delete · customers.reset_pin · customers.export
+sms.view · sms.send
 cards.view · cards.issue
 products.view · products.create · products.update · products.delete · products.view_cost
 stock.view · stock.adjust · stock.count · stock.transfer
@@ -202,15 +203,20 @@ money.view · money.create · money.manage
 reports.view · reports.export · reports.profit · reports.all_branches
 branches.switch
 users.manage · settings.manage · audit.view
+backup.view · backup.run
 ```
 Roles:
 - **Owner**: all.
-- **Manager**: all except `users.manage`, `settings.manage`, `audit.view`, `branches.switch`, `reports.all_branches` (a Manager works in their own branch only; only the Owner switches branch and sees other branches' reports).
+- **Manager**: all except `users.manage`, `settings.manage`, `audit.view`, `branches.switch`, `reports.all_branches`, `backup.view`, `backup.run` (a Manager works in their own branch only; only the Owner switches branch and sees other branches' reports).
 - **Cashier**: `dashboard.view pos.sell sales.view returns.view customers.view customers.create cards.view products.view stock.view payments.collect`.
-- **Accountant**: `dashboard.view sales.view returns.view customers.view vendors.view money.* reports.* payments.*`.
+- **Accountant**: `dashboard.view sales.view returns.view customers.view customers.export vendors.view sms.view money.* reports.* payments.*`.
 - **Stock Keeper**: `products.* stock.* purchases.* vendors.* reports.view`.
 
+`sms.view` = the WhatsApp & SMS hub and message log (customer phones and texts), `sms.send` = compose / send / resend / preview SMS; SMS provider settings stay `settings.manage`. `customers.export` = the customer CSV (every phone and balance), no longer implied by `customers.view`. Existing tenants get the three new names on their Owner role from `permissions:sync`; Manager/Accountant need `--reset-system-roles` (or a manual grant) to receive them.
+
 `php artisan permissions:sync` (run on deploy; idempotent) creates permission names added to `Permission::ALL` and grants each newly created one to every tenant's Owner role; `--reset-system-roles` re-applies the default sets of the system roles (use it once to take `branches.switch`/`reports.all_branches` away from existing Managers). Without `branches.switch` a user never sees the branch picker: the branch is the pivot default, else `last_branch_id`, else the first active assigned one.
+
+`backup.view` = the Backup & Disaster Recovery page (installation-wide history, read-only), `backup.run` = Backup Database Now + archive download; both Owner-only by default. Platform admins have no permissions at all: the console is guarded by the Gate ability `platform.admin` (`is_platform_admin` and no tenant), which `HandleInertiaRequests` shares as their single "permission" so the nav/palette can gate on it; `impersonating` gates the banner's Exit.
 
 `roles.max_discount_pct_bp` holds the per-role discount cap. Seeded defaults: Owner 10000 (100%), Manager 2000 (20%), Cashier/Accountant/Stock Keeper 0. Source of truth in code: `App\Support\Permissions\{Permission,SystemRoles}`; `App\Actions\Tenancy\SeedTenantRoles` creates the five `is_system` roles per tenant (idempotent; re-running refreshes permission sets but keeps an existing role's discount cap).
 
@@ -292,19 +298,20 @@ Roles:
 | S3-compatible storage | media, exports, card PDFs, backups | yes (prod) |
 | Sentry | PHP + React errors | yes (prod) |
 | Uptime monitor | `/up` | yes (prod) |
-| BD geo reference data | divisions/districts/upazilas/unions (EN+BN) + post codes, imported once into `geo_*` from an open dataset (licence verified and recorded in `docs/adr`) | yes (data only) |
-| **SMS provider** | `SmsGateway` contract; drivers `ssl_wireless` (HTTP via Laravel `Http`), `log`, `null`. No SDK dependency (ADR 0007). Settings live in `tenants.settings.sms` (`driver`, `sender_id`, `sid`, `base_url`, `api_token`, `cost_per_segment` (paisa, estimate only), `templates`); the `api_token` is stored `Crypt`-encrypted inside that JSON, is never sent to a page and is scrubbed from audit rows. Queued `App\Sms\SendSms` (3 tries, backoff 30s/120s, `WithTenantContext`). Manual sends from the messaging hub go through `App\Sms\SendAdHocSms` (`settings.manage`, one logged job per recipient) | no |
+| BD geo reference data | divisions/districts/upazilas/unions (EN+BN) + post codes + curated metro thanas, imported into `geo_*` by `geo:import` from `database/data/geo/*.json` (nuhil/bangladesh-geocode MIT + ifahimreza/bangladesh-geojson MIT; ADR 0008; converter `tools/geo/convert.py`) | yes (data only) |
+| **WhatsApp provider** | `App\WhatsApp\Contracts\WhatsAppGateway` contract (`send(WhatsAppMessage): WhatsAppResult` with status sent / handoff / failed, provider ref, retryable flag, wa.me `link`); adapters in `app/WhatsApp/Drivers`: `ClickToChatGateway` (builds `https://wa.me/<E.164 digits>?text=<url-encoded>`, no account, result `handoff`, one chat at a time so never bulk), `MetaCloudApiGateway` (WhatsApp Business Cloud API `POST graph.facebook.com/v21.0/{phone_number_id}/messages`, Bearer token, free-form `text` or an approved single-parameter `template`; 4xx = rejection, 429/5xx/timeout retryable; Laravel `Http`, no SDK), `LogWhatsAppGateway`, `NullWhatsAppGateway`. `WhatsAppManager` builds the adapter from `tenants.settings.whatsapp` (`driver`, `phone_number_id`, `access_token` Crypt-encrypted and scrubbed from audits, `template_name`, `template_language`); swapping providers = one adapter + one `match` arm. `messages.channel` (sms\|whatsapp) routes the queued `SendSms` job through `App\Messaging\MessageDispatcher` to `SmsSender` or `WhatsAppSender`; click-to-chat is delivered synchronously by `SendDirectMessage` (row status `handoff`, link returned to the UI). Composer broadcasts on WhatsApp reuse `SendSmsBroadcast`/`FanOutSmsBroadcast` (`sms_broadcasts.channel`, cost 0, click-to-chat refused). No provider HTTP API is called outside an adapter | no |
+| **SMS provider** | `SmsGateway` contract; drivers `ssl_wireless` (HTTP via Laravel `Http`), `log`, `null`. No SDK dependency (ADR 0007). Settings live in `tenants.settings.sms` (`driver`, `sender_id`, `sid`, `base_url`, `api_token`, `cost_per_segment` (paisa, estimate only), `templates`); the `api_token` is stored `Crypt`-encrypted inside that JSON, is never sent to a page and is scrubbed from audit rows. Queued `App\Sms\SendSms` (3 tries, backoff 30s/120s, `WithTenantContext`). Manual sends from the messaging hub go through the final Action `App\Actions\Messaging\SendSmsBroadcast` (`settings.manage`): one `sms_broadcasts` row + audit in `Transaction::run`, idempotent per tenant on the composer's key, then one queued `App\Sms\FanOutSmsBroadcast` job (after commit, `WithTenantContext`, 3 tries) that writes the per-recipient `messages` rows and `SendSms` jobs in chunks of 200 and resumes without duplicates on retry. `SendSms` jobs are dispatched after commit | no |
 | Payment gateways | non-goal | no |
 
 ## 5. Security constraints (non-negotiable)
 1. **Passwords:** argon2id, min 8 chars, `uncompromised()` when online. Legacy MD5 is verified once, rehashed and nulled. Remove the fallback 180 days after go-live.
 2. **Staff PIN:** 4–6 digits, argon2id on the server. Device verifier per §3.9.6. Lockout. Never grants `users.manage`/`settings.manage`.
-3. **Customer PIN:** 4–6 digits, argon2id server-side only.
-   - Weak-PIN denylist.
+3. **Customer PIN:** 4–6 digits, argon2id server-side only (`Hash::make`, `HASH_DRIVER=argon2id`). Built 2026-11-04 (online path): `App\Support\Customers\CustomerPin` (rules), Actions `SetCustomerPin` / `VerifyCustomerPin` / `ResetCustomerPin` / `UnlockCustomerPin`, `App\Support\Pos\MemberToken` (verify → 10-min token bound to tenant, customer, cashier and cart; `CompleteSale::memberAuth()` decides `sales.member_auth`). Policy `tenants.settings.customer_pin_policy = off | optional | required` (`App\Enums\CustomerPinPolicy`; default `off`; legacy `always` reads as `required`, `credit_only` as `optional`).
+   - Weak-PIN denylist: one repeated digit, ascending/descending runs (wrapping 9→0), repeated 2/3-digit blocks, a list of well-known PINs, and the tail of the customer's phone number.
    - 5 failures → 30 min lock.
    - Never logged, displayed, exported or stored on devices (sealed box only).
-   - Rate limit on `verify-pin`: 10/min per device and 5/min per customer.
-   - Reset requires `customers.reset_pin` + a reason (audited).
+   - Rate limit on `verify-pin`: 10/min per device/operator and 5/min per customer (`RateLimiter::for('pos-verify-pin')`).
+   - Reset/unlock require `customers.reset_pin` + a reason (audited as `pin.reset` / `pin.unlocked`; `pin.set` and `pin.locked` are audited too; `Audit::FORBIDDEN` strips `pin`/`pin_hash` at any depth). A cashier (`pos.sell`) may help a member set a **first** PIN at the register; replacing one needs `customers.update`.
 4. **Device tokens:**
    - Sanctum token with ability `pos:device`, bound to tenant/branch/register, rotated every 30 days. Stored in IndexedDB (not localStorage).
    - Revocable, and revocation wipes local data.
@@ -321,9 +328,9 @@ Roles:
 14. Secrets only in `.env`. `gitleaks` in CI. Tenant private keys and API keys use encrypted casts.
 15. **No DB/admin tools in `public/`.** Telescope is local only. Horizon and Pulse are gated.
 16. Uploads: MIME and size validated, private bucket, signed URLs, EXIF stripped.
-17. Audit: business records, logins, permissions, voids, price changes, adjustments, **PIN resets/unlocks/overrides, card lost/reissue**, device enroll/revoke, impersonation. 2-year retention.
+17. Audit: business records, logins, permissions, voids, price changes, adjustments, **PIN resets/unlocks/overrides, card lost/reissue**, device enroll/revoke, impersonation (`tenant.impersonated` / `tenant.impersonation_ended` on the tenant, caused by the platform admin), tenant provisioning / suspension, backup requests. 2-year retention.
 18. Public receipt `/r/{token}`: a random 32-char token, no phone/address, revocable, rate limited.
-19. Backups: daily, encrypted, 30-day retention, monthly restore drill.
+19. Backups: daily, encrypted, 30-day retention, monthly restore drill. Implemented with spatie/laravel-backup (`config/backup.php`): one zip per run = gzip MySQL dump + `storage/app/public`, encrypted with `BACKUP_ARCHIVE_PASSWORD`, disks `local` (+ `s3` when `AWS_BUCKET` is set), nightly 02:00 Asia/Dhaka through `App\Actions\Backup\RunScheduledBackup` so every run (also manual ones from `/app/settings/backups`) is a row in `backups`; `BackupRunner` is the seam tests fake. The archive is installation-wide (ADR 0010); only local-disk archives are downloadable through the app.
 20. Local device data minimisation (§3.9.1). Wipe on revoke.
 21. `composer audit` + `npm audit` in CI. High or critical fails the build.
 

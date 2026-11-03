@@ -1,208 +1,217 @@
-import { Delete } from 'lucide-react';
-import { useEffect, useReducer } from 'react';
+import { Delete, Lock } from 'lucide-react';
+import { useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import { useHotkeyScope } from '@/hotkeys/use-hotkeys';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
-import { PIN_MAX, pinReducer, type PinAction } from '@/lib/pin';
 import { cn } from '@/lib/utils';
 
-type Props = {
-    /** `customer`: high-contrast overlay for the customer; no staff UI visible. */
-    variant: 'staff' | 'customer';
-    open: boolean;
-    onSubmit: (pin: string) => void;
-    onCancel: () => void;
-    /** Customer variant: shown above the pad. */
-    customerName?: string | undefined;
-    /** Set after a wrong PIN; clears the entered digits. */
-    error?: string | null | undefined;
-    length?: number;
+export const PIN_MIN = 4;
+export const PIN_MAX = 6;
+
+/** Digits only, capped at PIN_MAX (Bangla digits are accepted from the keyboard too). */
+export const pinKeyDigit = (key: string): string | null => {
+    if (/^[0-9]$/.test(key)) {
+        return key;
+    }
+    const bangla = '০১২৩৪৫৬৭৮৯'.indexOf(key);
+
+    return bangla >= 0 ? String(bangla) : null;
 };
 
-const MIN_LENGTH = 4;
-const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as const;
+export const PIN_PAD_KEYS = [
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    'clear',
+    '0',
+    'backspace',
+] as const;
+
+type Props = {
+    /** customer = large dots and keys the customer reads at arm's length; staff = compact. */
+    variant?: 'customer' | 'staff';
+    /** Called with the digits once the customer confirms (Enter / Confirm, 4–6 digits). */
+    onSubmit: (pin: string) => void | Promise<void>;
+    /** Shown under the dots (wrong PIN, lock, weak PIN). */
+    error?: string | null;
+    /** Shown instead of the error when the entry succeeded. */
+    success?: string | null;
+    busy?: boolean;
+    confirmLabel?: string;
+    autoFocus?: boolean;
+    className?: string;
+};
 
 /**
- * Numeric PIN entry. Digits are never shown (dots only); physical digit keys, Backspace and Enter
- * work. The PIN stays in local state and goes only to `onSubmit`. The body unmounts with the dialog,
- * so every opening starts empty.
+ * The PIN pad (04_TRD §3.8 PinPad, staff/customer variants). Digits are never rendered: the dots
+ * count them, the on-screen keys and the keyboard (digits, Backspace, Enter, Esc clears) both work,
+ * and the value only leaves through onSubmit. `aria-live` tells the count, not the digits.
  */
 export function PinPad({
-    variant,
-    open,
+    variant = 'customer',
     onSubmit,
-    onCancel,
-    customerName,
-    error,
-    length = PIN_MAX,
+    error = null,
+    success = null,
+    busy = false,
+    confirmLabel,
+    autoFocus = true,
+    className,
 }: Props) {
-    useHotkeyScope('dialog', open);
-
-    return (
-        <Dialog open={open} onOpenChange={(next) => !next && onCancel()}>
-            <PinPadContent
-                variant={variant}
-                onSubmit={onSubmit}
-                onCancel={onCancel}
-                customerName={customerName}
-                error={error}
-                length={length}
-            />
-        </Dialog>
-    );
-}
-
-function PinPadContent({
-    variant,
-    onSubmit,
-    onCancel,
-    customerName,
-    error,
-    length = PIN_MAX,
-}: Omit<Props, 'open'>) {
     const { t } = useT();
-    const digits = useDigits();
-    const [pin, dispatch] = useReducer(
-        (state: string, action: PinAction) => pinReducer(state, action, length),
-        '',
-    );
+    const d = useDigits();
+    const id = useId();
+    const [digits, setDigits] = useState('');
+    const customer = variant === 'customer';
+    const keyboard = useRef<HTMLInputElement>(null);
 
-    // A wrong PIN comes back as `error`: start over.
-    useEffect(() => {
-        if (error) {
-            dispatch({ type: 'clear' });
+    const ready = digits.length >= PIN_MIN && !busy;
+
+    const press = (key: (typeof PIN_PAD_KEYS)[number]) => {
+        if (busy) {
+            return;
         }
-    }, [error]);
-
-    const press = (key: string) => {
-        if (key === 'Backspace') {
-            dispatch({ type: 'back' });
-        } else if (key === 'Enter') {
-            if (pin.length >= MIN_LENGTH) {
-                onSubmit(pin);
-            }
+        keyboard.current?.focus();
+        if (key === 'clear') {
+            setDigits('');
+        } else if (key === 'backspace') {
+            setDigits((v) => v.slice(0, -1));
         } else {
-            dispatch({ type: 'digit', digit: digits.latin(key) });
+            setDigits((v) => (v.length < PIN_MAX ? v + key : v));
         }
     };
 
-    const keyButton = 'num h-18 w-18 min-h-18 min-w-18 text-[1.75rem]';
-    const customer = variant === 'customer';
+    const submit = () => {
+        if (!ready) {
+            return;
+        }
+        const value = digits;
+        setDigits('');
+        void onSubmit(value);
+    };
+
+    const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        const digit = pinKeyDigit(e.key);
+        if (digit !== null) {
+            e.preventDefault();
+            press(digit as (typeof PIN_PAD_KEYS)[number]);
+        } else if (e.key === 'Backspace') {
+            e.preventDefault();
+            press('backspace');
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            submit();
+        } else if (e.key === 'Delete') {
+            e.preventDefault();
+            press('clear');
+        }
+    };
 
     return (
-        <DialogContent
-            className={cn(
-                'max-w-sm items-center justify-items-center',
-                customer &&
-                    'inset-0 h-full max-w-none translate-x-0 translate-y-0 rounded-none bg-background',
-            )}
-            onKeyDown={(e) => {
-                if (
-                    /^[0-9০-৯]$/.test(e.key) ||
-                    e.key === 'Backspace' ||
-                    e.key === 'Enter'
-                ) {
-                    e.preventDefault();
-                    press(e.key);
-                }
-            }}
+        <fieldset
+            aria-label={t('pin.pad_label')}
+            aria-describedby={`${id}-status`}
+            data-testid="pin-pad"
+            className={cn('flex flex-col gap-3 rounded-xl', className)}
         >
-            <DialogTitle
-                className={cn('text-center', customer ? 'text-3xl' : 'text-lg')}
-            >
-                {customer ? t('pin.customer_title') : t('pin.staff_title')}
-            </DialogTitle>
-            <DialogDescription className="text-center">
-                {customer
-                    ? `${customerName ?? ''} ${t('pin.customer_hint')}`.trim()
-                    : t('pin.staff_hint')}
-            </DialogDescription>
-            <output
-                aria-label={t('pin.entered', { n: digits.n(pin.length) })}
+            {/* The keyboard target: a masked field that keeps the focus; its value is never read, the state is. */}
+            <input
+                ref={keyboard}
+                type="password"
+                inputMode="numeric"
+                autoComplete="off"
+                aria-label={t('pin.pad_label')}
+                autoFocus={autoFocus}
+                value=""
+                onChange={() => undefined}
+                onKeyDown={onKeyDown}
+                className="sr-only"
+            />
+            {/* The dots: one per typed digit, never the digit itself. */}
+            <div
                 className={cn(
-                    'flex gap-3 py-2',
-                    error && 'motion-safe:animate-pulse',
+                    'flex items-center justify-center gap-3 rounded-xl border bg-surface-sunken',
+                    customer ? 'h-16' : 'h-10',
                 )}
+                aria-hidden="true"
             >
-                {Array.from({ length }, (_, i) => (
+                {Array.from({ length: PIN_MAX }, (_, i) => (
                     <span
                         key={i}
+                        data-filled={i < digits.length ? 'true' : 'false'}
                         className={cn(
-                            'size-4 rounded-full border-2 border-primary',
-                            i < pin.length && 'bg-primary',
+                            'rounded-full transition-all',
+                            customer ? 'size-4' : 'size-3',
+                            i < digits.length
+                                ? 'scale-110 bg-primary'
+                                : i < PIN_MIN
+                                  ? 'bg-border'
+                                  : 'border border-dashed border-border bg-transparent',
                         )}
                     />
                 ))}
+            </div>
+            <output
+                id={`${id}-status`}
+                aria-live="polite"
+                className={cn(
+                    'min-h-5 text-center font-bold',
+                    customer ? 'text-sm' : 'text-[11px]',
+                    error ? 'text-danger' : success ? 'text-success' : 'text-muted-foreground',
+                )}
+            >
+                {error ??
+                    success ??
+                    t('pin.entered', { n: d.n(digits.length) })}
             </output>
-            {error ? (
-                <p role="alert" className="text-sm text-destructive">
-                    {error}
-                </p>
-            ) : null}
-            <div className="grid grid-cols-3 gap-3">
-                {KEYS.map((k) => (
-                    <Button
-                        key={k}
+            <div className="grid grid-cols-3 gap-2">
+                {PIN_PAD_KEYS.map((key) => (
+                    <button
+                        key={key}
                         type="button"
-                        variant="outline"
-                        className={keyButton}
-                        onClick={() => press(k)}
+                        disabled={busy}
+                        onClick={() => press(key)}
+                        aria-label={
+                            key === 'clear'
+                                ? t('pin.clear')
+                                : key === 'backspace'
+                                  ? t('pin.backspace')
+                                  : d.n(key)
+                        }
+                        className={cn(
+                            'touch-target flex items-center justify-center rounded-xl bg-surface-sunken font-mono font-bold text-foreground transition-colors hover:bg-border focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50',
+                            customer ? 'h-14 text-xl' : 'h-11 text-sm',
+                        )}
                     >
-                        {digits.n(k)}
-                    </Button>
+                        {key === 'clear' ? (
+                            <span className="text-xs font-semibold uppercase">
+                                {t('pin.clear_short')}
+                            </span>
+                        ) : key === 'backspace' ? (
+                            <Delete
+                                className={customer ? 'size-6' : 'size-4'}
+                                aria-hidden="true"
+                            />
+                        ) : (
+                            d.n(key)
+                        )}
+                    </button>
                 ))}
-                <Button
-                    type="button"
-                    variant="ghost"
-                    className={keyButton}
-                    aria-label={t('pin.clear')}
-                    onClick={() => dispatch({ type: 'clear' })}
-                >
-                    C
-                </Button>
-                <Button
-                    type="button"
-                    variant="outline"
-                    className={keyButton}
-                    onClick={() => press('0')}
-                >
-                    {digits.n('0')}
-                </Button>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    className={keyButton}
-                    aria-label={t('pin.backspace')}
-                    onClick={() => press('Backspace')}
-                >
-                    <Delete aria-hidden="true" />
-                </Button>
             </div>
-            <div className="flex w-full gap-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    className="min-h-14 flex-1"
-                    onClick={onCancel}
-                >
-                    {t('confirm.cancel')}
-                </Button>
-                <Button
-                    type="button"
-                    className="min-h-14 flex-1"
-                    disabled={pin.length < MIN_LENGTH}
-                    onClick={() => press('Enter')}
-                >
-                    {t('pin.confirm')}
-                </Button>
-            </div>
-        </DialogContent>
+            <Button
+                type="button"
+                className={cn('w-full font-bold', customer ? 'h-12 text-base' : 'h-10')}
+                disabled={!ready}
+                onClick={submit}
+            >
+                <Lock aria-hidden="true" />
+                {confirmLabel ?? t('pin.confirm')}
+            </Button>
+        </fieldset>
     );
 }

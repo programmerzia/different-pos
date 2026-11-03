@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\AuthenticateLogin;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Http\Responses\LoginResponse;
 use App\Listeners\RecordLoginActivity;
 use App\Models\Tenant;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -17,6 +18,8 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
+use Laravel\Fortify\Contracts\TwoFactorLoginResponse as TwoFactorLoginResponseContract;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 
@@ -27,7 +30,9 @@ final class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Platform admins land on /platform after signing in (also after the 2FA challenge).
+        $this->app->singleton(LoginResponseContract::class, LoginResponse::class);
+        $this->app->singleton(TwoFactorLoginResponseContract::class, LoginResponse::class);
     }
 
     /**

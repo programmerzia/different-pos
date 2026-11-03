@@ -30,6 +30,8 @@ import { useCan } from '@/hooks/use-can';
 import { useDigits } from '@/hooks/use-digits';
 import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useT } from '@/i18n';
+import { DownloadError, downloadFile } from '@/lib/download';
+import { exportItems, exportUrl, type ExportFormat } from '@/lib/export-items';
 import { downloadRowsCsv, type CsvColumn } from '@/lib/rows-csv';
 import { cn } from '@/lib/utils';
 
@@ -51,6 +53,8 @@ type Row = {
     reorder_level: number;
     low_stock: boolean;
     cost_price: number | null;
+    /** True when cost_price is the weighted average of the batches (the product has no cost price). */
+    cost_is_average?: boolean;
     value: number | null;
 };
 
@@ -66,6 +70,8 @@ const adjustUrl = (uuid?: string) =>
     uuid
         ? `/app/adjustments/create?product=${uuid}`
         : '/app/adjustments/create';
+const transferUrl = (uuid?: string) =>
+    uuid ? `/app/transfers/create?product=${uuid}` : '/app/transfers/create';
 
 /** "Date:" presets, the last stock movement at this branch (server filter `moved`). */
 const RECENCY = ['', 'today', '7d', '30d', '90d', 'idle_90d'] as const;
@@ -100,6 +106,7 @@ export default function StockIndex({
     const filters = table.state.filters;
     const [moreOpen, setMoreOpen] = useState(false);
     const canCost = valuation !== null;
+    const canTransfer = can('stock.transfer');
 
     useEffect(() => registerStockActions(), []);
     useHotkeys('list', [
@@ -117,6 +124,12 @@ export default function StockIndex({
             keys: 'n',
             labelKey: 'stock.adjustment',
             handler: () => canAdjust && router.visit(adjustUrl()),
+        },
+        {
+            id: 'stock.new_transfer',
+            keys: 't',
+            labelKey: 'stock.transfer',
+            handler: () => canTransfer && router.visit(transferUrl()),
         },
     ]);
 
@@ -248,8 +261,20 @@ export default function StockIndex({
                           headerKey: 'stock.col_unit_cost',
                           numeric: true,
                           cell: (r: Row) => (
-                              <span className="font-medium text-muted-foreground">
+                              <span
+                                  className="font-medium text-muted-foreground"
+                                  title={
+                                      r.cost_is_average
+                                          ? t('stock.avg_cost_hint')
+                                          : undefined
+                                  }
+                              >
                                   {digits.money(r.cost_price ?? 0)}
+                                  {r.cost_is_average ? (
+                                      <sup className="ml-0.5 text-[9px] font-semibold">
+                                          {t('stock.avg_cost')}
+                                      </sup>
+                                  ) : null}
                               </span>
                           ),
                       } satisfies DataColumn<Row>,
@@ -272,20 +297,16 @@ export default function StockIndex({
                 mobile: 'hidden',
                 cell: (r) => (
                     <div className="flex items-center justify-end gap-1">
-                        {can('stock.transfer') ? (
-                            <button
-                                type="button"
+                        {canTransfer ? (
+                            <Link
+                                href={transferUrl(r.uuid)}
                                 tabIndex={-1}
-                                aria-disabled="true"
-                                title={t('stock.next_phase')}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    toast.info(t('stock.next_phase'));
-                                }}
-                                className="h-6 cursor-not-allowed rounded-sm border bg-surface-sunken px-2.5 text-[10px] font-semibold opacity-60 [@media(pointer:coarse)]:min-h-11"
+                                aria-label={`${t('stock.transfer_short')}: ${r.name}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex h-6 items-center rounded-sm border bg-surface-sunken px-2.5 text-[10px] font-semibold hover:bg-muted [@media(pointer:coarse)]:min-h-11"
                             >
                                 {t('stock.transfer_short')}
-                            </button>
+                            </Link>
                         ) : null}
                         {canAdjust ? (
                             <Link
@@ -302,7 +323,7 @@ export default function StockIndex({
                 ),
             },
         ];
-    }, [digits, branches, canCost, canAdjust, can, t]);
+    }, [digits, branches, canCost, canAdjust, canTransfer, t]);
     const columnState = useColumnVisibility(columns);
 
     const csvColumns: CsvColumn<Row>[] = [
@@ -333,6 +354,17 @@ export default function StockIndex({
     const exportRows = (list: Row[]) =>
         downloadRowsCsv('stock.csv', csvColumns, list);
 
+    const exportAs = (format: ExportFormat) => {
+        downloadFile(
+            exportUrl('/app/stock', format, window.location.search),
+        ).catch((error: unknown) =>
+            toast.error(
+                error instanceof DownloadError && error.status === 422
+                    ? error.message
+                    : t('table.export_failed'),
+            ),
+        );
+    };
     const option = (value: string, key: string) => ({ value, label: t(key) });
     const healthOptions = [
         option('', 'stock.all'),
@@ -359,17 +391,12 @@ export default function StockIndex({
                                     </Link>
                                 </Button>
                             ) : null}
-                            {can('stock.transfer') ? (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    aria-disabled="true"
-                                    title={t('stock.next_phase')}
-                                    className="cursor-not-allowed opacity-60"
-                                    onClick={nextPhase}
-                                >
-                                    <Truck aria-hidden="true" />
-                                    {t('stock.transfer')}
+                            {canTransfer ? (
+                                <Button asChild variant="outline">
+                                    <Link href={transferUrl()}>
+                                        <Truck aria-hidden="true" />
+                                        {t('stock.transfer')}
+                                    </Link>
                                 </Button>
                             ) : null}
                             {can('stock.count') ? (
@@ -390,16 +417,7 @@ export default function StockIndex({
                                 onChange={columnState.setVisibility}
                             />
                             {can('reports.export') ? (
-                                <ExportMenu
-                                    items={[
-                                        {
-                                            id: 'csv',
-                                            kind: 'csv',
-                                            label: t('table.export_csv'),
-                                            onSelect: () => exportRows(rows),
-                                        },
-                                    ]}
-                                />
+                                <ExportMenu items={exportItems(t, exportAs)} />
                             ) : null}
                             <PrintButton />
                         </>

@@ -16,6 +16,7 @@ import {
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useUiStore } from '@/command/ui-store';
+import { useCan } from '@/hooks/use-can';
 import { useDigits } from '@/hooks/use-digits';
 import { useInitials } from '@/hooks/use-initials';
 import { useT } from '@/i18n';
@@ -28,6 +29,8 @@ export function TopBar() {
     const prefs = usePreferences();
     const user = usePage().props.auth.user;
     const openOverlay = useUiStore((s) => s.open);
+    const can = useCan();
+    const home = can('platform.admin') ? '/platform' : dashboard();
 
     return (
         <header
@@ -39,9 +42,9 @@ export function TopBar() {
                 aria-label={t('nav.toggle_sidebar')}
             />
             <Link
-                href={dashboard()}
+                href={home}
                 prefetch
-                className="flex min-w-0 items-center gap-1 rounded-md"
+                className="touch-target flex min-w-0 items-center justify-center gap-1 rounded-md"
                 aria-label={t('nav.home')}
             >
                 <AppLogo />
@@ -153,11 +156,11 @@ function UserChip() {
     );
 }
 
-/** Mockup "Today ৳… · N sales" pill for the current branch (shared `today`, dashboard.view only). */
+/** Mockup "Today ৳… · N sales" pill for the current branch (shared `todayTicker`, dashboard.view only). */
 function TodayTicker() {
     const { t } = useT();
     const digits = useDigits();
-    const today = usePage().props.today;
+    const today = usePage().props.todayTicker;
 
     if (!today) {
         return null;

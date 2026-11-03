@@ -86,9 +86,13 @@ it('lists the log with a status filter, scoped to the tenant', function (): void
         ->assertInertia(fn (Assert $page) => $page->where('meta.total', 1)->where('rows.0.body', 'mine-failed'));
 });
 
-it('shows the log to customers.view holders but hides resend; others are forbidden', function (): void {
-    $this->actingAs(($this->as)('Cashier'))->get(route('messages.index'))->assertOk()
+it('shows the log to sms.view holders but hides resend without sms.send; others are forbidden', function (): void {
+    $this->actingAs(($this->as)('Accountant'))->get(route('messages.index'))->assertOk()
         ->assertInertia(fn (Assert $page) => $page->where('canResend', false));
+    $this->actingAs(($this->as)('Manager'))->get(route('messages.index'))->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('canResend', true));
+    // Customer phones and texts: a cashier (customers.view only) no longer sees the log.
+    $this->actingAs(($this->as)('Cashier'))->get(route('messages.index'))->assertForbidden();
     $this->actingAs(($this->as)('Stock Keeper'))->get(route('messages.index'))->assertForbidden();
 });
 

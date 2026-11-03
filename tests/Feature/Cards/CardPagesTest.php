@@ -10,9 +10,11 @@ use App\Models\CustomerGroup;
 use App\Models\MembershipCard;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Cards\CardRenderer;
 use App\Support\Customers\CustomerNumber;
 use App\Support\Permissions\SystemRoles;
 use App\Support\Tenancy\TenantContext;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Fixtures\CustomerWorld;
 
@@ -282,4 +284,18 @@ it('never reaches another tenant\'s cards', function (): void {
     $this->post('/app/membership-cards/printed', ['customers' => [$foreignCustomer->uuid]])->assertNotFound();
     expect(MembershipCard::query()->withoutGlobalScopes()->where('customer_id', $foreignCustomer->id)->count())->toBe(1);
     expect($foreign->refresh()->status)->toBe(CardStatus::Active);
+});
+
+it('prints a host-relative logo for the browser and an absolute file path for mPDF', function (): void {
+    [, $tenant] = cardWorld();
+    Storage::fake('public');
+    Storage::disk('public')->put('tenants/1/logo-x.png', 'png');
+    $tenant->forceFill(['branding' => [...($tenant->branding ?? []), 'logo_path' => 'tenants/1/logo-x.png']])->saveQuietly();
+    app(TenantContext::class)->set($tenant->refresh(), app(TenantContext::class)->branch());
+    $cards = MembershipCard::query()->get();
+    $renderer = app(CardRenderer::class);
+
+    expect($renderer->html($cards))->toContain('src="/storage/tenants/1/logo-x.png"')
+        ->and($renderer->html($cards, localLogo: true))
+        ->toContain('src="'.Storage::disk('public')->path('tenants/1/logo-x.png').'"');
 });

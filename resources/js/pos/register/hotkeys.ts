@@ -11,6 +11,7 @@ export type PosCommand =
     | 'browse'
     | 'qty'
     | 'customer'
+    | 'member_pin'
     | 'price_check'
     | 'line_discount'
     | 'bill_discount'
@@ -40,6 +41,8 @@ export const POS_KEYS: readonly Def[] = [
     { command: 'browse', keys: 'alt+g', labelKey: 'pos.keys.browse' },
     { command: 'qty', keys: 'f3', labelKey: 'pos.keys.qty' },
     { command: 'customer', keys: 'f4', labelKey: 'pos.keys.customer' },
+    // Member PIN: verify / set the attached customer's PIN (02_AppFlow §4.4).
+    { command: 'member_pin', keys: 'alt+p', labelKey: 'pos.keys.member_pin' },
     { command: 'price_check', keys: 'f5', labelKey: 'pos.keys.price_check' },
     {
         command: 'line_discount',

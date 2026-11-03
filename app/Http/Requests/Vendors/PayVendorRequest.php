@@ -15,7 +15,7 @@ final class PayVendorRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user instanceof User && $user->checkPermissionTo('payments.pay');
+        return $user instanceof User && $user->can('payments.pay');
     }
 
     /** @return array<string, array<int, mixed>> */

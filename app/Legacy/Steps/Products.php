@@ -39,12 +39,13 @@ final readonly class Products implements Step
         }
         $context->setLookup(self::UNIT, $unit->id);
 
-        // lowercased SKU => the product that holds it, its legacy store (0 = unknown) and whether it came from legacy.
-        /** @var array<string, array{id: int, store: int, legacy: bool}> $skus */
+        // lowercased SKU => the product that holds it, the legacy stores mapped to it (first = the store it
+        // was imported from; [] = unknown) and whether it came from legacy.
+        /** @var array<string, array{id: int, stores: list<int>, legacy: bool}> $skus */
         $skus = [];
-        $stores = DB::table('legacy_id_maps')->where('entity', self::TABLE)->orderBy('id')->pluck('legacy_store_id', 'new_id');
+        $stores = $this->storesByProduct($context);
         foreach (Product::query()->withTrashed()->get(['id', 'sku', 'legacy_id']) as $existing) {
-            $skus[mb_strtolower((string) $existing->sku)] = ['id' => $existing->id, 'store' => (int) ($stores[$existing->id] ?? 0), 'legacy' => $existing->legacy_id !== null];
+            $skus[mb_strtolower((string) $existing->sku)] = ['id' => $existing->id, 'stores' => $stores[$existing->id] ?? [], 'legacy' => $existing->legacy_id !== null];
         }
 
         $context->select(self::TABLE, ['id', 'store_id', 'category_id', 'brand_id', 'vendor_id', 'quantity', 'min_sale_qty', 'stock_out_alert', 'status'], ['product_name', 'product_code'], ['mrp', 'buy_price'])
@@ -63,12 +64,14 @@ final readonly class Products implements Step
                     $storeId = (int) $row->store_id;
                     $sku = $code;
                     $holder = $skus[mb_strtolower($sku)] ?? null;
-                    if ($holder !== null && $holder['legacy'] && $holder['store'] !== $storeId) {
+                    if ($holder !== null && $holder['legacy'] && ! in_array($storeId, $holder['stores'], true)) {
                         // The same article stocked in another shop: one product, stock per branch. The first
-                        // product keeps its name, prices and active flag.
+                        // product keeps its name, prices and active flag. A second row with the code in a store
+                        // already mapped to the product is a same-store duplicate and gets a suffix below.
                         $context->ids->put(self::TABLE, $storeId, $id, $holder['id']);
+                        $skus[mb_strtolower($sku)]['stores'][] = $storeId;
                         $context->skipped();
-                        $context->report->add('merged_product', self::TABLE, $id, "Product code [{$code}] from store {$storeId} merged into product #{$holder['id']} imported from store {$holder['store']}");
+                        $context->report->add('merged_product', self::TABLE, $id, "Product code [{$code}] from store {$storeId} merged into product #{$holder['id']} imported from store ".($holder['stores'][0] ?? 0));
 
                         continue;
                     }
@@ -105,11 +108,39 @@ final readonly class Products implements Step
                         'legacy_id' => $id,
                     ])->save();
 
-                    $skus[mb_strtolower($sku)] = ['id' => $product->id, 'store' => $storeId, 'legacy' => true];
+                    $skus[mb_strtolower($sku)] = ['id' => $product->id, 'stores' => [$storeId], 'legacy' => true];
                     $context->ids->put(self::TABLE, $storeId, $id, $product->id);
                     $context->created();
                 }
             });
+    }
+
+    /**
+     * This tenant's products already mapped from legacy rows => their legacy stores in mapping order
+     * (the first is the store the product was imported from). legacy_id_maps has no tenant column, so
+     * the tenant comes from the product; placeholders (store 0) are left out.
+     *
+     * @return array<int, list<int>>
+     */
+    private function storesByProduct(ImportContext $context): array
+    {
+        $stores = [];
+        $rows = DB::table('legacy_id_maps')
+            ->join('products', 'products.id', '=', 'legacy_id_maps.new_id')
+            ->where('products.tenant_id', $context->tenantId())
+            ->where('legacy_id_maps.entity', self::TABLE)
+            ->where('legacy_id_maps.legacy_store_id', '>', 0)
+            ->orderBy('legacy_id_maps.id')
+            ->get(['legacy_id_maps.new_id', 'legacy_id_maps.legacy_store_id']);
+        foreach ($rows as $row) {
+            $productId = (int) $row->new_id;
+            $store = (int) $row->legacy_store_id;
+            if (! in_array($store, $stores[$productId] ?? [], true)) {
+                $stores[$productId][] = $store;
+            }
+        }
+
+        return $stores;
     }
 
     /** New id of a legacy product; a missing (hard-deleted) one becomes a reported placeholder. */

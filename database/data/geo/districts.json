@@ -1,0 +1,540 @@
+[
+{
+"id": 1,
+"code": "01-01",
+"division_code": "01",
+"name_en": "Cumilla",
+"name_bn": "কুমিল্লা",
+"aliases": [
+"Comilla"
+]
+},
+{
+"id": 2,
+"code": "01-02",
+"division_code": "01",
+"name_en": "Feni",
+"name_bn": "ফেনী",
+"aliases": []
+},
+{
+"id": 3,
+"code": "01-03",
+"division_code": "01",
+"name_en": "Brahmanbaria",
+"name_bn": "ব্রাহ্মণবাড়িয়া",
+"aliases": []
+},
+{
+"id": 4,
+"code": "01-04",
+"division_code": "01",
+"name_en": "Rangamati",
+"name_bn": "রাঙ্গামাটি",
+"aliases": []
+},
+{
+"id": 5,
+"code": "01-05",
+"division_code": "01",
+"name_en": "Noakhali",
+"name_bn": "নোয়াখালী",
+"aliases": []
+},
+{
+"id": 6,
+"code": "01-06",
+"division_code": "01",
+"name_en": "Chandpur",
+"name_bn": "চাঁদপুর",
+"aliases": []
+},
+{
+"id": 7,
+"code": "01-07",
+"division_code": "01",
+"name_en": "Lakshmipur",
+"name_bn": "লক্ষ্মীপুর",
+"aliases": []
+},
+{
+"id": 8,
+"code": "01-08",
+"division_code": "01",
+"name_en": "Chattogram",
+"name_bn": "চট্টগ্রাম",
+"aliases": [
+"Chittagong"
+]
+},
+{
+"id": 9,
+"code": "01-09",
+"division_code": "01",
+"name_en": "Cox's Bazar",
+"name_bn": "কক্সবাজার",
+"aliases": [
+"Coxs Bazar",
+"Cox Bazar"
+]
+},
+{
+"id": 10,
+"code": "01-10",
+"division_code": "01",
+"name_en": "Khagrachhari",
+"name_bn": "খাগড়াছড়ি",
+"aliases": [
+"Khagrachari"
+]
+},
+{
+"id": 11,
+"code": "01-11",
+"division_code": "01",
+"name_en": "Bandarban",
+"name_bn": "বান্দরবান",
+"aliases": []
+},
+{
+"id": 12,
+"code": "02-12",
+"division_code": "02",
+"name_en": "Sirajganj",
+"name_bn": "সিরাজগঞ্জ",
+"aliases": [
+"Sirajgonj"
+]
+},
+{
+"id": 13,
+"code": "02-13",
+"division_code": "02",
+"name_en": "Pabna",
+"name_bn": "পাবনা",
+"aliases": []
+},
+{
+"id": 14,
+"code": "02-14",
+"division_code": "02",
+"name_en": "Bogura",
+"name_bn": "বগুড়া",
+"aliases": [
+"Bogra"
+]
+},
+{
+"id": 15,
+"code": "02-15",
+"division_code": "02",
+"name_en": "Rajshahi",
+"name_bn": "রাজশাহী",
+"aliases": []
+},
+{
+"id": 16,
+"code": "02-16",
+"division_code": "02",
+"name_en": "Natore",
+"name_bn": "নাটোর",
+"aliases": []
+},
+{
+"id": 17,
+"code": "02-17",
+"division_code": "02",
+"name_en": "Joypurhat",
+"name_bn": "জয়পুরহাট",
+"aliases": []
+},
+{
+"id": 18,
+"code": "02-18",
+"division_code": "02",
+"name_en": "Chapainawabganj",
+"name_bn": "চাঁপাইনবাবগঞ্জ",
+"aliases": [
+"Chapai Nawabganj",
+"Nawabganj"
+]
+},
+{
+"id": 19,
+"code": "02-19",
+"division_code": "02",
+"name_en": "Naogaon",
+"name_bn": "নওগাঁ",
+"aliases": []
+},
+{
+"id": 20,
+"code": "03-20",
+"division_code": "03",
+"name_en": "Jashore",
+"name_bn": "যশোর",
+"aliases": [
+"Jessore"
+]
+},
+{
+"id": 21,
+"code": "03-21",
+"division_code": "03",
+"name_en": "Satkhira",
+"name_bn": "সাতক্ষীরা",
+"aliases": []
+},
+{
+"id": 22,
+"code": "03-22",
+"division_code": "03",
+"name_en": "Meherpur",
+"name_bn": "মেহেরপুর",
+"aliases": []
+},
+{
+"id": 23,
+"code": "03-23",
+"division_code": "03",
+"name_en": "Narail",
+"name_bn": "নড়াইল",
+"aliases": []
+},
+{
+"id": 24,
+"code": "03-24",
+"division_code": "03",
+"name_en": "Chuadanga",
+"name_bn": "চুয়াডাঙ্গা",
+"aliases": []
+},
+{
+"id": 25,
+"code": "03-25",
+"division_code": "03",
+"name_en": "Kushtia",
+"name_bn": "কুষ্টিয়া",
+"aliases": []
+},
+{
+"id": 26,
+"code": "03-26",
+"division_code": "03",
+"name_en": "Magura",
+"name_bn": "মাগুরা",
+"aliases": []
+},
+{
+"id": 27,
+"code": "03-27",
+"division_code": "03",
+"name_en": "Khulna",
+"name_bn": "খুলনা",
+"aliases": []
+},
+{
+"id": 28,
+"code": "03-28",
+"division_code": "03",
+"name_en": "Bagerhat",
+"name_bn": "বাগেরহাট",
+"aliases": []
+},
+{
+"id": 29,
+"code": "03-29",
+"division_code": "03",
+"name_en": "Jhenaidah",
+"name_bn": "ঝিনাইদহ",
+"aliases": []
+},
+{
+"id": 30,
+"code": "04-30",
+"division_code": "04",
+"name_en": "Jhalokati",
+"name_bn": "ঝালকাঠি",
+"aliases": [
+"Jhalakathi"
+]
+},
+{
+"id": 31,
+"code": "04-31",
+"division_code": "04",
+"name_en": "Patuakhali",
+"name_bn": "পটুয়াখালী",
+"aliases": []
+},
+{
+"id": 32,
+"code": "04-32",
+"division_code": "04",
+"name_en": "Pirojpur",
+"name_bn": "পিরোজপুর",
+"aliases": []
+},
+{
+"id": 33,
+"code": "04-33",
+"division_code": "04",
+"name_en": "Barishal",
+"name_bn": "বরিশাল",
+"aliases": [
+"Barisal"
+]
+},
+{
+"id": 34,
+"code": "04-34",
+"division_code": "04",
+"name_en": "Bhola",
+"name_bn": "ভোলা",
+"aliases": []
+},
+{
+"id": 35,
+"code": "04-35",
+"division_code": "04",
+"name_en": "Barguna",
+"name_bn": "বরগুনা",
+"aliases": []
+},
+{
+"id": 36,
+"code": "05-36",
+"division_code": "05",
+"name_en": "Sylhet",
+"name_bn": "সিলেট",
+"aliases": []
+},
+{
+"id": 37,
+"code": "05-37",
+"division_code": "05",
+"name_en": "Moulvibazar",
+"name_bn": "মৌলভীবাজার",
+"aliases": [
+"Maulvibazar"
+]
+},
+{
+"id": 38,
+"code": "05-38",
+"division_code": "05",
+"name_en": "Habiganj",
+"name_bn": "হবিগঞ্জ",
+"aliases": []
+},
+{
+"id": 39,
+"code": "05-39",
+"division_code": "05",
+"name_en": "Sunamganj",
+"name_bn": "সুনামগঞ্জ",
+"aliases": []
+},
+{
+"id": 40,
+"code": "06-40",
+"division_code": "06",
+"name_en": "Narsingdi",
+"name_bn": "নরসিংদী",
+"aliases": []
+},
+{
+"id": 41,
+"code": "06-41",
+"division_code": "06",
+"name_en": "Gazipur",
+"name_bn": "গাজীপুর",
+"aliases": []
+},
+{
+"id": 42,
+"code": "06-42",
+"division_code": "06",
+"name_en": "Shariatpur",
+"name_bn": "শরীয়তপুর",
+"aliases": []
+},
+{
+"id": 43,
+"code": "06-43",
+"division_code": "06",
+"name_en": "Narayanganj",
+"name_bn": "নারায়ণগঞ্জ",
+"aliases": []
+},
+{
+"id": 44,
+"code": "06-44",
+"division_code": "06",
+"name_en": "Tangail",
+"name_bn": "টাঙ্গাইল",
+"aliases": []
+},
+{
+"id": 45,
+"code": "06-45",
+"division_code": "06",
+"name_en": "Kishoreganj",
+"name_bn": "কিশোরগঞ্জ",
+"aliases": []
+},
+{
+"id": 46,
+"code": "06-46",
+"division_code": "06",
+"name_en": "Manikganj",
+"name_bn": "মানিকগঞ্জ",
+"aliases": []
+},
+{
+"id": 47,
+"code": "06-47",
+"division_code": "06",
+"name_en": "Dhaka",
+"name_bn": "ঢাকা",
+"aliases": []
+},
+{
+"id": 48,
+"code": "06-48",
+"division_code": "06",
+"name_en": "Munshiganj",
+"name_bn": "মুন্সিগঞ্জ",
+"aliases": []
+},
+{
+"id": 49,
+"code": "06-49",
+"division_code": "06",
+"name_en": "Rajbari",
+"name_bn": "রাজবাড়ী",
+"aliases": []
+},
+{
+"id": 50,
+"code": "06-50",
+"division_code": "06",
+"name_en": "Madaripur",
+"name_bn": "মাদারীপুর",
+"aliases": []
+},
+{
+"id": 51,
+"code": "06-51",
+"division_code": "06",
+"name_en": "Gopalganj",
+"name_bn": "গোপালগঞ্জ",
+"aliases": []
+},
+{
+"id": 52,
+"code": "06-52",
+"division_code": "06",
+"name_en": "Faridpur",
+"name_bn": "ফরিদপুর",
+"aliases": []
+},
+{
+"id": 53,
+"code": "07-53",
+"division_code": "07",
+"name_en": "Panchagarh",
+"name_bn": "পঞ্চগড়",
+"aliases": []
+},
+{
+"id": 54,
+"code": "07-54",
+"division_code": "07",
+"name_en": "Dinajpur",
+"name_bn": "দিনাজপুর",
+"aliases": []
+},
+{
+"id": 55,
+"code": "07-55",
+"division_code": "07",
+"name_en": "Lalmonirhat",
+"name_bn": "লালমনিরহাট",
+"aliases": []
+},
+{
+"id": 56,
+"code": "07-56",
+"division_code": "07",
+"name_en": "Nilphamari",
+"name_bn": "নীলফামারী",
+"aliases": []
+},
+{
+"id": 57,
+"code": "07-57",
+"division_code": "07",
+"name_en": "Gaibandha",
+"name_bn": "গাইবান্ধা",
+"aliases": []
+},
+{
+"id": 58,
+"code": "07-58",
+"division_code": "07",
+"name_en": "Thakurgaon",
+"name_bn": "ঠাকুরগাঁও",
+"aliases": []
+},
+{
+"id": 59,
+"code": "07-59",
+"division_code": "07",
+"name_en": "Rangpur",
+"name_bn": "রংপুর",
+"aliases": []
+},
+{
+"id": 60,
+"code": "07-60",
+"division_code": "07",
+"name_en": "Kurigram",
+"name_bn": "কুড়িগ্রাম",
+"aliases": []
+},
+{
+"id": 61,
+"code": "08-61",
+"division_code": "08",
+"name_en": "Sherpur",
+"name_bn": "শেরপুর",
+"aliases": []
+},
+{
+"id": 62,
+"code": "08-62",
+"division_code": "08",
+"name_en": "Mymensingh",
+"name_bn": "ময়মনসিংহ",
+"aliases": []
+},
+{
+"id": 63,
+"code": "08-63",
+"division_code": "08",
+"name_en": "Jamalpur",
+"name_bn": "জামালপুর",
+"aliases": []
+},
+{
+"id": 64,
+"code": "08-64",
+"division_code": "08",
+"name_en": "Netrokona",
+"name_bn": "নেত্রকোণা",
+"aliases": [
+"Netrakona"
+]
+}
+]

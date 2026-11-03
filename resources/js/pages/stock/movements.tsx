@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/empty-state';
 import { Button } from '@/components/ui/button';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
+import { DateTime } from '@/components/sales/date-time';
 
 type Move = {
     id: number;
@@ -64,7 +65,10 @@ export default function StockMovements({
                             <p className="text-xs text-muted-foreground">
                                 {t('stock.on_hand')}
                             </p>
-                            <p className="num text-3xl font-bold">
+                            <p
+                                className="num text-3xl font-bold"
+                                data-test="on-hand"
+                            >
                                 {digits.qty(onHand)}
                             </p>
                         </div>
@@ -107,7 +111,7 @@ export default function StockMovements({
                                 {rows.map((m) => (
                                     <tr key={m.id} className="border-t">
                                         <td className="num px-3 py-2">
-                                            {digits.n(m.at ?? '')}
+                                            <DateTime value={m.at} />
                                         </td>
                                         <td className="px-3 py-2">
                                             {t(`stock.type.${m.type}`)}

@@ -12,7 +12,8 @@ use Carbon\CarbonInterface;
  * A cart to complete in the current branch (TenantContext). The server re-prices it; `expectedTotal`
  * is what the client showed and only feeds the price_mismatch flag. A null customer is the walk-in.
  * `approver` is a manager who authorised overrides at the counter (discount cap, price, below cost,
- * credit limit); their permissions count next to the actor's.
+ * credit limit); their permissions count next to the actor's. `memberVerified` is set by the
+ * controller once a member token (online PIN check) resolved for this customer and cart.
  */
 final readonly class SaleDraft
 {
@@ -35,6 +36,7 @@ final readonly class SaleDraft
         public ?User $approver = null,
         public ?string $courierName = null,
         public ?string $courierTracking = null,
+        public bool $memberVerified = false,
     ) {
         $this->orderDiscount = $orderDiscount ?? Discount::none();
     }

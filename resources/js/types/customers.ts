@@ -1,3 +1,5 @@
+import type { GeoChain } from "@/lib/geo";
+
 export type CustomerRow = {
     id: string;
     uuid: string;
@@ -14,8 +16,12 @@ export type CustomerRow = {
     area: string | null;
     address_line: string | null;
     post_code: string | null;
+    /** Division → district → upazila → union names of the saved geo ids. */
+    location: GeoChain;
     last_purchase_at: string | null;
     card_status: string | null;
+    /** Security PIN state; the PIN itself never reaches the browser. */
+    pin_status: "set" | "pending" | "locked";
     is_active: boolean;
 };
 
@@ -56,6 +62,11 @@ export type CustomerDetail = {
     address_line: string | null;
     area: string | null;
     post_code: string | null;
+    geo_division_id: number | null;
+    geo_district_id: number | null;
+    geo_upazila_id: number | null;
+    geo_union_id: number | null;
+    location: GeoChain;
     location_verified: boolean;
     dob: string | null;
     anniversary_date: string | null;
@@ -64,6 +75,10 @@ export type CustomerDetail = {
     last_purchase_at: string | null;
     is_active: boolean;
     is_walk_in: boolean;
+    pin_status: "set" | "pending" | "locked";
+    pin_set_at: string | null;
+    /** ISO time while locked, else null. */
+    pin_locked_until: string | null;
 };
 
 export type CustomerCard = {

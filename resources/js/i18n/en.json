@@ -62,8 +62,11 @@
         "reports_directory": "Reports Directory",
         "users_roles": "Users & Roles",
         "audit_log": "Audit Security Log",
+        "backup_restore": "Backup & Restore",
+        "saas_platform_admin": "SaaS Platform Admin",
         "active_role": "Active role",
-        "shortcuts_guide": "Shortcuts Guide"
+        "shortcuts_guide": "Shortcuts Guide",
+        "user_manual": "User manual"
     },
     "tabs": {
         "label": "Primary",
@@ -77,7 +80,8 @@
         "menu": "Account menu",
         "profile": "Profile & settings",
         "shortcuts": "Keyboard shortcuts",
-        "logout": "Log out"
+        "logout": "Log out",
+        "manual": "User manual"
     },
     "lang": {
         "switch": "Switch language"
@@ -153,7 +157,9 @@
         "shortcuts": "Keyboard shortcuts",
         "toggle_language": "Switch language",
         "theme": "Appearance",
-        "toggle_density": "Toggle compact density"
+        "toggle_density": "Toggle compact density",
+        "new_adjustment": "New stock adjustment",
+        "new_transfer": "New branch transfer"
     },
     "hotkeys": {
         "palette": "Command palette",
@@ -177,7 +183,9 @@
         "edit": "Edit row",
         "delete": "Delete row",
         "save": "Save",
-        "pos": "POS register (on the register: new sale / scan)"
+        "pos": "POS register (on the register: new sale / scan)",
+        "focus_rows": "Jump to the list's first row",
+        "customer_pin": "Set / reset the customer PIN"
     },
     "shortcuts": {
         "title": "Keyboard shortcuts",
@@ -214,13 +222,15 @@
         "rows_per_page": "Rows per page:",
         "total": "Total ({{n}})",
         "export": "Export",
-        "export_csv": "Export to CSV",
-        "export_excel": "Export Excel (.csv)",
+        "export_csv": "Export CSV",
         "print": "Print",
         "more_filters": "More filters",
         "view": "View:",
         "date": "Date:",
-        "clear_search": "Clear search"
+        "clear_search": "Clear search",
+        "export_xlsx": "Export Excel (.xlsx)",
+        "export_pdf": "Export PDF",
+        "export_failed": "The export failed. Try again."
     },
     "confirm": {
         "ok": "Confirm",
@@ -287,7 +297,9 @@
         "entered": "{{n}} digits entered",
         "clear": "Clear",
         "backspace": "Delete last digit",
-        "confirm": "Confirm"
+        "confirm": "Confirm",
+        "pad_label": "PIN pad",
+        "clear_short": "Clear"
     },
     "dashboard": {
         "title": "Executive POS Dashboard",
@@ -457,7 +469,9 @@
             "sales": "Sales",
             "customers": "Customers",
             "inventory": "Inventory",
-            "money": "Money"
+            "money": "Money",
+            "purchases": "Purchases",
+            "tax": "Tax & Compliance"
         },
         "items": {
             "sales-by-day": {
@@ -465,8 +479,8 @@
                 "desc": "Invoices, discounts, tax and net sales for every day."
             },
             "sales-by-product": {
-                "title": "Sales by product",
-                "desc": "Quantity and sales per product, with category and brand."
+                "title": "Product Sales Velocity & Margin",
+                "desc": "Units sold and returned, units per day, sales, FIFO cost of goods and gross margin per SKU."
             },
             "sales-by-user": {
                 "title": "Sales by user",
@@ -499,6 +513,42 @@
             "daily-cash": {
                 "title": "Daily cash summary",
                 "desc": "Sales, collections by method and refunds per day."
+            },
+            "discounts": {
+                "title": "Discount Report (By Cashier)",
+                "desc": "Line, group and order discounts granted per cashier with the effective discount rate. Sales do not record a discount reason yet, so there is no reason breakdown."
+            },
+            "returns-by-reason": {
+                "title": "Returns & Exchanges Rate Report",
+                "desc": "Returns per reason: quantity restocked vs written off, value, refunds and credits, share of returns and return rate against sales of the period."
+            },
+            "low-stock": {
+                "title": "Low Stock & Purchase Reorder Alert",
+                "desc": "Products at or below their reorder level, or holding less than the last 30 days of sales, with run rate, days of cover and a suggested order."
+            },
+            "dead-stock": {
+                "title": "Dead Stock Report (>90 Days Zero Sale)",
+                "desc": "Stock on hand with no sale in the last 90 days, valued at FIFO cost and retail, with the last sale date."
+            },
+            "branch-transfers": {
+                "title": "Inter-Branch Transfer Discrepancy",
+                "desc": "Dispatched vs received quantities per gate pass from the stock ledger, with the shortfall recorded at receipt."
+            },
+            "vendor-payables": {
+                "title": "Vendor Payables & Bill Statement",
+                "desc": "Open vendor bills with age, aging bucket, paid and due amounts and the vendor balance as of today."
+            },
+            "pnl": {
+                "title": "Profit & Loss (P&L) Statement",
+                "desc": "Gross sales, discounts, returns, net revenue, VAT collected, FIFO cost of goods sold and gross profit. Operational expenses follow with the money module, so the statement stops at gross profit."
+            },
+            "vat-output": {
+                "title": "VAT Output Summary (Mushak 6.3)",
+                "desc": "Per VAT rate: invoices, taxable value, output VAT, VAT reversed by returns and the net VAT payable."
+            },
+            "customers-by-area": {
+                "title": "Customers & Sales by Area",
+                "desc": "Customers, buyers, invoices, net sales and open dues by division, district or upazila."
             }
         },
         "col": {
@@ -530,13 +580,13 @@
             "sold": "Qty sold",
             "net_qty": "Net qty",
             "sales": "Sales",
-            "cogs": "Cost",
+            "cogs": "COGS",
             "user": "User",
             "average": "Average bill",
             "method": "Method",
             "type": "Type",
             "payments": "Payments",
-            "received": "Received",
+            "received": "Qty received",
             "refunded": "Refunded",
             "d30": "0-30 days",
             "d60": "31-60 days",
@@ -552,7 +602,52 @@
             "sale": "Invoice",
             "mode": "Mode",
             "reason": "Reason",
-            "credited": "Credited"
+            "credited": "Credited",
+            "discounted": "Discounted invoices",
+            "line_discounts": "Line & group discounts",
+            "order_discounts": "Order discounts",
+            "discount_bp": "Discount %",
+            "returns_count": "Returns",
+            "restocked": "Restocked",
+            "written_off": "Written off",
+            "share_bp": "Share of returns %",
+            "rate_bp": "Return rate %",
+            "velocity": "Units / day",
+            "margin_bp": "Margin %",
+            "on_hand": "On hand",
+            "reorder_level": "Reorder level",
+            "sold_30d": "Sold (30 days)",
+            "run_rate": "Run rate / day",
+            "days_cover": "Days of cover",
+            "suggested": "Suggested order",
+            "last_sold": "Last sold",
+            "idle_days": "Idle days",
+            "dispatches": "Dispatches",
+            "receipts": "Receipts",
+            "dispatched": "Qty dispatched",
+            "in_transit": "In transit",
+            "variance": "Variance",
+            "vendor": "Vendor",
+            "company": "Company",
+            "vendor_ref": "Vendor ref.",
+            "age": "Age (days)",
+            "aging": "Aging",
+            "paid": "Paid",
+            "vendor_balance": "Vendor balance",
+            "line": "Line",
+            "amount": "Amount",
+            "pct_bp": "% of net revenue",
+            "vat_rate_bp": "VAT rate",
+            "taxable": "Taxable value",
+            "vat": "Output VAT",
+            "returned_taxable": "Returned taxable value",
+            "returned_vat": "VAT reversed",
+            "net_taxable": "Net taxable value",
+            "net_vat": "Net VAT payable",
+            "area": "Area",
+            "area_bn": "Area (BN)",
+            "customers": "Customers",
+            "buyers": "Buyers in period"
         },
         "bucket": {
             "this_month": "This month",
@@ -585,24 +680,26 @@
             "brand": "Brand",
             "bucket": "Last purchased",
             "limit": "Show top",
-            "any": "All",
             "all_categories": "All categories",
             "all_brands": "All brands",
             "all_buckets": "Any last purchase",
             "limit_default": "Top 100",
-            "top_n": "Top {{n}}"
+            "top_n": "Top {{n}}",
+            "all_cashiers": "All cashiers",
+            "all_vendors": "All vendors",
+            "all_reasons": "All reasons",
+            "level": "Area level"
         },
         "export": "Export CSV",
         "export_failed": "The export failed. Try again.",
         "print": "Print",
         "total_row": "Total",
-        "no_rows": "No data for these filters.",
         "as_of": "As of today",
         "back": "All reports",
         "rows": "{{count}} rows",
         "directory": {
             "title": "Reports & Business Intelligence",
-            "subtitle": "Daily cash summary, sales, returns, dues, stock valuation and more",
+            "subtitle": "Daily cash summary, discount reports, returns by reason, and VAT Mushak 6.3",
             "period": "Report period",
             "periods": {
                 "today": "Today",
@@ -626,45 +723,33 @@
                 "tax": "Tax & Compliance"
             },
             "items": {
-                "daily_cash": {
+                "daily_cash_summary": {
                     "title": "Daily Cash Summary Report",
-                    "desc": "Sales, money collected by payment method, refunds and net cash for every day"
+                    "desc": "Complete breakdown of cash sales, collections, returns, expenses, and drawer closing cash"
                 },
-                "discounts": {
+                "discount_report": {
                     "title": "Discount Report (By Cashier & Reason)",
                     "desc": "Line, group and order discounts granted, cashier overrides, and reason breakdown"
                 },
-                "returns": {
-                    "title": "Returns & Exchanges Report",
-                    "desc": "Every return and exchange with its reason, refund and store credit"
+                "returns_by_reason": {
+                    "title": "Returns & Exchanges Rate Report",
+                    "desc": "Return rate %, reasons (Size 45%, Defect 25%), inventory restocked vs write-off"
                 },
                 "daily_sales": {
                     "title": "Daily Sales & Invoices Summary",
-                    "desc": "Invoices, gross sales, discounts, tax, returns and net sales by date"
+                    "desc": "Breakdown of gross sales, net revenue, taxes, discounts, and tender splits by date"
                 },
                 "product_sales": {
                     "title": "Product Sales Velocity & Margin",
-                    "desc": "Units sold and returned, sales, COGS and gross profit per SKU"
+                    "desc": "Units sold, COGS, gross margin % and revenue per SKU"
                 },
-                "sales_by_user": {
-                    "title": "Sales by Cashier",
-                    "desc": "Invoices and net sales per cashier"
-                },
-                "sales_by_tender": {
-                    "title": "Sales by Payment Method",
-                    "desc": "Money received and refunded by payment method"
-                },
-                "dues_aging": {
+                "due_aging": {
                     "title": "Customer Due Aging Analysis",
                     "desc": "Outstanding balances bucketed into 0-30, 31-60, 61-90 and 90+ days"
                 },
                 "top_customers": {
                     "title": "Top Customer Lifetime Value (LTV)",
                     "desc": "Highest revenue generating members and purchase frequency"
-                },
-                "last_purchase": {
-                    "title": "Customers by Last Purchase",
-                    "desc": "Who has not bought for one, two, three or more months"
                 },
                 "stock_valuation": {
                     "title": "FIFO Stock Valuation Ledger",
@@ -678,35 +763,73 @@
                     "title": "Dead Stock Report (>90 Days Zero Sale)",
                     "desc": "Unmoved capital with markdown recommendations"
                 },
-                "transfers": {
+                "branch_transfer": {
                     "title": "Inter-Branch Transfer Discrepancy",
-                    "desc": "Dispatched vs received quantities with in-transit variance"
+                    "desc": "Dispatched vs received quantities with in-transit variance, from the stock ledger"
                 },
                 "vendor_payables": {
                     "title": "Vendor Payables & Bill Statement",
                     "desc": "Unpaid vendor invoices, terms and upcoming payment dues"
                 },
-                "pnl": {
+                "pnl_statement": {
                     "title": "Profit & Loss (P&L) Statement",
-                    "desc": "Net revenue minus COGS minus operational expenses"
+                    "desc": "Net revenue minus COGS; operational expenses follow with the money module"
                 },
-                "vat": {
+                "vat_mushak": {
                     "title": "VAT Output Summary (Mushak 6.3)",
                     "desc": "Auditable VAT breakdown for National Board of Revenue (NBR)"
+                },
+                "sales_by_user": {
+                    "title": "Sales by Cashier",
+                    "desc": "Invoices and net sales per cashier"
+                },
+                "sales_by_tender": {
+                    "title": "Sales by Payment Method",
+                    "desc": "Money received and refunded by payment method"
+                },
+                "returns_detail": {
+                    "title": "Returns & Exchanges Detail",
+                    "desc": "Every return and exchange with its reason, refund and store credit"
+                },
+                "last_purchase": {
+                    "title": "Customers by Last Purchase",
+                    "desc": "Who has not bought for one, two, three or more months"
+                },
+                "customers_by_area": {
+                    "title": "Customers & Sales by Area",
+                    "desc": "Customers, sales and dues by division, district or upazila"
                 }
-            }
+            },
+            "more": "More reports",
+            "all_categories": "All",
+            "category_filter": "Report category"
         },
         "search": "Search rows…",
-        "total_label": "Total ({{n}})"
+        "total_label": "Total ({{n}})",
+        "pnl": {
+            "gross_sales": "Gross sales",
+            "discounts": "Discounts",
+            "other": "Shipping & rounding",
+            "returns": "Returns (ex VAT)",
+            "net_revenue": "Net revenue",
+            "vat_collected": "VAT collected (memo)",
+            "cogs": "Cost of goods sold (FIFO)",
+            "gross_profit": "Gross profit"
+        },
+        "level": {
+            "division": "By division",
+            "district": "By district",
+            "upazila": "By upazila"
+        }
     },
     "sms": {
         "nav_settings": "SMS",
-        "nav_messages": "Messages",
         "save": "Save SMS settings",
         "settings": {
-            "title": "SMS settings",
-            "subtitle": "Choose the SMS provider and the messages customers receive.",
-            "hub_title": "SMS & Messaging Gateway"
+            "title": "Messaging Providers",
+            "subtitle": "Choose the SMS and WhatsApp providers and the messages customers receive.",
+            "hub_title": "SMS & WhatsApp Messaging Gateways",
+            "queue_worker": "SMS go out through the background queue: messages stay Queued until a queue worker is running on the server. Keep one running (for example under Supervisor) with"
         },
         "provider": {
             "title": "Provider",
@@ -755,7 +878,8 @@
         "status": {
             "queued": "Queued",
             "sent": "Sent",
-            "failed": "Failed"
+            "failed": "Failed",
+            "handoff": "Opened in WhatsApp"
         },
         "log": {
             "title": "Messages",
@@ -763,7 +887,7 @@
             "all_statuses": "All statuses",
             "resend": "Send again",
             "empty": "No messages yet",
-            "empty_hint": "Sent and failed SMS appear here.",
+            "empty_hint": "Queued, sent, opened-in-WhatsApp and failed messages appear here. A message stays Queued until the queue worker sends it.",
             "col": {
                 "time": "Time",
                 "customer": "Customer",
@@ -773,25 +897,28 @@
                 "status": "Status",
                 "channel": "Channel",
                 "cost": "Cost"
-            }
+            },
+            "all_channels": "All channels",
+            "view_default": "Default (all messages)",
+            "view_whatsapp": "WhatsApp dispatches",
+            "view_sms": "SMS gateway dispatches"
         },
         "hub": {
             "title": "Customer Messaging",
-            "subtitle": "Send SMS to customers, reuse your templates and check the delivery log",
+            "subtitle": "WhatsApp Business API, bulk SMS gateway, templates and the delivery log",
             "tabs": "Messaging sections",
             "tab_composer": "Composer & Dispatch",
             "tab_templates": "Templates Library",
             "tab_scheduled": "Scheduled",
             "tab_log": "Message Log",
-            "tab_settings": "SMS Settings",
+            "tab_settings": "Messaging Settings",
             "next_phase": "Next phase",
-            "whatsapp_soon": "WhatsApp: next phase",
             "gateway": "SMS gateway: {{driver}}",
             "composer_title": "Dispatch campaign composer",
             "not_configured": "No SMS provider is set up, so nothing can be sent yet.",
-            "open_settings": "Open SMS settings",
+            "open_settings": "Open Messaging Providers",
             "channel": "Delivery channel",
-            "whatsapp": "WhatsApp Business",
+            "whatsapp": "WhatsApp Business API",
             "sms": "SMS",
             "target": "Recipient target",
             "target_due": "Bulk: all customers with a due ({{n}})",
@@ -815,7 +942,7 @@
             "send_one": "Send message now",
             "send_many": "Send to {{n}} customers",
             "confirm_title": "Send this SMS?",
-            "confirm_body": "{{n}} customer(s) will get {{parts}} SMS part(s) each. Estimated cost {{amount}}. Messages cannot be recalled.",
+            "confirm_body": "{{n}} customer(s) with a valid mobile number will get {{parts}} SMS part(s) each. Estimated cost {{amount}}. Messages cannot be recalled.",
             "sample_name": "Rahim Uddin",
             "sample_due": "1,200.00",
             "sample_number": "1000 0017",
@@ -823,7 +950,6 @@
             "no_phone": "No mobile number",
             "clear_customer": "Choose another customer",
             "preview_title": "Live recipient phone preview",
-            "preview_label": "Message preview: {{text}}",
             "preview_sender": "SMS",
             "preview_empty": "Your message appears here",
             "preview_now": "now",
@@ -832,7 +958,70 @@
             "templates_hint": "The automatic messages from SMS settings; load one into the composer to send it by hand.",
             "tpl_auto_on": "Automatic: on",
             "tpl_auto_off": "Automatic: off",
-            "use_template": "Use in composer"
+            "use_template": "Use in composer",
+            "sent_banner": "Sending to {{n}} customer(s). The messages appear in the SMS log as they go out."
+        },
+        "whatsapp": {
+            "preview_last_invoice": "INV-0001",
+            "opened": "WhatsApp opened for {{name}}. Press Send in WhatsApp to deliver the message.",
+            "queued": "{{n}} WhatsApp message(s) queued ({{skipped}} skipped). They show in the message log as they go out.",
+            "send_failed": "The WhatsApp message could not be sent.",
+            "send": "Send WhatsApp Reminder",
+            "send_thanks": "Send WhatsApp Thanks",
+            "send_all": "Send to all {{n}} customers (বকেয়া তাগাদা পাঠান)",
+            "bulk_title": "Bulk WhatsApp: {{n}} due customers",
+            "bulk_due": "Total overdue: {{amount}}",
+            "target": "Dispatch target:",
+            "single": "Single ({{name}})",
+            "bulk_all": "Bulk all ({{n}} customers)",
+            "bulk_needs_api": "WhatsApp click-to-chat opens one chat at a time. Sending to many customers at once needs the WhatsApp Business Cloud API.",
+            "not_configured": "No WhatsApp provider is set up. Choose click-to-chat (works today, no account) or the Cloud API in Messaging Providers.",
+            "insert_tags": "Insert tags:",
+            "text": "WhatsApp message",
+            "text_ph": "Type the WhatsApp reminder message…",
+            "preview_for": "Preview for {{name}}:",
+            "open_link": "The browser blocked the new tab: open WhatsApp here",
+            "reminder": "Send WhatsApp Reminder",
+            "bulk_reminder": "Send bulk WhatsApp reminder",
+            "thanks": "Send WhatsApp Thanks",
+            "status": {
+                "connected": "WhatsApp Business connected",
+                "click_to_chat": "WhatsApp: click-to-chat",
+                "log": "WhatsApp: log only",
+                "incomplete": "WhatsApp: credentials missing",
+                "off": "WhatsApp not configured"
+            },
+            "composer_no_cost": "WhatsApp messages have no per-part SMS cost; Meta bills per conversation on your Business account.",
+            "composer_click_single": "Click-to-chat opens one chat in a new tab, so only the Single target can be used. Choose the Cloud API for bulk sends.",
+            "composer_handoff": "Opens WhatsApp in a new tab with the text ready to send.",
+            "confirm_title": "Send this WhatsApp message?",
+            "confirm_body": "{{n}} customer(s) with a valid mobile number will get this WhatsApp message. Messages cannot be recalled."
+        },
+        "whatsapp_settings": {
+            "title": "WhatsApp provider",
+            "hint": "Click-to-chat needs no account: it opens the customer chat in your own WhatsApp with the text ready. The Cloud API sends from your WhatsApp Business number in the background.",
+            "label": "WhatsApp provider",
+            "status": "Status",
+            "phone_number_id": "Phone number ID (Cloud API)",
+            "token": "Permanent access token",
+            "token_kept": "A token is saved. Leave blank to keep it.",
+            "token_clear": "Remove the saved token",
+            "template_name": "Approved template name (optional)",
+            "template_hint": "Lower-case name of an approved utility template whose body is a single {{1}} parameter. Without it, messages go as free text (only within 24 hours of the customer writing to you).",
+            "template_language": "Template language code",
+            "test_title": "Send a test WhatsApp message",
+            "test_hint": "Uses the saved WhatsApp settings. Save first if you changed them.",
+            "test_send": "Send test WhatsApp"
+        },
+        "whatsapp_driver": {
+            "null": "None (WhatsApp off)",
+            "click_to_chat": "Click-to-chat (wa.me link, no account)",
+            "log": "Log only (testing)",
+            "meta_cloud": "WhatsApp Business Cloud API (Meta)"
+        },
+        "channel": {
+            "sms": "SMS",
+            "whatsapp": "WhatsApp"
         }
     },
     "customers": {
@@ -854,7 +1043,7 @@
             "balance": "Balance / Due",
             "last_purchase": "Last purchase",
             "card": "Card Status",
-            "location": "Area & Address",
+            "location": "District & Upazila",
             "credit_limit": "Credit Limit",
             "pin": "PIN Status"
         },
@@ -862,12 +1051,9 @@
             "group": "Group",
             "all_groups": "All Groups",
             "card": "Card",
-            "card_any": "Any card status",
             "card_yes": "Active Cards Only",
             "card_no": "No active card / Lost",
             "balance": "Balance",
-            "balance_any": "Any balance",
-            "balance_due": "Owes money",
             "status": "Status",
             "active": "Active",
             "inactive": "Inactive"
@@ -881,7 +1067,11 @@
             "deactivate": "Deactivate",
             "print_card": "Print customer card",
             "view_profile": "View customer profile",
-            "sms": "SMS"
+            "sms": "SMS",
+            "whatsapp": "WhatsApp",
+            "set_pin": "Set security PIN",
+            "reset_pin": "Reset PIN",
+            "unlock_pin": "Unlock PIN"
         },
         "deactivate": {
             "title": "Deactivate this customer?",
@@ -898,7 +1088,6 @@
             "none": "No customer found"
         },
         "form": {
-            "identity": "Identity",
             "name": "Name",
             "name_bn": "Name in Bangla",
             "shop_name": "Shop name",
@@ -907,7 +1096,6 @@
             "open_existing": "Open existing",
             "alt_phone": "Alternate phone",
             "email": "Email",
-            "account": "Account",
             "group": "Group",
             "no_group": "No group",
             "credit_limit": "Credit limit",
@@ -915,7 +1103,6 @@
             "address_line": "Address",
             "area": "Area",
             "post_code": "Post code",
-            "dates": "Dates and notes",
             "dob": "Date of birth",
             "anniversary": "Anniversary",
             "notes": "Notes",
@@ -994,7 +1181,11 @@
             "card": "Physical / Digital Card",
             "card_all": "All Card States",
             "clear": "Clear All Filters",
-            "apply": "Apply Filters"
+            "apply": "Apply Filters",
+            "district": "District",
+            "district_all": "All districts",
+            "pin": "Security PIN Status",
+            "pin_all": "All PIN States"
         },
         "dialog": {
             "new_title": "New Customer Registration — নতুন গ্রাহক নিবন্ধন",
@@ -1016,9 +1207,9 @@
             "email": "Email Address",
             "email_ph": "customer@example.com (Optional)",
             "section_address": "2. Customer Address & Delivery Details (ঠিকানা ও ডেলিভারি বিবরণ)",
-            "address_hint": "Area / Upazila · Post code",
-            "area": "Area / Upazila / Thana",
-            "area_ph": "e.g. Kalai, Joypurhat",
+            "address_hint": "Hierarchical Division → District → Upazila",
+            "area": "Area / Market / Para",
+            "area_ph": "e.g. Kalai Bazar (Optional)",
             "post_code": "Postal Code",
             "post_code_ph": "e.g. 1230",
             "street": "Street Address / Village / Holding No",
@@ -1043,8 +1234,6 @@
             "shop": "Shop:",
             "address": "Address:",
             "address_title": "Customer Address & Delivery Details (ঠিকানা ও ডেলিভারি বিবরণ)",
-            "verified": "✓ Verified Address",
-            "unverified": "Address not verified",
             "identity_title": "Identity, Membership & Credit Limits",
             "group": "Membership Group",
             "primary_phone": "Primary Mobile",
@@ -1060,14 +1249,16 @@
             "due_pending": "Due Pending: {{amount}}",
             "settled": "Settled",
             "paid_of": "{{date}} · Paid {{paid}} of {{total}}",
-            "pay_due": "Pay Due"
+            "pay_due": "Pay Due",
+            "address_verified": "✓ Verified Address",
+            "address_unverified": "Address not verified",
+            "address_none": "No address yet",
+            "primary_whatsapp": "Primary WhatsApp"
         },
         "kpi": {
             "lifetime": "Lifetime Spend (LTV)",
-            "after_returns": "after {{amount}} returns",
             "visits": "Total Store Visits",
             "visits_value": "{{n}} visits",
-            "last_visit": "last {{date}}",
             "due": "Outstanding Due",
             "advance": "advance (store credit)",
             "credit": "Credit Utilisation",
@@ -1080,19 +1271,42 @@
             "title": "Send the account summary by SMS?",
             "body": "This month's invoices, paid and due go to {{phone}}.",
             "send": "Send SMS"
+        },
+        "search_short": "Name, phone, no.",
+        "pin_status": {
+            "set": "Set",
+            "pending": "Pending",
+            "locked": "Locked"
+        },
+        "pin": {
+            "set_title": "Set security PIN: {{name}}",
+            "set_hint": "Turn the screen to the customer. They choose a 4–6 digit PIN and type it twice; the digits stay hidden.",
+            "choose": "Choose a 4–6 digit PIN",
+            "repeat": "Enter the same PIN again",
+            "save": "Save PIN",
+            "mismatch": "The two entries do not match. Start again.",
+            "reset_title": "Reset PIN: {{name}}",
+            "reset_hint": "Clears the current PIN and any lock. The customer sets a new PIN at the next visit, or chooses one now.",
+            "unlock_title": "Unlock PIN: {{name}}",
+            "unlock_hint": "Lifts the 30-minute lock early. The PIN stays as it is.",
+            "reason": "Reason",
+            "reason_placeholder": "e.g. customer forgot the PIN, identity checked",
+            "new_pin_now": "Let the customer choose a new PIN now",
+            "reset_action": "Reset PIN",
+            "unlock_action": "Unlock",
+            "status_set": "Active ({{n}}-digit)",
+            "status_pending": "Not set",
+            "status_locked": "Locked until {{time}}",
+            "set_on": "Set {{date}}"
         }
     },
     "cards": {
         "title": "Membership cards",
         "search": "Search card, customer or phone",
-        "empty": "No cards issued",
-        "empty_hint": "Issue a card from a customer's profile or from the customers list.",
         "col": {
             "code": "Card code",
             "status": "Status",
-            "issued": "Issued",
-            "prints": "Prints",
-            "last_printed": "Last printed"
+            "issued": "Issued"
         },
         "status": {
             "active": "Active",
@@ -1220,7 +1434,9 @@
             "gallery_title": "Selected cards ({{count}})",
             "gallery_card": "Card of {{name}}, {{side}}",
             "reveal": "Reveal number"
-        }
+        },
+        "prepare_failed": "The cards could not be prepared. Check your connection and permissions, then try again.",
+        "popup_blocked": "The print window was blocked. Allow pop-ups for this site, then print again."
     },
     "common": {
         "actions": "Actions",
@@ -1248,7 +1464,6 @@
         "search": "Search name, SKU or barcode",
         "empty": "No products yet",
         "empty_hint": "Add your first product, or change the filters.",
-        "col_name": "Product",
         "col_sku": "SKU",
         "col_barcode": "Barcode",
         "col_category": "Category",
@@ -1270,7 +1485,6 @@
         "copy_barcode": "Copy barcode",
         "delete_title": "Delete this product?",
         "delete_hint": "A product with sales or stock history is deactivated instead of deleted.",
-        "identity": "Identity",
         "name": "Name",
         "name_bn": "Name (Bangla)",
         "sku": "SKU",
@@ -1282,27 +1496,19 @@
         "type": "Type",
         "type_standard": "Stocked product",
         "type_service": "Service",
-        "classification": "Classification",
-        "unit": "Unit",
         "tax": "Tax rate",
-        "default_vendor": "Default vendor",
-        "prices": "Prices",
         "min_sale_price": "Lowest allowed sale price",
         "min_sale_price_hint": "Sales below this need a manager override.",
         "min_sale_qty": "Minimum sale quantity",
-        "stock_section": "Stock",
         "track_stock": "Track stock for this product",
         "reorder_level": "Reorder level",
-        "reorder_hint": "Low-stock alerts start at or below this. 0 means not monitored.",
         "service_hint": "Services are not stocked.",
-        "image_section": "Image and notes",
         "description": "Description",
         "remove_image": "Remove image",
         "variants": "Sizes and colours",
         "variants_hint": "Pick an option and tick its values. A product is created for every combination.",
         "has_variants": "Has variants",
         "family_code": "Style code",
-        "family_code_hint": "Variant SKUs are built from this code.",
         "option_first": "First option",
         "option_second": "Second option",
         "option_none": "None",
@@ -1401,17 +1607,13 @@
     "categories": {
         "title": "Categories",
         "new": "New category",
-        "empty": "No categories yet",
         "parent": "Parent",
         "products": "Products",
-        "delete_title": "Delete this category?",
         "delete_hint": "If products use it, it is deactivated instead of deleted."
     },
     "brands": {
         "title": "Brands",
-        "new": "New brand",
-        "empty": "No brands yet",
-        "delete_title": "Delete this brand?"
+        "new": "New brand"
     },
     "vendors": {
         "title": "Vendors",
@@ -1473,7 +1675,59 @@
         "ordered_7d": "Ordered in 7 days",
         "ordered_30d": "Ordered in 30 days",
         "ordered_90d": "Ordered in 90 days",
-        "ordered_idle_90d": "No order in 90 days"
+        "ordered_idle_90d": "No order in 90 days",
+        "profile_sub": "Vendor Code: {{code}} · Hub: {{hub}} · Contact: {{contact}}",
+        "back": "Back to Vendors",
+        "new_po": "New Purchase Order (GRN)",
+        "pay_allocation": "Pay Vendor (Bill Allocation)",
+        "export_statement": "Export Statement",
+        "kpi_purchases_ytd": "Total Purchases YTD",
+        "kpi_shipments": "{{count}} delivered shipments",
+        "kpi_paid": "Disbursed Payments",
+        "kpi_paid_note": "All payments to this vendor",
+        "kpi_payable": "Outstanding Payable",
+        "kpi_open_bills": "{{count}} unpaid / partial bills",
+        "kpi_no_open_bills": "No open bills",
+        "kpi_advance": "Paid in advance",
+        "kpi_terms": "Payment Terms",
+        "kpi_terms_value": "Pay on receipt",
+        "kpi_terms_note": "Last purchase: {{date}}",
+        "tab_info": "Vendor Profile & Contact",
+        "tab_purchases": "Purchases & Bills (GRN)",
+        "tab_payments": "Payment Disbursements",
+        "tab_statement": "Statement Ledger",
+        "registration": "Supplier Registration Details",
+        "legal_name": "Legal Trade Name",
+        "company": "Company",
+        "mobile": "Mobile / Phone",
+        "email_address": "Email Address",
+        "hub_address": "Factory / Warehouse / Hub",
+        "notes_terms": "Notes & Trading Terms",
+        "no_notes": "No notes recorded for this vendor.",
+        "purchases_title": "Purchase Inward Bills & GRN Ledger",
+        "purchases_sub": "Inventory bills received from {{name}}",
+        "col_grn": "GRN #",
+        "col_branch": "Store Branch",
+        "col_bill_total": "Bill Total",
+        "col_paid": "Paid Amount",
+        "col_balance_due": "Balance Due",
+        "payments_title": "Supplier Disbursements & Receipts",
+        "payments_sub": "Payment history with bill allocation breakdown",
+        "col_voucher": "Voucher #",
+        "col_method": "Payment Method",
+        "col_amount_paid": "Amount Paid",
+        "col_allocated": "Allocated to Bills",
+        "col_reference": "Bank Reference #",
+        "no_payments": "No payments to this vendor yet.",
+        "statement_title": "Vendor Statement Ledger",
+        "statement_sub": "Bills and payments in date order with the running balance",
+        "col_particulars": "Particulars",
+        "col_debit": "Bill",
+        "col_credit": "Payment",
+        "col_running": "Running Balance",
+        "no_statement": "No bills or payments yet.",
+        "unallocated": "On account",
+        "all_branches_note": "All branches"
     },
     "purchases": {
         "title": "Purchases",
@@ -1483,7 +1737,6 @@
         "empty_hint": "Receive stock from a vendor to see it here.",
         "all_vendors": "All vendors",
         "all_statuses": "All statuses",
-        "all_payments": "All payments",
         "col_number": "Number",
         "col_date": "Date",
         "col_total": "Total",
@@ -1539,14 +1792,72 @@
         "view_default": "Default (All Purchases)",
         "view_unpaid": "Unpaid Vendor Bills",
         "all_branches": "All Branches",
-        "export_selected": "Export Inward Bills"
+        "export_selected": "Export Inward Bills",
+        "detail_title": "Purchase & GRN Details",
+        "grn_label": "GOODS RECEIVED NOTE (GRN)",
+        "grn_no": "GRN No",
+        "receiving_branch": "Receiving Branch",
+        "bill_ref": "Vendor Bill Ref",
+        "supplier": "Supplier / Vendor",
+        "vendor_phone": "Phone",
+        "vendor_balance": "Vendor payable balance",
+        "open_vendor": "Open vendor profile",
+        "kpi_total_bill": "Total Landed Bill",
+        "kpi_paid_amount": "Paid Amount",
+        "kpi_outstanding": "Outstanding Vendor Due",
+        "kpi_received_qty": "Items Received",
+        "kpi_lines": "{{n}} line items",
+        "received_lines": "Received Product Line Items",
+        "total_pcs": "Total: {{qty}} pcs",
+        "col_hash": "#",
+        "col_product_desc": "Product Description",
+        "col_variant": "Variant / Fit",
+        "col_retail": "Retail MRP",
+        "stock_keeper": "Stock Keeper",
+        "signature": "Authorized Signature",
+        "inspection_note": "Goods inspected, verified against the supplier invoice, and entered into active inventory.",
+        "freight": "Transport & Freight",
+        "bill_valuation": "Bill Valuation",
+        "goods_value": "Total Goods Value",
+        "payment_settlement": "Payment & Settlement",
+        "fully_paid": "Fully Paid",
+        "balance_due": "Balance Due",
+        "print_grn": "Print GRN Voucher",
+        "batches_hint": "FIFO batches this GRN put on the shelf",
+        "col_batch": "Batch",
+        "col_received_remaining": "Received / Remaining",
+        "imported_batches": "Imported from the legacy POS: the stock of this bill was booked as opening batches during the migration, so it has no GRN batches of its own.",
+        "cancelled_batches": "Cancelled: the stock this GRN added was removed again.",
+        "payment_allocations": "Payments allocated to this bill",
+        "no_payments": "No payment allocated yet.",
+        "col_payment": "Payment",
+        "col_reference": "Reference",
+        "new_title": "New Purchase & Goods Received Note (GRN)",
+        "new_subtitle": "Add the vendor bill, receive line items into this branch's stock, and record the landed cost",
+        "vendor_required": "Vendor Supplier *",
+        "vendor_search": "Type to search vendors…",
+        "vendor_none": "No vendor matches.",
+        "vendor_clear": "Clear vendor",
+        "bill_no": "Vendor Bill / Challan #",
+        "bill_no_ph": "e.g. INV-HL-9924",
+        "grn_date": "GRN Date",
+        "add_items": "Add Product Items to Purchase Batch",
+        "add_items_hint": "Scanning or picking a product loads its current cost and retail price",
+        "grn_items": "GRN Items List ({{items}} items · {{qty}} pcs total)",
+        "grn_items_hint": "Verify physical counts against the vendor packing slip",
+        "no_items": "No items added yet. Scan a barcode or search a product above to add it to this purchase.",
+        "landed_costs": "Landed Overhead Costs",
+        "grand_total": "Grand Landed Cost",
+        "immediate_paid": "Immediate Paid Amount",
+        "margin": "+{{pct}}% Margin",
+        "back": "Back to Purchases",
+        "receive_hint_keys": "Ctrl+Enter saves the GRN · F2 focuses the scanner"
     },
     "stock": {
         "title": "Stock",
         "branch": "Branch: {{name}}",
         "on_hand": "On hand",
         "value": "Stock value",
-        "valuation": "Total stock value",
         "all": "All stock",
         "empty": "No stocked products",
         "movements": "Stock movements",
@@ -1593,7 +1904,85 @@
         "moved_7d": "Moved in 7 days",
         "moved_30d": "Moved in 30 days",
         "moved_90d": "Moved in 90 days",
-        "moved_idle_90d": "No movement in 90 days"
+        "moved_idle_90d": "No movement in 90 days",
+        "avg_cost": "avg",
+        "avg_cost_hint": "No cost price on the product: weighted average cost of the stock on hand"
+    },
+    "transfers": {
+        "title": "Branch Transfers",
+        "subtitle": "Gate passes sent from this branch and stock arriving at it",
+        "new": "New Branch Transfer",
+        "search": "Search gate pass number",
+        "empty": "No transfers yet",
+        "empty_hint": "Send stock to another branch from the stock list or with New Branch Transfer.",
+        "all_statuses": "All statuses",
+        "all_directions": "Incoming & outgoing",
+        "incoming": "Incoming",
+        "outgoing": "Outgoing",
+        "incoming_count": "{{count}} awaiting receipt",
+        "col_number": "Gate Pass #",
+        "col_date": "Dispatched",
+        "col_route": "From → To",
+        "col_direction": "Direction",
+        "col_lines": "Lines",
+        "col_received": "Received",
+        "col_product": "Product",
+        "status": {
+            "draft": "Draft",
+            "in_transit": "In transit",
+            "received": "Received",
+            "cancelled": "Cancelled"
+        },
+        "create_title": "Inter-Branch Stock Transfer",
+        "create_subtitle": "Dispatch a gate pass: stock leaves this branch now and is counted as in transit until the destination receives it",
+        "item": "Item to Transfer",
+        "items": "Items to Transfer",
+        "from_branch": "From Branch",
+        "to_branch": "To Branch",
+        "qty": "Transfer Quantity (pcs)",
+        "note": "Gate Pass Dispatch Note",
+        "note_placeholder": "e.g. Replenishment for weekend rush",
+        "scan_hint": "Scan a barcode or search a product to transfer.",
+        "generate": "Generate Gate Pass",
+        "no_destination": "No other active branch to send to. Add a branch under Settings → Branches.",
+        "dispatched_at": "Dispatched",
+        "received_at": "Received",
+        "by": "by {{name}}",
+        "col_sent": "Qty Sent",
+        "col_qty_received": "Qty Received",
+        "col_unit_cost": "Unit Cost",
+        "col_short": "Shortfall / Reason",
+        "receive_title": "Receive at {{branch}}",
+        "receive_hint": "Enter the quantity actually received per line. A short receipt needs a reason.",
+        "short_reason": "Reason for shortfall",
+        "short_reason_placeholder": "e.g. One carton damaged in transit",
+        "receive": "Receive Transfer",
+        "receive_elsewhere": "In transit to {{branch}}. Switch to that branch to receive it.",
+        "receive_pending": "Awaiting receipt at {{branch}}.",
+        "short_by": "Short by {{qty}}",
+        "back": "Back to Transfers",
+        "col_sku": "SKU",
+        "col_on_hand": "On-hand at Source",
+        "col_qty": "Qty",
+        "col_total": "Total",
+        "gate_pass": "Gate Pass Summary",
+        "summary_lines": "Line items",
+        "summary_pcs": "Total pieces",
+        "summary_value": "Stock value (cost)",
+        "summary_route": "Route",
+        "exceeds": "Exceeds the quantity on hand",
+        "document_title": "INTER-BRANCH STOCK TRANSFER — GATE PASS",
+        "origin": "Origin Branch",
+        "destination": "Destination Branch",
+        "sent_by": "Dispatched by",
+        "received_by": "Received by",
+        "signature_sender": "Sender signature",
+        "signature_receiver": "Receiver signature",
+        "print": "Print Gate Pass",
+        "col_line_value": "Line Value",
+        "totals_sent": "Total sent",
+        "totals_received": "Total received",
+        "dispatch_pending": "Awaiting receipt"
     },
     "adjustments": {
         "title": "Stock adjustments",
@@ -1617,7 +2006,21 @@
             "correction": "Correction",
             "stocktake": "Stocktake",
             "other": "Other"
-        }
+        },
+        "create_title": "Stock Adjustment",
+        "create_subtitle": "Write off damaged, lost or found stock; every line is audited against the ledger",
+        "item": "Item",
+        "col_on_hand": "Current On-Hand",
+        "col_change": "Qty (−/+)",
+        "col_new_qty": "New On-Hand",
+        "col_unit_cost": "Unit Cost",
+        "col_net_value": "Net Value",
+        "net_total": "Net stock value change",
+        "lines_count": "{{n}} lines",
+        "note_ph": "e.g. Two pieces stained in the trial room",
+        "back": "Back to Adjustments",
+        "qty_hint": "Remove takes stock off the shelf, Add puts it back",
+        "below_zero": "Removes more than is on hand"
     },
     "admin": {
         "actions": "Actions",
@@ -1658,7 +2061,119 @@
         "subtitle": "Tamper-proof event logs for discount overrides, price modifications, drawer kicks and voids",
         "terminal": "Terminal / IP",
         "details_col": "Auditable Details",
-        "all_actions": "All Actions"
+        "all_actions": "All Actions",
+        "events": {
+            "created": "Created",
+            "updated": "Updated",
+            "deleted": "Deleted",
+            "legacy_import": "Legacy import",
+            "branch": {
+                "created": "Branch created",
+                "updated": "Branch updated"
+            },
+            "brand": {
+                "created": "Brand created",
+                "updated": "Brand updated",
+                "deactivated": "Brand deactivated",
+                "deleted": "Brand deleted"
+            },
+            "card": {
+                "issued": "Card issued",
+                "lost": "Card reported lost",
+                "printed": "Card printed",
+                "reissued": "Card reissued"
+            },
+            "category": {
+                "created": "Category created",
+                "updated": "Category updated",
+                "deactivated": "Category deactivated",
+                "deleted": "Category deleted"
+            },
+            "customer": {
+                "created": "Customer created",
+                "updated": "Customer updated",
+                "deactivated": "Customer deactivated",
+                "merged": "Customers merged"
+            },
+            "payment": {
+                "collected": "Payment collected"
+            },
+            "payment_method": {
+                "created": "Payment method created",
+                "updated": "Payment method updated"
+            },
+            "pin": {
+                "reset": "PIN reset",
+                "set": "PIN set",
+                "locked": "PIN locked",
+                "unlocked": "PIN unlocked"
+            },
+            "pos": {
+                "backdate": "Backdated sale",
+                "customer_pin_override": "Customer PIN override",
+                "discount_override": "Discount override",
+                "price_override": "Price override",
+                "sell_below_cost": "Sold below cost"
+            },
+            "product": {
+                "created": "Product created",
+                "updated": "Product updated",
+                "deactivated": "Product deactivated",
+                "deleted": "Product deleted",
+                "attached_to_family": "Product added to family",
+                "detached_from_family": "Product removed from family"
+            },
+            "product_family": {
+                "created": "Product family created",
+                "updated": "Product family updated",
+                "variants_generated": "Variants generated"
+            },
+            "register": {
+                "created": "Register created",
+                "updated": "Register updated"
+            },
+            "role": {
+                "created": "Role created",
+                "updated": "Role updated",
+                "deleted": "Role deleted"
+            },
+            "sale": {
+                "completed": "Sale completed",
+                "credit_limit_override": "Credit limit override",
+                "exchanged": "Sale exchanged",
+                "receipt_shared": "Receipt shared",
+                "returned": "Sale returned",
+                "voided": "Sale voided"
+            },
+            "settings": {
+                "business_updated": "Business settings updated",
+                "logo_updated": "Logo updated"
+            },
+            "sms": {
+                "ad_hoc_none": "SMS with no recipients",
+                "broadcast_queued": "SMS broadcast queued",
+                "broadcast_sent": "SMS broadcast sent",
+                "settings_updated": "SMS settings updated"
+            },
+            "tax_rate": {
+                "created": "Tax rate created",
+                "updated": "Tax rate updated"
+            },
+            "unit": {
+                "created": "Unit created",
+                "updated": "Unit updated"
+            },
+            "user": {
+                "created": "User created",
+                "updated": "User updated",
+                "deactivated": "User deactivated",
+                "password_changed": "Password changed"
+            },
+            "variant_option": {
+                "created": "Variant option created",
+                "updated": "Variant option updated"
+            }
+        }
     },
     "branches": {
         "title": "Branches",
@@ -1682,7 +2197,6 @@
     "business": {
         "title": "Business settings",
         "code_is": "Business code for sign-in:",
-        "section_profile": "Business profile",
         "section_regional": "Language, time and currency",
         "section_sales": "Sales rules",
         "name": "Business name",
@@ -1702,9 +2216,7 @@
         "offline_credit_cap": "Offline credit cap",
         "offline_credit_hint": "Most credit a register may give while offline. 0 blocks it.",
         "pin_policy": "Customer PIN",
-        "pin_always": "Always ask",
-        "pin_credit_only": "Only for credit sales",
-        "pin_off": "Never ask",
+        "pin_off": "Off — never ask for a PIN",
         "section_logo": "Logo",
         "logo": "Business logo",
         "logo_hint": "PNG, JPG or WebP, up to 2 MB. Shown at sign-in, in the top bar, on receipts and on membership cards.",
@@ -1723,8 +2235,11 @@
         "sales_hint": "Return window, back-dating, VAT pricing and customer credit.",
         "tax_inclusive_hint": "When on, shelf prices already include VAT.",
         "credit_terms": "Customer due & credit terms",
-        "pin_section": "Customer PIN Policy",
-        "pin_section_hint": "When a customer must enter their PIN at the register."
+        "pin_section": "Customer Security PIN Policy",
+        "pin_section_hint": "Prevent unauthorized customer due additions and fraudulent loyalty reward claims",
+        "pin_optional": "Optional — ask members who have a PIN; skipping is allowed",
+        "pin_required": "Required — every member sale needs the PIN or a manager override",
+        "pin_policy_hint": "The customer types the PIN on the register pad; digits are never shown or stored on devices."
     },
     "login": {
         "title": "Log in",
@@ -1812,7 +2327,8 @@
             "users": "Users",
             "settings": "Settings",
             "audit": "Audit",
-            "branches": "Branches"
+            "branches": "Branches",
+            "sms": "WhatsApp & SMS"
         },
         "perm": {
             "dashboard_view": "See the dashboard",
@@ -1863,7 +2379,12 @@
             "branches_switch": "Switch branch",
             "users_manage": "Manage users and roles",
             "settings_manage": "Manage settings",
-            "audit_view": "View the audit log"
+            "audit_view": "View the audit log",
+            "customers_export": "Export the customer list (CSV)",
+            "sms_view": "See the WhatsApp & SMS hub and message log",
+            "sms_send": "Send, resend and preview SMS",
+            "backup_view": "See the backup history",
+            "backup_run": "Run backups and download archives"
         },
         "matrix_title": "Permissions matrix",
         "permission_area": "Permission area"
@@ -1891,13 +2412,11 @@
         "login": "Sign-in",
         "roles": "Roles",
         "branches": "Branches",
-        "last_login": "Last sign-in",
         "never": "Never",
         "empty": "No users yet.",
         "deactivate": "Deactivate",
         "deactivate_title": "Deactivate user",
         "deactivate_body": "They are signed out on their next action and can no longer log in. Their history stays.",
-        "section_person": "Person and sign-in",
         "login_hint": "Give at least one of email, username or phone.",
         "username": "Username",
         "password": "Password",
@@ -1954,7 +2473,8 @@
             "up": "Previous bill line",
             "down": "Next bill line",
             "collect_due": "Collect due of the attached customer",
-            "browse": "Browse catalogue"
+            "browse": "Browse catalogue",
+            "member_pin": "Verify / set the member PIN"
         },
         "scan": {
             "placeholder": "Scan barcode, SKU or type a product name (F2)",
@@ -2059,16 +2579,42 @@
             "title": "Quantity: {{name}}"
         },
         "discount": {
-            "line_title": "Discount: {{name}}",
-            "bill_title": "Bill discount",
+            "line_title": "Line Item Discount (F6)",
+            "bill_title": "Order / Bill Discount (Shift+F6)",
+            "bill_subject": "Entire order / bill",
             "base": "On {{amount}}",
             "mode": "Discount type",
+            "tab_percent": "% Percent",
+            "tab_amount": "৳ Amount",
+            "tab_set_price": "Set price",
             "percent": "Percent",
             "amount": "Amount",
+            "quick": "Quick select:",
+            "quick_hotkey": "Quick discount percent",
+            "entry_percent": "Discount percentage (%)",
+            "entry_amount": "Discount amount (BDT)",
+            "entry_unit_price": "New fixed selling price (BDT)",
+            "entry_bill_total": "New bill total (BDT)",
+            "reason": "Reason for discount",
+            "reason_required": "* Required (> {{pct}} %)",
+            "reason_other": "Specify custom reason",
+            "reason_other_hint": "e.g. Owner authorised discount",
+            "reasons": {
+                "seasonal_promo": "Seasonal / Eid promo",
+                "customer_courtesy": "Customer courtesy",
+                "clearance": "Clearance sale",
+                "defect": "Fabric defect / stained",
+                "bulk": "Bulk purchase",
+                "manager_special": "Manager special approval",
+                "other": "Other"
+            },
+            "on": "On",
+            "discount": "Discount",
+            "new_total": "New total",
             "preview": "Discount {{amount}} ({{pct}} %)",
-            "over_cap": "Above your limit of {{pct}} %. A manager must approve it before you take payment.",
+            "over_cap": "Manager approval required (above your limit of {{pct}} %). Approve before taking payment.",
             "over_cap_pay": "A discount is above your limit; the sale needs a manager's approval.",
-            "apply": "Apply"
+            "apply": "Apply discount"
         },
         "pay": {
             "title": "Payment & Due Settlement",
@@ -2158,7 +2704,8 @@
             "price_mismatch": "The server's total differed from the screen; the sale was saved and flagged."
         },
         "errors": {
-            "network": "No connection to the server. Try again: the same bill is never charged twice."
+            "network": "No connection to the server. Try again: the same bill is never charged twice.",
+            "generic": "Something went wrong. Try again."
         },
         "close": "Close",
         "price_check": "Price Check",
@@ -2179,6 +2726,39 @@
             "pay": "PAY",
             "hint": "Cash, Card, MFS or Due Sale",
             "items": "{{count}} items"
+        },
+        "pin": {
+            "title": "Security PIN Verification",
+            "customer": "Customer: {{name}}",
+            "enter": "Please enter your PIN",
+            "choose": "Choose a 4–6 digit PIN",
+            "repeat": "Enter the same PIN again",
+            "verify": "Verify PIN",
+            "save": "Save PIN",
+            "verified": "PIN Verified Successfully!",
+            "wrong": "Wrong PIN! Attempts left: {{n}}",
+            "locked": "PIN locked for 30 minutes after too many wrong tries.",
+            "locked_hint": "A manager can unlock it from the customer profile, or override this sale.",
+            "too_many": "Too many tries. Wait a minute and try again.",
+            "mismatch": "The two entries do not match. Start again.",
+            "set_done": "PIN saved. Now enter it once to verify.",
+            "set_failed": "The PIN could not be saved.",
+            "offer": "This member has no security PIN yet. Set one now? The customer types it twice on the pad.",
+            "set_now": "Set PIN now",
+            "skip": "Continue without PIN",
+            "walk_in": "Continue as walk-in",
+            "override": "Manager override",
+            "forgot": "Forgot the PIN? Ask a manager to override or reset it.",
+            "no_customer": "Attach a customer first (F4).",
+            "policy_off": "The customer PIN policy is off for this business.",
+            "required_to_pay": "This member must enter their PIN (or a manager must override) before paying.",
+            "action": "Member PIN",
+            "chip_verified": "✓ PIN",
+            "chip_override": "Override by {{name}}",
+            "chip_locked": "PIN locked",
+            "chip_not_set": "PIN not set",
+            "chip_skipped": "PIN skipped",
+            "chip_unverified": "PIN not verified"
         }
     },
     "sales": {
@@ -2187,9 +2767,7 @@
         "sale": "Sale",
         "search": "Search invoice no., customer, shop or phone (/)",
         "all_statuses": "All statuses",
-        "all_payments": "All payment states",
         "all_cashiers": "All cashiers",
-        "clear_dates": "Clear dates",
         "clear_customer": "Remove customer filter {{name}}",
         "col_number": "Invoice",
         "col_date": "Date",
@@ -2239,7 +2817,6 @@
         "courier": "Courier",
         "breakdown": "Payment breakdown",
         "subtotal": "Subtotal",
-        "item_discounts": "Item discounts",
         "order_discount": "Order discount",
         "shipping": "Shipping",
         "rounding": "Rounding",
@@ -2334,7 +2911,6 @@
     },
     "returns": {
         "title": "Returns & exchanges",
-        "subtitle": "Goods taken back from this branch's sales, with how each was settled.",
         "return": "Return",
         "new": "New return",
         "new_exchange": "New exchange",
@@ -2392,7 +2968,6 @@
         "customer_gets": "Customer gets back",
         "estimate_hint": "The server values the return exactly (discounts and VAT) when you save.",
         "pay_difference": "Pay the difference",
-        "surplus": "Surplus",
         "save": "Save return",
         "save_exchange": "Save exchange",
         "replacement_items": "Replacement items",
@@ -2471,18 +3046,19 @@
         "settle_exchange": "Direct item exchange",
         "settle_exchange_hint": "Use the value for replacement items (opens the exchange screen).",
         "ledger_title": "Returns & exchanges ledger",
-        "ledger_subtitle": "Audit log of customer returns, size exchanges, defect write-offs and refund methods"
+        "ledger_subtitle": "Audit log of customer returns, size exchanges, defect write-offs and refund methods",
+        "even_exchange": "Even exchange",
+        "give_back_as": "Give the difference back as",
+        "give_back_refund": "Refund by {{method}}"
     },
     "dues": {
         "title": "Dues",
-        "subtitle": "Customers who owe this branch, by age of the invoice.",
         "search": "Search customer, shop, number or phone (/)",
         "all_buckets": "All ages",
         "bucket_d0_30": "0–30 days",
         "bucket_d31_60": "31–60 days",
         "bucket_d61_90": "61–90 days",
         "bucket_d90_plus": "90+ days",
-        "kpi_total": "Total due · {{n}} customers",
         "col_phone": "Phone",
         "col_invoices": "Invoices",
         "col_total": "Total due",
@@ -2490,7 +3066,6 @@
         "empty": "No open dues",
         "empty_hint": "Everyone has paid up.",
         "open_hint": "Dues are collected in the branch that made the sale.",
-        "see_partial": "See partly paid sales",
         "back": "Back to dues",
         "collect": "Collect payment",
         "collect_from": "Collect from {{name}}",
@@ -2508,8 +3083,6 @@
         "pick_invoice": "Apply to {{number}}",
         "invoice": "Invoice",
         "due": "Due",
-        "applied": "Applied",
-        "allocated": "Applied to invoices",
         "advance": "Advance",
         "credit_limit": "Credit limit {{limit}} · balance {{balance}}",
         "open_invoices": "Open invoices",
@@ -2557,7 +3130,10 @@
         "ledger_title": "Due collection ledger",
         "ledger_subtitle": "Active debtors with the credit limit meter, overdue aging and settlement",
         "collect_row": "Collect (Ctrl+D)",
-        "more_fields": "More (reference, note)"
+        "more_fields": "More (reference, note)",
+        "whatsapp_reminder": "Send WhatsApp Reminder",
+        "whatsapp_bulk": "Send bulk reminder",
+        "whatsapp_thanks": "Send WhatsApp Thanks"
     },
     "auth": {
         "tagline": "Point of sale",
@@ -2632,5 +3208,148 @@
             "units": "How quantities are counted and shown",
             "payment_methods": "Cash, mobile wallets, cards and customer credit"
         }
+    },
+    "help": {
+        "title": "User manual",
+        "subtitle": "How to use every part of the app. Describes the {{describes}}.",
+        "search": "Search the manual",
+        "contents": "Contents",
+        "no_results": "Nothing found",
+        "no_results_hint": "Try another word, or pick a chapter from the list.",
+        "results": "{{count}} matching sections"
+    },
+    "location": {
+        "division": "Division",
+        "district": "District",
+        "upazila": "Upazila / Thana",
+        "union": "Union / Ward",
+        "post_code": "Postal Code",
+        "post_code_ph": "e.g. 1230",
+        "search_ph": "Type to search…",
+        "hierarchy": "Hierarchical Division → District → Upazila",
+        "none": "No match",
+        "loading": "Searching…",
+        "clear": "Clear {{field}}",
+        "results": "{{count}} options, use the arrow keys",
+        "metro": "Metro thana",
+        "unverified": "Location not verified (parsed from the old address)"
+    },
+    "backup": {
+        "title": "Backup & Disaster Recovery",
+        "subtitle": "Encrypted database and file archives of this installation, on local disk and cloud storage",
+        "run_now": "Backup Database Now",
+        "archiving": "Archiving Snapshot...",
+        "progress_title": "Creating database snapshot and file archive...",
+        "progress_hint": "This page refreshes itself; you can keep working elsewhere.",
+        "history": "Archived Snapshots",
+        "filename": "Filename",
+        "size": "Size",
+        "timestamp": "Timestamp",
+        "destination": "Storage Destination",
+        "status_col": "Status",
+        "duration": "Duration",
+        "triggered_by": "Triggered by",
+        "actions": "Actions",
+        "download": "Download",
+        "cloud_only": "Cloud archive",
+        "scheduled": "Nightly schedule",
+        "manual": "Manual",
+        "system": "System",
+        "empty": "No backups yet. Run the first one now.",
+        "status": {
+            "queued": "Queued",
+            "running": "Running",
+            "completed": "Success",
+            "failed": "Failed"
+        },
+        "policy_title": "Schedule & retention",
+        "policy_schedule": "Daily at {{time}} ({{tz}})",
+        "policy_retention": "Archives are kept for {{days}} days",
+        "policy_disks": "Destinations: {{disks}}",
+        "policy_encrypted": "Encrypted archive (BACKUP_ARCHIVE_PASSWORD)",
+        "policy_unencrypted": "Not encrypted: set BACKUP_ARCHIVE_PASSWORD on the server",
+        "policy_files": "Database dump + uploaded files (logos, product photos, card exports)",
+        "policy_db_only": "Database dump only",
+        "scope_note": "One archive holds every business of this installation. Owners see the shared history; only Owners with backup permission can start a run or download an archive.",
+        "export_title": "Complete Database Export",
+        "export_desc": "Download offline portable backup containing all sales, ledger entries, and audit logs",
+        "export_latest": "Download latest archive",
+        "seconds": "{{n}} s",
+        "minutes": "{{n}} min"
+    },
+    "platform": {
+        "title": "SaaS Multi-Tenant Platform Console",
+        "badge": "SUPER ADMIN",
+        "subtitle": "Tenant provisioning, suspension, Owner sign-in and infrastructure health",
+        "provision": "Provision New Tenant",
+        "kpi_tenants": "Active Shop Tenants",
+        "kpi_tenants_value": "{{n}} shops",
+        "kpi_tenants_note": "{{suspended}} suspended · {{total}} total",
+        "kpi_users": "Active Staff Accounts",
+        "kpi_users_note": "Across every business",
+        "kpi_gmv": "Platform Aggregate GMV (30d)",
+        "kpi_gmv_note": "{{n}} completed sales, net of returns",
+        "kpi_storage": "Uploaded Files Storage",
+        "kpi_storage_note": "Logos, product photos and card exports",
+        "registry": "Registered Shop Tenants (Tenancy Registry)",
+        "registry_desc": "Shared database with row-level tenant isolation; each business has its own branches, staff and sequences",
+        "tenant": "Tenant / Shop",
+        "slug": "Slug",
+        "contact": "Contact",
+        "branches": "Branches",
+        "branches_n": "{{n}} branches",
+        "users": "Users",
+        "last_activity": "Last activity",
+        "created": "Created",
+        "status_col": "Status",
+        "actions": "Actions",
+        "never": "Never",
+        "access": "Access",
+        "suspend": "Suspend",
+        "resume": "Resume",
+        "suspend_title": "Suspend {{name}}?",
+        "suspend_desc": "Every user of this business is signed out on their next request and cannot sign in until it is resumed. Data is kept.",
+        "resume_title": "Resume {{name}}?",
+        "resume_desc": "Users can sign in again immediately.",
+        "impersonate_title": "Sign in as the Owner of {{name}}?",
+        "impersonate_desc": "You will act as the business's Owner for up to 60 minutes. The action is recorded in the business's audit log.",
+        "impersonating": "Impersonating {{user}} at {{tenant}}",
+        "impersonation_until": "ends at {{time}}",
+        "exit_impersonation": "Exit",
+        "access_title": "Sign in as Owner",
+        "empty": "No businesses yet. Provision the first tenant.",
+        "status": {
+            "active": "Active",
+            "suspended": "Suspended"
+        },
+        "dialog_title": "Onboard New Shop Tenant",
+        "dialog_desc": "Creates the business with a Main branch, register R1, system tenders, a Piece unit, the five system roles and the walk-in customer, then mails the Owner a temporary password.",
+        "field_name": "Shop / Brand Name",
+        "field_slug": "Slug (sign-in business code)",
+        "field_slug_hint": "Lowercase letters, digits and dashes; derived from the name when left empty. Permanent.",
+        "field_owner_name": "Owner Name",
+        "field_owner_email": "Owner Email (invitation)",
+        "field_owner_phone": "Owner Phone (optional)",
+        "field_timezone": "Timezone",
+        "field_locale": "Language",
+        "create": "Create tenant",
+        "health_title": "Platform Cloud Infrastructure Health",
+        "health_db": "Database",
+        "health_db_ok": "Connected",
+        "health_db_down": "Unreachable",
+        "health_queue": "Queue",
+        "health_queue_pending": "{{n}} pending",
+        "health_queue_failed": "{{n}} failed",
+        "health_queue_unknown": "Pending count unavailable",
+        "health_cache": "Cache",
+        "health_backup": "Last backup",
+        "health_backup_none": "No completed backup yet",
+        "health_backup_disks": "Destinations: {{disks}}",
+        "health_backup_encrypted": "encrypted",
+        "health_backup_unencrypted": "not encrypted",
+        "health_disk": "Disk (storage volume)",
+        "health_disk_free": "{{free}} free of {{total}}",
+        "health_disk_unknown": "Unavailable",
+        "driver": "driver: {{name}}"
     }
 }

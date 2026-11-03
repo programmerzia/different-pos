@@ -11,7 +11,12 @@ export type ScanProduct = {
     sku: string;
     barcode: string | null;
     track_stock: boolean;
+    /** Paisa; 0 when the user may not see costs. */
     cost_price: number;
+    /** Paisa. */
+    sale_price: number;
+    /** Milli-units on hand at the current branch. */
+    on_hand: number;
 };
 
 type Result = { exact: boolean; products: ScanProduct[] };

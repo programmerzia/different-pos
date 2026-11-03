@@ -8,13 +8,14 @@ use App\Models\Branch;
 use App\Models\User;
 use App\Reports\ReportContract;
 use App\Reports\ReportParameters;
+use App\Support\Export\ExportFormat;
 use App\Support\Sales\BusinessDay;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Query string of a report page / export: `from`, `to` (YYYY-MM-DD, tenant days), `branch`
+ * Query string of a report page / export: `format` (export only), `from`, `to` (YYYY-MM-DD, tenant days), `branch`
  * (`current`, `all` or a branch id) and the report's own filters. Without reports.all_branches the
  * branch is always the current one.
  */
@@ -33,12 +34,19 @@ final class ReportRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'format' => ['nullable', 'string', ExportFormat::rule()],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
             'branch' => ['nullable', 'string', 'max:10'],
             'filter' => ['nullable', 'array'],
             'filter.*' => ['nullable', 'string', 'max:40'],
         ];
+    }
+
+    /** `format` = csv (default) | xlsx | pdf, for the export route. */
+    public function exportFormat(): ExportFormat
+    {
+        return ExportFormat::fromInput($this->input('format'));
     }
 
     public function parameters(ReportContract $report): ReportParameters

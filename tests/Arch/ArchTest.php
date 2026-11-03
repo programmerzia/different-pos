@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Branch\BranchSelectController;
-use App\Http\Controllers\Platform\PlatformHomeController;
+use App\Http\Controllers\Help\HelpController;
 use App\Http\Controllers\Sales\PublicReceiptController;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +44,7 @@ it('authorizes in every public controller action', function (): void {
     // Placeholders that need no permission, with the reason: they only expose the caller's own data / are guarded by route middleware.
     $exempt = [
         BranchSelectController::class, // lists only the caller's own branches
-        PlatformHomeController::class, // platform.admin middleware
+        HelpController::class, // static user manual, readable by every signed-in tenant user
         PublicReceiptController::class, // public by design: the random receipt token is the credential
     ];
     $skipDirs = ['Auth', 'Settings']; // starter-kit controllers act on the caller's own account

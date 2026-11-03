@@ -4,16 +4,16 @@ import {
     fireEvent,
     render,
     screen,
-} from '@testing-library/react';
-import { useState } from 'react';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vite-plus/test';
-import { CustomerDialog } from '@/components/customers/customer-dialog';
-import { HotkeyHost } from '@/hotkeys/host';
-import { i18n } from '@/i18n';
-import type { CustomerDetail, GroupOption } from '@/types/customers';
+} from "@testing-library/react";
+import { useState } from "react";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vite-plus/test";
+import { CustomerDialog } from "@/components/customers/customer-dialog";
+import { HotkeyHost } from "@/hotkeys/host";
+import { i18n } from "@/i18n";
+import type { CustomerDetail, GroupOption } from "@/types/customers";
 
 type Visit = {
-    method: 'post' | 'put';
+    method: "post" | "put";
     url: string;
     data: Record<string, unknown>;
 };
@@ -26,8 +26,8 @@ const visits: Visit[] = [];
 let nextErrors: Record<string, string> | null = null;
 
 // A small stand-in for Inertia's useForm: state, isDirty, errors, and recorded submissions.
-vi.mock('@inertiajs/react', async () => {
-    const react = await vi.importActual<typeof import('react')>('react');
+vi.mock("@inertiajs/react", async () => {
+    const react = await vi.importActual<typeof import("react")>("react");
 
     return {
         Link: ({
@@ -43,7 +43,7 @@ vi.mock('@inertiajs/react', async () => {
                 {},
             );
             const submit =
-                (method: 'post' | 'put') =>
+                (method: "post" | "put") =>
                 (url: string, options: FormOptions) => {
                     visits.push({ method, url, data });
                     if (nextErrors) {
@@ -61,48 +61,70 @@ vi.mock('@inertiajs/react', async () => {
                 isDirty: JSON.stringify(data) !== JSON.stringify(initial),
                 setData: (key: keyof T, value: unknown) =>
                     setAll((d) => ({ ...d, [key]: value })),
-                post: submit('post'),
-                put: submit('put'),
+                post: submit("post"),
+                put: submit("put"),
             };
         },
     };
 });
 
-vi.mock('@/lib/api', () => ({
-    apiRequest: vi.fn(async () => ({
-        existing: {
-            uuid: 'u-9',
-            name: 'Already Here',
-            shop_name: null,
-            customer_no: '1000 0017',
-            phone: '+8801711111111',
-        },
-    })),
+vi.mock("@/lib/api", () => ({
+    apiRequest: vi.fn(async (url: string) => {
+        if (url.startsWith("/app/api/geo/")) {
+            return {
+                version: "t",
+                results: [],
+                divisions: [],
+                districts: [],
+                upazilas: [],
+                unions: [],
+                post_codes: [],
+            };
+        }
+
+        return {
+            existing: {
+                uuid: "u-9",
+                name: "Already Here",
+                shop_name: null,
+                customer_no: "1000 0017",
+                phone: "+8801711111111",
+            },
+        };
+    }),
 }));
 
 const groups: GroupOption[] = [
-    { id: 1, name: 'Retail', discount_bp: 0 },
-    { id: 2, name: 'VIP Wholesale', discount_bp: 1000 },
+    { id: 1, name: "Retail", discount_bp: 0 },
+    { id: 2, name: "VIP Wholesale", discount_bp: 1000 },
 ];
 
 const existing: CustomerDetail = {
-    uuid: 'c-1',
-    customer_no: '1000 0025',
-    name: 'Rahim Uddin',
-    name_bn: 'রহিম উদ্দিন',
-    shop_name: 'Moon Store',
-    phone: '+8801711234567',
+    uuid: "c-1",
+    customer_no: "1000 0025",
+    name: "Rahim Uddin",
+    name_bn: "রহিম উদ্দিন",
+    shop_name: "Moon Store",
+    phone: "+8801711234567",
     alt_phone: null,
     email: null,
     customer_group_id: 2,
-    group: 'VIP Wholesale',
+    group: "VIP Wholesale",
     group_discount_bp: 1000,
     credit_limit: 1000000,
     balance: 0,
-    address_line: 'Holding 42',
-    area: 'Kalai',
-    post_code: '5930',
+    address_line: "Holding 42",
+    area: "Kalai",
+    post_code: "5930",
+    geo_division_id: null,
+    geo_district_id: null,
+    geo_upazila_id: null,
+    geo_union_id: null,
+    location: { division: null, district: null, upazila: null, union: null },
     location_verified: false,
+    pin_status: "pending",
+    pin_set_at: null,
+    pin_locked_until: null,
     dob: null,
     anniversary_date: null,
     notes: null,
@@ -118,7 +140,7 @@ function Harness({ customer = null }: { customer?: CustomerDetail | null }) {
     return (
         <>
             <HotkeyHost />
-            <span data-testid="state">{open ? 'open' : 'closed'}</span>
+            <span data-testid="state">{open ? "open" : "closed"}</span>
             <CustomerDialog
                 open={open}
                 customer={customer}
@@ -131,7 +153,7 @@ function Harness({ customer = null }: { customer?: CustomerDetail | null }) {
 
 const t = (key: string): string => i18n.t(key);
 const field = (key: string) =>
-    screen.getByLabelText(new RegExp(`^${t(key).replace(/[()]/g, '\\$&')}`));
+    screen.getByLabelText(new RegExp(`^${t(key).replace(/[()]/g, "\\$&")}`));
 
 beforeAll(() => {
     globalThis.ResizeObserver ??= class {
@@ -147,133 +169,133 @@ afterEach(() => {
     nextErrors = null;
 });
 
-describe('CustomerDialog', () => {
-    it('renders the mockup sections in order with shop name next to the name', () => {
+describe("CustomerDialog", () => {
+    it("renders the mockup sections in order with shop name next to the name", () => {
         render(<Harness />);
         const headings = screen
-            .getAllByRole('heading', { level: 3 })
+            .getAllByRole("heading", { level: 3 })
             .map((h) => h.textContent);
         expect(headings).toEqual([
-            t('customers.dialog.section_identity'),
-            t('customers.dialog.section_address'),
-            t('customers.dialog.section_credit'),
-            t('customers.dialog.section_dates'),
+            t("customers.dialog.section_identity"),
+            t("customers.dialog.section_address"),
+            t("customers.dialog.section_credit"),
+            t("customers.dialog.section_dates"),
         ]);
         const inputs = Array.from(
-            document.querySelectorAll('#customer-form [name]'),
-        ).map((el) => el.getAttribute('name'));
+            document.querySelectorAll("#customer-form [name]"),
+        ).map((el) => el.getAttribute("name"));
         expect(inputs.slice(0, 4)).toEqual([
-            'name',
-            'name_bn',
-            'shop_name',
-            'phone',
+            "name",
+            "name_bn",
+            "shop_name",
+            "phone",
         ]);
-        expect(screen.getByRole('dialog')).toHaveProperty('textContent');
-        expect(document.activeElement?.getAttribute('name')).toBe('name');
+        expect(screen.getByRole("dialog")).toHaveProperty("textContent");
+        expect(document.activeElement?.getAttribute("name")).toBe("name");
     });
 
-    it('saves a new customer with Ctrl+Enter and closes', () => {
+    it("saves a new customer with Ctrl+Enter and closes", () => {
         render(<Harness />);
-        fireEvent.change(field('customers.dialog.name_en'), {
-            target: { value: 'Asif Mahmud' },
+        fireEvent.change(field("customers.dialog.name_en"), {
+            target: { value: "Asif Mahmud" },
         });
-        fireEvent.change(field('customers.dialog.phone'), {
-            target: { value: '01711234567' },
+        fireEvent.change(field("customers.dialog.phone"), {
+            target: { value: "01711234567" },
         });
-        fireEvent.keyDown(field('customers.dialog.phone'), {
-            key: 'Enter',
+        fireEvent.keyDown(field("customers.dialog.phone"), {
+            key: "Enter",
             ctrlKey: true,
         });
 
         expect(visits).toHaveLength(1);
         expect(visits[0]).toMatchObject({
-            method: 'post',
-            url: '/app/customers',
-            data: { name: 'Asif Mahmud', phone: '01711234567' },
+            method: "post",
+            url: "/app/customers",
+            data: { name: "Asif Mahmud", phone: "01711234567" },
         });
-        expect(screen.getByTestId('state').textContent).toBe('closed');
+        expect(screen.getByTestId("state").textContent).toBe("closed");
     });
 
-    it('updates an existing customer and shows the group discount', () => {
+    it("updates an existing customer and shows the group discount", () => {
         render(<Harness customer={existing} />);
         expect(
-            (field('customers.dialog.discount') as HTMLInputElement).value,
-        ).toBe('10%');
-        fireEvent.change(field('customers.dialog.group'), {
-            target: { value: '1' },
+            (field("customers.dialog.discount") as HTMLInputElement).value,
+        ).toBe("10%");
+        fireEvent.change(field("customers.dialog.group"), {
+            target: { value: "1" },
         });
         expect(
-            (field('customers.dialog.discount') as HTMLInputElement).value,
-        ).toBe('0%');
+            (field("customers.dialog.discount") as HTMLInputElement).value,
+        ).toBe("0%");
         fireEvent.click(
-            screen.getByRole('button', { name: t('customers.form.save') }),
+            screen.getByRole("button", { name: t("customers.form.save") }),
         );
 
         expect(visits[0]).toMatchObject({
-            method: 'put',
-            url: '/app/customers/c-1',
-            data: { customer_group_id: '1', shop_name: 'Moon Store' },
+            method: "put",
+            url: "/app/customers/c-1",
+            data: { customer_group_id: "1", shop_name: "Moon Store" },
         });
     });
 
-    it('shows server errors inline and the duplicate-phone owner, staying open', async () => {
+    it("shows server errors inline and the duplicate-phone owner, staying open", async () => {
         nextErrors = {
-            phone: 'This phone number already belongs to Already Here.',
+            phone: "This phone number already belongs to Already Here.",
         };
         render(<Harness />);
-        fireEvent.change(field('customers.dialog.name_en'), {
-            target: { value: 'Copy' },
+        fireEvent.change(field("customers.dialog.name_en"), {
+            target: { value: "Copy" },
         });
-        fireEvent.change(field('customers.dialog.phone'), {
-            target: { value: '01711111111' },
+        fireEvent.change(field("customers.dialog.phone"), {
+            target: { value: "01711111111" },
         });
         await act(async () => {
             fireEvent.click(
-                screen.getByRole('button', { name: t('customers.form.save') }),
+                screen.getByRole("button", { name: t("customers.form.save") }),
             );
         });
 
         expect(
             screen.getByText(
-                'This phone number already belongs to Already Here.',
+                "This phone number already belongs to Already Here.",
             ),
         ).toBeTruthy();
         expect(
-            field('customers.dialog.phone').getAttribute('aria-invalid'),
-        ).toBe('true');
+            field("customers.dialog.phone").getAttribute("aria-invalid"),
+        ).toBe("true");
         expect(
-            await screen.findByRole('link', {
-                name: t('customers.form.open_existing'),
+            await screen.findByRole("link", {
+                name: t("customers.form.open_existing"),
             }),
-        ).toHaveProperty('href', expect.stringContaining('/app/customers/u-9'));
-        expect(screen.getByTestId('state').textContent).toBe('open');
+        ).toHaveProperty("href", expect.stringContaining("/app/customers/u-9"));
+        expect(screen.getByTestId("state").textContent).toBe("open");
     });
 
-    it('closes on Esc when untouched but asks first when there are changes', async () => {
+    it("closes on Esc when untouched but asks first when there are changes", async () => {
         const { unmount } = render(<Harness />);
         fireEvent.keyDown(document.activeElement ?? document.body, {
-            key: 'Escape',
+            key: "Escape",
         });
-        expect(screen.getByTestId('state').textContent).toBe('closed');
+        expect(screen.getByTestId("state").textContent).toBe("closed");
         unmount();
 
         render(<Harness />);
-        fireEvent.change(field('customers.dialog.name_en'), {
-            target: { value: 'Half typed' },
+        fireEvent.change(field("customers.dialog.name_en"), {
+            target: { value: "Half typed" },
         });
-        fireEvent.keyDown(field('customers.dialog.name_en'), { key: 'Escape' });
-        expect(screen.getByTestId('state').textContent).toBe('open');
+        fireEvent.keyDown(field("customers.dialog.name_en"), { key: "Escape" });
+        expect(screen.getByTestId("state").textContent).toBe("open");
         expect(
-            await screen.findByText(t('customers.dialog.discard_title')),
+            await screen.findByText(t("customers.dialog.discard_title")),
         ).toBeTruthy();
         await act(async () => {
             fireEvent.click(
-                screen.getByRole('button', {
-                    name: t('customers.dialog.discard'),
+                screen.getByRole("button", {
+                    name: t("customers.dialog.discard"),
                 }),
             );
         });
-        expect(screen.getByTestId('state').textContent).toBe('closed');
+        expect(screen.getByTestId("state").textContent).toBe("closed");
         expect(visits).toHaveLength(0);
     });
 });

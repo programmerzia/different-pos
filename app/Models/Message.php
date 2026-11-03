@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\MessageChannel;
 use App\Enums\MessageStatus;
 use App\Models\Concerns\BelongsToTenant;
 use Database\Factories\MessageFactory;
@@ -13,11 +14,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * An SMS in the send log.
+ * An SMS or WhatsApp message in the send log.
  *
  * @property int $id
  * @property int $tenant_id
  * @property int|null $customer_id
+ * @property MessageChannel $channel
  * @property string $phone
  * @property string $body
  * @property string $driver
@@ -39,7 +41,7 @@ final class Message extends Model
     use HasFactory;
 
     protected $fillable = [
-        'customer_id', 'phone', 'body', 'driver', 'status', 'provider_ref', 'error', 'sent_at', 'event',
+        'customer_id', 'channel', 'phone', 'body', 'driver', 'status', 'provider_ref', 'error', 'sent_at', 'event',
         'related_type', 'related_id',
     ];
 
@@ -52,6 +54,7 @@ final class Message extends Model
     protected function casts(): array
     {
         return [
+            'channel' => MessageChannel::class,
             'status' => MessageStatus::class,
             'sent_at' => 'datetime',
         ];

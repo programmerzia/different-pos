@@ -162,8 +162,9 @@ describe('customer lookup', function (): void {
         expect($this->getJson('/app/api/pos/customers?q=Secret')->json('customers'))->toBe([]);
 
         $card = $this->getJson('/app/api/pos/customers/'.$rahim->uuid)->assertOk()->json('customer');
-        expect($card)->toMatchArray(['id' => $rahim->id, 'balance' => 0, 'advance' => 0, 'credit_limit' => null])
-            ->and(json_encode($card))->not->toContain('pin');
+        // PIN *state* only (04_TRD §3.9 customers-min: has_pin / pin_locked), never the hash.
+        expect($card)->toMatchArray(['id' => $rahim->id, 'balance' => 0, 'advance' => 0, 'credit_limit' => null, 'pin_status' => 'set'])
+            ->and(json_encode($card))->not->toContain('pin_hash');
     });
 
     it('404s for another tenant\'s customer and for the walk-in', function (): void {

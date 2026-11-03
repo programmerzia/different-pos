@@ -64,7 +64,7 @@ describe('directoryCards', async () => {
             'daily-cash',
             'returns',
         ]);
-        expect(cards.find((c) => c.id === 'vat')?.built).toBe(false);
+        expect(cards.find((c) => c.id === 'vat_mushak')?.built).toBe(false);
     });
 
     it('never hides a report the catalogue does not know', () => {

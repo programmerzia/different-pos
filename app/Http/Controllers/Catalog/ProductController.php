@@ -21,8 +21,14 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Models\VariantOption;
 use App\Models\Vendor;
+use App\Reports\ColumnType;
+use App\Reports\ReportColumn;
+use App\Reports\ReportResult;
 use App\Support\Catalog\ProductPresenter;
 use App\Support\Database\Transaction;
+use App\Support\Export\ExportFormat;
+use App\Support\Export\ExportMeta;
+use App\Support\Export\TabularExport;
 use App\Support\Http\TableQuery;
 use App\Support\Money\Money;
 use App\Support\Quantity\Quantity;
@@ -33,11 +39,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class ProductController extends Controller
 {
@@ -93,12 +101,7 @@ final class ProductController extends Controller
         $user = $this->actor($request);
         $canCost = $user->can('products.view_cost');
 
-        $table = TableQuery::fromRequest(
-            $request,
-            sortable: ['name', 'sku', 'barcode', 'sale_price', 'on_hand', ...($canCost ? ['cost_price'] : [])],
-            filterable: ['category', 'brand', 'status', 'stock', 'added'],
-            defaultSort: 'name',
-        );
+        $table = $this->table($request, $canCost);
 
         $filtered = $this->filtered($table);
         $page = $table->paginate((clone $filtered)
@@ -138,6 +141,87 @@ final class ProductController extends Controller
             'brands' => Brand::query()->orderBy('name')->get(['id', 'name']),
             'canViewCost' => $canCost,
         ];
+    }
+
+    private function table(Request $request, bool $canCost): TableQuery
+    {
+        return TableQuery::fromRequest(
+            $request,
+            sortable: ['name', 'sku', 'barcode', 'sale_price', 'on_hand', ...($canCost ? ['cost_price'] : [])],
+            filterable: ['category', 'brand', 'status', 'stock', 'added'],
+            defaultSort: 'name',
+        );
+    }
+
+    /** GET /app/products/export.{csv|xlsx|pdf}: the filtered list (same query string as the page). */
+    public function export(Request $request, string $format, TabularExport $export): HttpResponse|StreamedResponse
+    {
+        $this->authorize('viewAny', Product::class);
+        $user = $this->actor($request);
+        $canCost = $user->can('products.view_cost');
+        $table = $this->table($request, $canCost);
+        $tz = $this->context->tenant()->timezone;
+        $branches = $this->stockColumns->branchesFor($user);
+
+        $filtered = $this->filtered($table);
+        $query = (clone $filtered)
+            ->selectRaw('products.*, COALESCE(branch_stocks.qty_on_hand, 0) AS on_hand')
+            ->with(['category:id,name'])
+            ->orderBy('products.name')->orderBy('products.id');
+
+        $columns = [
+            new ReportColumn('sku', 'SKU', ColumnType::Text),
+            new ReportColumn('barcode', 'Barcode', ColumnType::Text),
+            new ReportColumn('name', 'Product name', ColumnType::Text),
+            new ReportColumn('name_bn', 'Name BN', ColumnType::Text),
+            new ReportColumn('category', 'Category', ColumnType::Text),
+        ];
+        if ($canCost) {
+            $columns[] = new ReportColumn('cost_price', 'Cost price', ColumnType::Money);
+        }
+        $columns[] = new ReportColumn('sale_price', 'Retail price', ColumnType::Money);
+        foreach ($branches as $i => $branch) {
+            $columns[] = new ReportColumn('stock_'.$i, 'Stock ('.$branch->name.')', ColumnType::Qty);
+        }
+
+        $rows = [];
+        $sale = 0;
+        $cost = 0;
+        foreach ($query->lazy(500)->chunk(500) as $chunk) {
+            /** @var list<Product> $products */
+            $products = $chunk->values()->all();
+            $stock = $this->stockColumns->onHand(array_map(static fn (Product $p): int => $p->id, $products), $branches);
+            foreach ($products as $p) {
+                $sale += $p->sale_price->paisa;
+                $cost += $p->cost_price->paisa;
+                $row = [
+                    'sku' => (string) $p->sku, 'barcode' => (string) $p->barcode, 'name' => $p->name, 'name_bn' => (string) $p->name_bn,
+                    'category' => (string) $p->category?->name, 'sale_price' => $p->sale_price->paisa,
+                ];
+                if ($canCost) {
+                    $row['cost_price'] = $p->cost_price->paisa;
+                }
+                foreach ($branches as $i => $_) {
+                    $row['stock_'.$i] = $p->track_stock ? ($stock[$p->id][$i] ?? 0) : null;
+                }
+                $rows[] = $row;
+            }
+        }
+
+        $totals = ['sale_price' => $sale];
+        if ($canCost) {
+            $totals['cost_price'] = $cost;
+        }
+        foreach ($this->stockColumns->totals($filtered, $branches) as $i => $milli) {
+            $totals['stock_'.$i] = $milli;
+        }
+
+        return $export->respond(
+            new ReportResult($columns, $rows, $totals),
+            ExportFormat::from($format),
+            'products-'.now($tz)->format('Ymd-His'),
+            ExportMeta::for($this->context, 'Products'),
+        );
     }
 
     /**

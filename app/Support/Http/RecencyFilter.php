@@ -8,12 +8,13 @@ use Carbon\CarbonImmutable;
 
 /**
  * The list toolbars' "Date:" recency presets (stock: last movement, vendors: last order): `today`,
- * `7d`, `30d`, `90d` (activity since the start of that business day) and `idle_90d` (no activity in
- * the last 90 days). Anything else means no filter.
+ * `7d`, `30d`, `90d`, `year` (activity since the start of that business day / of the local calendar
+ * year) and `idle_90d` (no activity in the last 90 days), all in the tenant timezone. Anything else
+ * means no filter.
  */
 final class RecencyFilter
 {
-    public const array KEYS = ['today', '7d', '30d', '90d', 'idle_90d'];
+    public const array KEYS = ['today', '7d', '30d', '90d', 'year', 'idle_90d'];
 
     /**
      * @return array{0: CarbonImmutable, 1: bool}|null the UTC cut-off and whether activity must be on/after it
@@ -27,6 +28,7 @@ final class RecencyFilter
             '7d' => [$today->subDays(7), true],
             '30d' => [$today->subDays(30), true],
             '90d' => [$today->subDays(90), true],
+            'year' => [$today->startOfYear(), true],
             'idle_90d' => [$today->subDays(90), false],
             default => null,
         };

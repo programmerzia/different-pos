@@ -7,6 +7,9 @@ namespace App\Http\Controllers\Vendors;
 use App\Actions\Purchasing\PayVendor;
 use App\Actions\Vendors\DeactivateVendor;
 use App\Actions\Vendors\SaveVendor;
+use App\Enums\AllocatableType;
+use App\Enums\PartyType;
+use App\Enums\PaymentDirection;
 use App\Enums\PurchaseStatus;
 use App\Http\Controllers\Concerns\TranslatesDomainErrors;
 use App\Http\Controllers\Controller;
@@ -17,18 +20,27 @@ use App\Models\PaymentMethod;
 use App\Models\Purchase;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Reports\ColumnType;
+use App\Reports\ReportColumn;
+use App\Reports\ReportResult;
+use App\Support\Export\ExportFormat;
+use App\Support\Export\ExportMeta;
+use App\Support\Export\TabularExport;
 use App\Support\Http\RecencyFilter;
 use App\Support\Http\TableQuery;
 use App\Support\Money\Money;
 use App\Support\Sales\BusinessDay;
 use App\Support\Tenancy\TenantContext;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class VendorController extends Controller
 {
@@ -38,8 +50,49 @@ final class VendorController extends Controller
     public function index(Request $request, TenantContext $context): Response
     {
         $this->authorize('viewAny', Vendor::class);
-        $table = TableQuery::fromRequest($request, sortable: ['name', 'balance', 'company'], filterable: ['status', 'hub', 'ordered'], defaultSort: 'name');
+        $table = $this->table($request);
+        $tz = BusinessDay::timezone($context->tenant());
+        $query = $this->filtered($table, $tz);
+        $totals = (clone $query)->toBase()->reorder()->selectRaw('coalesce(sum(case when balance > 0 then balance else 0 end), 0) as payable')->first();
+        $openBills = Purchase::query()->withoutBranchScope()->where('status', PurchaseStatus::Received->value)->where('due', '>', 0)
+            ->whereIn('vendor_id', (clone $query)->toBase()->reorder()->select('id'))->count();
+        $page = $table->paginate($query);
 
+        // Open bills and last order across the tenant's branches (a vendor is tenant-wide, like its balance).
+        /** @var array<int, array{open: int, last: string|null}> $bills */
+        $bills = [];
+        $grouped = Purchase::query()->withoutBranchScope()->where('status', PurchaseStatus::Received->value)
+            ->whereIn('vendor_id', collect($page->items())->pluck('id')->all())
+            ->groupBy('vendor_id')
+            ->toBase()
+            ->selectRaw('vendor_id, sum(due > 0) as open_bills, max(purchased_at) as last_order')
+            ->get();
+        foreach ($grouped as $g) {
+            $bills[(int) $g->vendor_id] = ['open' => (int) $g->open_bills, 'last' => $g->last_order !== null ? BusinessDay::localDate(Carbon::parse((string) $g->last_order, 'UTC'), $tz) : null];
+        }
+        $user = $this->actor($request);
+
+        return Inertia::render('vendors/index', [
+            'rows' => collect($page->items())->map(fn (Vendor $v): array => $this->row($v) + [
+                'open_bills' => $bills[$v->id]['open'] ?? 0,
+                'last_order' => $bills[$v->id]['last'] ?? null,
+            ])->all(),
+            'meta' => ['page' => $page->currentPage(), 'perPage' => $page->perPage(), 'total' => $page->total(), 'lastPage' => $page->lastPage()],
+            'totals' => ['payable' => (int) ($totals->payable ?? 0), 'open_bills' => $openBills],
+            'hubs' => $this->hubs(),
+            'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
+            'canPay' => $user->can('payments.pay'),
+        ]);
+    }
+
+    private function table(Request $request): TableQuery
+    {
+        return TableQuery::fromRequest($request, sortable: ['name', 'balance', 'company'], filterable: ['status', 'hub', 'ordered'], defaultSort: 'name');
+    }
+
+    /** @return EloquentBuilder<Vendor> */
+    private function filtered(TableQuery $table, string $tz): EloquentBuilder
+    {
         $query = Vendor::query();
         if ($table->search !== '') {
             $like = '%'.addcslashes($table->search, '\\%_').'%';
@@ -56,7 +109,7 @@ final class VendorController extends Controller
             $query->where('address', 'like', '%'.addcslashes($table->filters['hub'], '\\%_').'%');
         }
         // "Date:" = last received purchase from the vendor, across the tenant's branches.
-        $recency = RecencyFilter::resolve($table->filters['ordered'] ?? null, BusinessDay::timezone($context->tenant()));
+        $recency = RecencyFilter::resolve($table->filters['ordered'] ?? null, $tz);
         if ($recency !== null) {
             [$cut, $active] = $recency;
             $ordered = static fn (Builder $q): Builder => $q->selectRaw('1')->from('purchases')
@@ -70,36 +123,49 @@ final class VendorController extends Controller
                 $query->whereNotExists($ordered);
             }
         }
-        $totals = (clone $query)->toBase()->reorder()->selectRaw('coalesce(sum(case when balance > 0 then balance else 0 end), 0) as payable')->first();
-        $openBills = Purchase::query()->withoutBranchScope()->where('status', PurchaseStatus::Received->value)->where('due', '>', 0)
-            ->whereIn('vendor_id', (clone $query)->toBase()->reorder()->select('id'))->count();
-        $page = $table->paginate($query);
 
-        // Open bills and last order across the tenant's branches (a vendor is tenant-wide, like its balance).
-        /** @var array<int, array{open: int, last: string|null}> $bills */
-        $bills = [];
-        $grouped = Purchase::query()->withoutBranchScope()->where('status', PurchaseStatus::Received->value)
-            ->whereIn('vendor_id', collect($page->items())->pluck('id')->all())
-            ->groupBy('vendor_id')
-            ->toBase()
-            ->selectRaw('vendor_id, sum(due > 0) as open_bills, max(purchased_at) as last_order')
-            ->get();
-        foreach ($grouped as $g) {
-            $bills[(int) $g->vendor_id] = ['open' => (int) $g->open_bills, 'last' => $g->last_order !== null ? Carbon::parse((string) $g->last_order)->toDateString() : null];
+        return $query;
+    }
+
+    /** GET /app/vendors/export.{csv|xlsx|pdf}: the filtered list (same query string as the page). */
+    public function export(Request $request, string $format, TabularExport $export, TenantContext $context): HttpResponse|StreamedResponse
+    {
+        $this->authorize('viewAny', Vendor::class);
+        $tz = BusinessDay::timezone($context->tenant());
+        $query = $this->filtered($this->table($request), $tz);
+
+        // Open bills across the tenant's branches (a vendor is tenant-wide, like its balance).
+        /** @var array<int, int> $open */
+        $open = Purchase::query()->withoutBranchScope()->where('status', PurchaseStatus::Received->value)->where('due', '>', 0)
+            ->whereIn('vendor_id', (clone $query)->toBase()->reorder()->select('id'))
+            ->groupBy('vendor_id')->toBase()->selectRaw('vendor_id, count(*) as open_bills')->pluck('open_bills', 'vendor_id')
+            ->map(static fn (mixed $n): int => (int) $n)->all();
+
+        $columns = [
+            new ReportColumn('name', 'Name', ColumnType::Text),
+            new ReportColumn('company', 'Company', ColumnType::Text),
+            new ReportColumn('phone', 'Phone', ColumnType::Text),
+            new ReportColumn('hub', 'Hub', ColumnType::Text),
+            new ReportColumn('open_bills', 'Open bills', ColumnType::Int),
+            new ReportColumn('balance', 'Balance', ColumnType::Money),
+        ];
+        $rows = [];
+        $balance = 0;
+        $bills = 0;
+        foreach ($query->orderBy('name')->orderBy('id')->lazy(500) as $v) {
+            /** @var Vendor $v */
+            $n = $open[$v->id] ?? 0;
+            $balance += $v->balance->paisa;
+            $bills += $n;
+            $rows[] = ['name' => $v->name, 'company' => (string) $v->company, 'phone' => (string) $v->phone, 'hub' => (string) $v->address, 'open_bills' => $n, 'balance' => $v->balance->paisa];
         }
-        $user = $this->actor($request);
 
-        return Inertia::render('vendors/index', [
-            'rows' => collect($page->items())->map(fn (Vendor $v): array => $this->row($v) + [
-                'open_bills' => $bills[$v->id]['open'] ?? 0,
-                'last_order' => $bills[$v->id]['last'] ?? null,
-            ])->all(),
-            'meta' => ['page' => $page->currentPage(), 'perPage' => $page->perPage(), 'total' => $page->total(), 'lastPage' => $page->lastPage()],
-            'totals' => ['payable' => (int) ($totals->payable ?? 0), 'open_bills' => $openBills],
-            'hubs' => $this->hubs(),
-            'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
-            'canPay' => $user->checkPermissionTo('payments.pay'),
-        ]);
+        return $export->respond(
+            new ReportResult($columns, $rows, ['open_bills' => $bills, 'balance' => $balance]),
+            ExportFormat::from($format),
+            'vendors-'.now($tz)->format('Ymd-His'),
+            ExportMeta::for($context, 'Vendors'),
+        );
     }
 
     public function create(): Response
@@ -117,26 +183,69 @@ final class VendorController extends Controller
         return to_route('vendors.show', $vendor);
     }
 
-    public function show(Request $request, Vendor $vendor): Response
+    /** The mockup's Vendor 360 profile: KPIs, registration details, bills, disbursements and the statement ledger. */
+    public function show(Request $request, Vendor $vendor, TenantContext $context): Response
     {
         $this->authorize('view', $vendor);
         $user = $this->actor($request);
+        $tz = BusinessDay::timezone($context->tenant());
+        $allBranches = $user->can('reports.all_branches');
+
+        $purchaseQuery = Purchase::query()->where('vendor_id', $vendor->id)->with('branch:id,code,name');
+        $paymentQuery = Payment::query()->where('party_type', PartyType::Vendor)->where('party_id', $vendor->id)
+            ->where('direction', PaymentDirection::Out)->whereNull('voided_at')
+            ->with(['paymentMethod:id,name', 'allocations']);
+        if ($allBranches) {
+            $purchaseQuery->withoutBranchScope();
+            $paymentQuery->withoutBranchScope();
+        }
+
+        $purchases = $purchaseQuery->latest('purchased_at')->latest('id')->limit(200)->get();
+        $payments = $paymentQuery->latest('paid_at')->latest('id')->limit(200)->get();
+
+        $purchaseNumbers = Purchase::query()->withoutBranchScope()
+            ->whereIn('id', $payments->flatMap(static fn (Payment $p) => $p->allocations->where('allocatable_type', AllocatableType::Purchase)->pluck('allocatable_id'))->unique()->all())
+            ->pluck('number', 'id');
+
+        $received = $purchases->where('status', PurchaseStatus::Received);
+        $yearStart = Carbon::now($tz)->startOfYear();
+        $ytd = $received->filter(static fn (Purchase $p): bool => $p->purchased_at->greaterThanOrEqualTo($yearStart));
 
         return Inertia::render('vendors/show', [
             'vendor' => $this->row($vendor) + ['email' => $vendor->email, 'address' => $vendor->address, 'notes' => $vendor->notes],
-            'purchases' => Purchase::query()->where('vendor_id', $vendor->id)->latest('purchased_at')->latest('id')->limit(50)->get()
-                ->map(static fn (Purchase $p): array => [
-                    'id' => $p->id,
-                    'uuid' => $p->uuid,
-                    'number' => $p->number,
-                    'status' => $p->status->value,
-                    'payment_status' => $p->payment_status->value,
-                    'purchased_at' => $p->purchased_at->toDateString(),
-                    'total' => $p->total->paisa,
-                    'due' => $p->due->paisa,
-                ])->all(),
+            'kpis' => [
+                'purchases_ytd' => $ytd->sum(static fn (Purchase $p): int => $p->total->paisa),
+                'shipments_ytd' => $ytd->count(),
+                'paid_total' => $payments->sum(static fn (Payment $p): int => $p->amount->paisa),
+                'open_bills' => $received->filter(static fn (Purchase $p): bool => $p->due->paisa > 0)->count(),
+                'last_purchase_at' => BusinessDay::localDate($purchases->first()?->purchased_at, $tz),
+                'all_branches' => $allBranches,
+            ],
+            'purchases' => $purchases->map(static fn (Purchase $p): array => [
+                'id' => $p->id,
+                'uuid' => $p->uuid,
+                'number' => $p->number,
+                'status' => $p->status->value,
+                'payment_status' => $p->payment_status->value,
+                'purchased_at' => BusinessDay::localDate($p->purchased_at, $tz),
+                'branch' => $p->branch?->name,
+                'branch_code' => $p->branch?->code,
+                'total' => $p->total->paisa,
+                'paid' => $p->paid->paisa,
+                'due' => $p->due->paisa,
+            ])->all(),
+            'payments' => $payments->map(static fn (Payment $p): array => [
+                'id' => $p->id,
+                'number' => $p->number,
+                'paid_at' => BusinessDay::localDate($p->paid_at, $tz),
+                'method' => $p->paymentMethod?->name,
+                'amount' => $p->amount->paisa,
+                'reference' => $p->reference,
+                'bills' => $p->allocations->where('allocatable_type', AllocatableType::Purchase)
+                    ->map(static fn ($a): string => (string) ($purchaseNumbers[$a->allocatable_id] ?? ''))->filter()->values()->all(),
+            ])->all(),
             'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
-            'canPay' => $user->checkPermissionTo('payments.pay'),
+            'canPay' => $user->can('payments.pay'),
         ]);
     }
 

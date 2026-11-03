@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vite-plus/test';
-import { parsePercentBp } from './components/discount-dialog';
 import { groupVariants } from './components/variant-picker';
 import type { CatalogVariant } from './types';
 
@@ -39,21 +38,5 @@ describe('variant picker grouping', () => {
         expect(groupVariants([v(1, 'M', null), v(2, 'L', null)])).toEqual([
             { label: '', rows: [v(1, 'M', null), v(2, 'L', null)] },
         ]);
-    });
-});
-
-describe('parsePercentBp', () => {
-    it('reads percentages as integer basis points', () => {
-        expect(parsePercentBp('12.5')).toBe(1250);
-        expect(parsePercentBp('১০')).toBe(1000);
-        expect(parsePercentBp('')).toBe(0);
-        expect(parsePercentBp('100')).toBe(10_000);
-    });
-
-    it('rejects more than 100 %, negatives and junk', () => {
-        expect(parsePercentBp('100.01')).toBeNull();
-        expect(parsePercentBp('-1')).toBeNull();
-        expect(parsePercentBp('abc')).toBeNull();
-        expect(parsePercentBp('1.234')).toBeNull();
     });
 });

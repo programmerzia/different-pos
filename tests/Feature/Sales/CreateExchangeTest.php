@@ -18,6 +18,7 @@ use App\Exceptions\Domain\ReturnQtyExceeded;
 use App\Models\BranchStock;
 use App\Models\Customer;
 use App\Models\Payment;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleReturn;
@@ -71,6 +72,18 @@ it('swaps a size for an even price with an exchange credit tender', function ():
     $credit = Payment::query()->where('number', $result->sale->number.'/1')->sole();
     expect($credit->paymentMethod->type)->toBe(PaymentMethodType::ExchangeCredit)
         ->and($credit->amount->paisa)->toBe(150_000);
+});
+
+it('provisions a missing exchange credit tender instead of failing', function (): void {
+    PaymentMethod::query()->where('type', PaymentMethodType::ExchangeCredit)->delete();
+    $customer = $this->world->customer();
+    $sale = $this->world->sell([$this->world->line($this->m)], [$this->world->tender('cash', 150_000)], $customer);
+
+    $result = ($this->exchange)($sale, $this->l);
+
+    $credit = Payment::query()->where('number', $result->sale->number.'/1')->sole();
+    expect($credit->paymentMethod->type)->toBe(PaymentMethodType::ExchangeCredit)
+        ->and($credit->paymentMethod->is_active)->toBeTrue();
 });
 
 it('takes the difference when the replacement costs more', function (): void {

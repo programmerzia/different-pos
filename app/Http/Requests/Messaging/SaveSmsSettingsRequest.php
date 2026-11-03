@@ -8,6 +8,7 @@ use App\Models\Message;
 use App\Models\User;
 use App\Sms\SmsSettings;
 use App\Sms\Templates;
+use App\WhatsApp\WhatsAppSettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -31,6 +32,13 @@ final class SaveSmsSettingsRequest extends FormRequest
             'api_token' => ['nullable', 'string', 'max:300'],
             'clear_token' => ['nullable', 'boolean'],
             'cost_per_segment' => ['nullable', 'integer', 'min:0', 'max:100000'],
+            'whatsapp' => ['nullable', 'array'],
+            'whatsapp.driver' => ['required_with:whatsapp', Rule::in(WhatsAppSettings::DRIVERS)],
+            'whatsapp.phone_number_id' => ['nullable', 'string', 'max:40', 'regex:/^[0-9]*$/'],
+            'whatsapp.access_token' => ['nullable', 'string', 'max:600'],
+            'whatsapp.clear_token' => ['nullable', 'boolean'],
+            'whatsapp.template_name' => ['nullable', 'string', 'max:120', 'regex:/^[a-z0-9_]*$/'],
+            'whatsapp.template_language' => ['nullable', 'string', 'max:10', 'regex:/^[a-zA-Z_]*$/'],
         ];
         foreach (Templates::keys() as $key) {
             $rules["templates.$key.enabled"] = ['required', 'boolean'];

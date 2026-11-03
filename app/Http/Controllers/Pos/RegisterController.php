@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Pos;
 
+use App\Enums\CustomerPinPolicy;
 use App\Enums\PaymentMethodType;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
@@ -63,6 +64,7 @@ final class RegisterController extends Controller
                 'auto_print' => (bool) $branch->setting('auto_print'),
                 'paper' => (string) $branch->setting('paper'),
                 'allow_negative_stock' => (bool) $branch->setting('allow_negative_stock'),
+                'pin_policy' => CustomerPinPolicy::fromSetting($tenant->setting('customer_pin_policy'))->value,
             ],
             'discountCapBp' => $gate->discountCapBp($user, null),
             'customer' => $customer,

@@ -7,8 +7,18 @@ describe('rows-csv', () => {
         expect(csvCell('a,b')).toBe('"a,b"');
         expect(csvCell('say "hi"')).toBe('"say ""hi"""');
         expect(csvCell('=HYPERLINK("x")')).toBe(`"'=HYPERLINK(""x"")"`);
-        expect(csvCell('-5')).toBe("'-5");
         expect(csvCell('@cmd')).toBe("'@cmd");
+        expect(csvCell('+SUM(A1)')).toBe("'+SUM(A1)");
+        expect(csvCell('-A1')).toBe("'-A1");
+        expect(csvCell('-5+3')).toBe("'-5+3");
+        expect(csvCell('\tx')).toBe("'\tx");
+    });
+
+    it('keeps plain numbers numeric (negative balances, E.164 phones)', () => {
+        expect(csvCell('-50.00')).toBe('-50.00');
+        expect(csvCell('-5')).toBe('-5');
+        expect(csvCell('1250.50')).toBe('1250.50');
+        expect(csvCell('+8801712345678')).toBe('+8801712345678');
     });
 
     it('writes a BOM, a header and CRLF rows', () => {

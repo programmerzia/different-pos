@@ -30,7 +30,7 @@ final class SystemRoles
                 'max_discount_pct_bp' => 10000,
             ],
             self::MANAGER => [
-                'permissions' => array_values(array_diff(Permission::ALL, ['users.manage', 'settings.manage', 'audit.view', 'branches.switch', 'reports.all_branches'])),
+                'permissions' => array_values(array_diff(Permission::ALL, ['users.manage', 'settings.manage', 'audit.view', 'branches.switch', 'reports.all_branches', 'backup.view', 'backup.run'])),
                 'max_discount_pct_bp' => 2000,
             ],
             self::CASHIER => [
@@ -42,8 +42,8 @@ final class SystemRoles
             ],
             self::ACCOUNTANT => [
                 'permissions' => Permission::expand([
-                    'dashboard.view', 'sales.view', 'returns.view', 'customers.view', 'vendors.view',
-                    'money.*', 'reports.view', 'reports.export', 'reports.profit', 'payments.*',
+                    'dashboard.view', 'sales.view', 'returns.view', 'customers.view', 'customers.export', 'vendors.view',
+                    'sms.view', 'money.*', 'reports.view', 'reports.export', 'reports.profit', 'payments.*',
                 ]),
                 'max_discount_pct_bp' => 0,
             ],

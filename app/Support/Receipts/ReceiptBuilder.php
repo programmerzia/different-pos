@@ -19,14 +19,11 @@ use App\Models\User;
 use App\Support\Customers\CustomerNumber;
 use App\Support\Money\Money;
 use App\Support\Numbers\Digits;
+use App\Support\Qr\QrSvg;
 use App\Support\Quantity\Quantity;
 use App\Support\Sales\BusinessDay;
 use App\Support\Sales\OrderDiscountShares;
 use App\Support\Tenancy\TenantContext;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
-use BaconQrCode\Renderer\ImageRenderer;
-use BaconQrCode\Renderer\RendererStyle\RendererStyle;
-use BaconQrCode\Writer;
 use Carbon\CarbonInterface;
 use Picqer\Barcode\BarcodeGeneratorSVG;
 
@@ -349,8 +346,6 @@ final readonly class ReceiptBuilder
 
     private static function qr(string $url): string
     {
-        $svg = (new Writer(new ImageRenderer(new RendererStyle(112, 1), new SvgImageBackEnd)))->writeString($url);
-
-        return (string) preg_replace('/^<\?xml[^>]*>\s*/', '', $svg);
+        return QrSvg::render($url, quietZone: 1);
     }
 }

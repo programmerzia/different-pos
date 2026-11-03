@@ -16,8 +16,14 @@ declare module '@inertiajs/core' {
             tenant: { name: string; logo_url: string | null } | null;
             preferences: Preferences;
             /** Top-bar ticker for the current branch (60 s cache); null without dashboard.view. */
-            today?: { total_paisa: number; sales: number } | null;
+            todayTicker?: { total_paisa: number; sales: number } | null;
             sidebarOpen: boolean;
+            /** A platform admin signed in as a tenant Owner (banner with Exit); null otherwise. */
+            impersonation?: {
+                user: string;
+                tenant: string | null;
+                expires_at: string | null;
+            } | null;
             [key: string]: unknown;
         };
     }

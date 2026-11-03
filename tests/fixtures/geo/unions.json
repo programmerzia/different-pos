@@ -1,0 +1,250 @@
+[
+{
+"id": 619,
+"code": "01-08-065-0619",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "Rajanagar",
+"name_bn": "রাজানগর"
+},
+{
+"id": 620,
+"code": "01-08-065-0620",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "Hosnabad",
+"name_bn": "হোছনাবাদ"
+},
+{
+"id": 621,
+"code": "01-08-065-0621",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "Swanirbor Rangunia",
+"name_bn": "স্বনির্ভর রাঙ্গুনিয়া"
+},
+{
+"id": 622,
+"code": "01-08-065-0622",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "Mariumnagar",
+"name_bn": "মরিয়মনগর"
+},
+{
+"id": 623,
+"code": "01-08-065-0623",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "Parua",
+"name_bn": "পারুয়া"
+},
+{
+"id": 624,
+"code": "01-08-065-0624",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "Pomra",
+"name_bn": "পোমরা"
+},
+{
+"id": 625,
+"code": "01-08-065-0625",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "Betagi",
+"name_bn": "বেতাগী"
+},
+{
+"id": 626,
+"code": "01-08-065-0626",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "Sharafbhata",
+"name_bn": "সরফভাটা"
+},
+{
+"id": 627,
+"code": "01-08-065-0627",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "Shilok",
+"name_bn": "শিলক"
+},
+{
+"id": 628,
+"code": "01-08-065-0628",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "Chandraghona",
+"name_bn": "চন্দ্রঘোনা"
+},
+{
+"id": 629,
+"code": "01-08-065-0629",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "Kodala",
+"name_bn": "কোদালা"
+},
+{
+"id": 630,
+"code": "01-08-065-0630",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "Islampur",
+"name_bn": "ইসলামপুর"
+},
+{
+"id": 631,
+"code": "01-08-065-0631",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "South Rajanagar",
+"name_bn": "দক্ষিণ রাজানগর"
+},
+{
+"id": 632,
+"code": "01-08-065-0632",
+"upazila_code": "01-08-065",
+"type": "union",
+"name_en": "Lalanagar",
+"name_bn": "লালানগর"
+},
+{
+"id": 1342,
+"code": "02-17-151-1342",
+"upazila_code": "02-17-151",
+"type": "union",
+"name_en": "Matrai",
+"name_bn": "মাত্রাই"
+},
+{
+"id": 1343,
+"code": "02-17-151-1343",
+"upazila_code": "02-17-151",
+"type": "union",
+"name_en": "Ahammedabad",
+"name_bn": "আহম্মেদাবাদ"
+},
+{
+"id": 1344,
+"code": "02-17-151-1344",
+"upazila_code": "02-17-151",
+"type": "union",
+"name_en": "Punot",
+"name_bn": "পুনট"
+},
+{
+"id": 1345,
+"code": "02-17-151-1345",
+"upazila_code": "02-17-151",
+"type": "union",
+"name_en": "Zindarpur",
+"name_bn": "জিন্দারপুর"
+},
+{
+"id": 1346,
+"code": "02-17-151-1346",
+"upazila_code": "02-17-151",
+"type": "union",
+"name_en": "Udaipur",
+"name_bn": "উদয়পুর"
+},
+{
+"id": 3271,
+"code": "06-47-365-3271",
+"upazila_code": "06-47-365",
+"type": "union",
+"name_en": "Savar",
+"name_bn": "সাভার"
+},
+{
+"id": 3272,
+"code": "06-47-365-3272",
+"upazila_code": "06-47-365",
+"type": "union",
+"name_en": "Birulia",
+"name_bn": "বিরুলিয়া"
+},
+{
+"id": 3273,
+"code": "06-47-365-3273",
+"upazila_code": "06-47-365",
+"type": "union",
+"name_en": "Dhamsona",
+"name_bn": "ধামসোনা"
+},
+{
+"id": 3274,
+"code": "06-47-365-3274",
+"upazila_code": "06-47-365",
+"type": "union",
+"name_en": "Shimulia",
+"name_bn": "শিমুলিয়া"
+},
+{
+"id": 3275,
+"code": "06-47-365-3275",
+"upazila_code": "06-47-365",
+"type": "union",
+"name_en": "Ashulia",
+"name_bn": "আশুলিয়া"
+},
+{
+"id": 3276,
+"code": "06-47-365-3276",
+"upazila_code": "06-47-365",
+"type": "union",
+"name_en": "Yearpur",
+"name_bn": "ইয়ারপুর"
+},
+{
+"id": 3277,
+"code": "06-47-365-3277",
+"upazila_code": "06-47-365",
+"type": "union",
+"name_en": "Vakurta",
+"name_bn": "ভাকুর্তা"
+},
+{
+"id": 3278,
+"code": "06-47-365-3278",
+"upazila_code": "06-47-365",
+"type": "union",
+"name_en": "Pathalia",
+"name_bn": "পাথালিয়া"
+},
+{
+"id": 3279,
+"code": "06-47-365-3279",
+"upazila_code": "06-47-365",
+"type": "union",
+"name_en": "Bongaon",
+"name_bn": "বনগাঁও"
+},
+{
+"id": 3280,
+"code": "06-47-365-3280",
+"upazila_code": "06-47-365",
+"type": "union",
+"name_en": "Kaundia",
+"name_bn": "কাউন্দিয়া"
+},
+{
+"id": 3281,
+"code": "06-47-365-3281",
+"upazila_code": "06-47-365",
+"type": "union",
+"name_en": "Tetuljhora",
+"name_bn": "তেঁতুলঝোড়া"
+},
+{
+"id": 3282,
+"code": "06-47-365-3282",
+"upazila_code": "06-47-365",
+"type": "union",
+"name_en": "Aminbazar",
+"name_bn": "আমিনবাজার"
+}
+]

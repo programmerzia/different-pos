@@ -82,7 +82,7 @@ export function registerProductActions(): () => void {
     return actions.register(...productActions);
 }
 
-/** Row actions of the `stock` entity (the stock list): adjust (prefilled), transfer (a later phase). */
+/** Row actions of the `stock` entity (the stock list): adjust and transfer, both prefilled with the row's product. */
 const stockActions: AppAction<ProductRow>[] = [
     {
         id: 'stock.adjust',
@@ -99,7 +99,8 @@ const stockActions: AppAction<ProductRow>[] = [
         labelKey: 'stock.transfer',
         icon: Truck,
         permission: 'stock.transfer',
-        run: () => toast.info(i18n.t('stock.next_phase')),
+        run: ({ row, navigate }) =>
+            navigate(`/app/transfers/create?product=${row.uuid ?? ''}`),
     },
     {
         id: 'stock.copy_sku',

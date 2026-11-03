@@ -2,16 +2,19 @@
 
 declare(strict_types=1);
 
+use App\Models\Backup;
 use App\Models\Payment;
 use App\Models\ProductFamily;
 use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\SaleReturn;
+use App\Models\StockTransfer;
 use App\Models\Vendor;
 use App\Support\Permissions\SystemRoles;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Routing\Route as LaravelRoute;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Tests\Fixtures\CatalogWorld;
 use Tests\Fixtures\SalesWorld;
 
@@ -33,36 +36,37 @@ function routePermissions(): array
 
     return [
         // Open to every member (palette lookup, branch picker, forced password change).
-        'api.search' => [], 'branch.select' => [], 'password.change' => [],
+        'api.search' => [], 'api.geo.search' => [], 'api.geo.level' => [], 'help.index' => [], 'branch.select' => [], 'password.change' => [],
 
         'dashboard' => ['dashboard.view'],
         'reports.index' => ['reports.view'], 'reports.show' => ['reports.view'],
 
-        'products.index' => $products, 'products.images' => $products, 'products.create' => ['products.create'], 'products.edit' => ['products.update'],
+        'products.index' => $products, 'products.export' => ['products.view'], 'products.images' => $products, 'products.create' => ['products.create'], 'products.edit' => ['products.update'],
         'brands.index' => $products, 'categories.index' => $products, 'families.show' => $products,
 
-        'vendors.index' => ['vendors.view'], 'vendors.create' => ['vendors.create'],
+        'vendors.index' => ['vendors.view'], 'vendors.export' => ['vendors.view'], 'vendors.create' => ['vendors.create'],
         'vendors.show' => ['vendors.view'], 'vendors.edit' => ['vendors.update'],
-        'purchases.index' => ['purchases.view'], 'purchases.create' => ['purchases.create'],
+        'purchases.index' => ['purchases.view'], 'purchases.export' => ['purchases.view'], 'purchases.create' => ['purchases.create'],
         'purchases.lookup' => ['purchases.create'], 'purchases.show' => ['purchases.view'],
 
-        'stock.index' => ['stock.view'], 'stock.movements' => ['stock.view', 'products.view'],
+        'stock.index' => ['stock.view'], 'stock.export' => ['stock.view'], 'stock.movements' => ['stock.view', 'products.view'],
         'adjustments.index' => ['stock.view'], 'adjustments.create' => ['stock.adjust'], 'adjustments.lookup' => ['stock.adjust'],
+        'transfers.index' => ['stock.view'], 'transfers.create' => ['stock.transfer'], 'transfers.lookup' => ['stock.transfer'], 'transfers.show' => ['stock.view'],
 
-        'customers.index' => $customers, 'customers.export' => $customers, 'customers.create' => ['customers.create'], 'customers.show' => $customers,
+        'customers.index' => $customers, 'customers.export' => ['customers.export'], 'customers.create' => ['customers.create'], 'customers.show' => $customers,
         'customers.edit' => ['customers.update'], 'customers.search' => $customers, 'customers.check-phone' => $customers,
         'customers.statement.index' => $customers, 'customers.statement' => $customers,
-        'dues.index' => $customers, 'dues.show' => $customers,
+        'dues.index' => $customers, 'dues.export' => ['customers.view'], 'dues.show' => $customers,
         'cards.index' => ['cards.view'], 'cards.print' => ['cards.issue'], 'cards.export' => ['cards.issue'],
 
-        'sales.index' => ['sales.view'], 'sales.show' => ['sales.view'], 'sales.receipt' => ['sales.view'],
-        'returns.index' => ['returns.view'], 'returns.show' => ['returns.view'], 'returns.receipt' => ['returns.view'],
+        'sales.index' => ['sales.view'], 'sales.export' => ['sales.view'], 'sales.show' => ['sales.view'], 'sales.receipt' => ['sales.view'],
+        'returns.index' => ['returns.view'], 'returns.export' => ['returns.view'], 'returns.show' => ['returns.view'], 'returns.receipt' => ['returns.view'],
         'returns.create' => ['returns.create'], 'exchanges.create' => ['returns.create', 'pos.sell'],
         'payments.receipt' => [['payments.collect', 'payments.pay']],
 
-        'messages.index' => $customers,
+        'messages.index' => ['sms.view'], 'messages.preview' => ['sms.send'],
         'settings.sms.edit' => ['settings.manage'],
-        'settings.audit' => ['audit.view'], 'settings.business' => ['settings.manage'], 'branches.index' => ['settings.manage'],
+        'settings.audit' => ['audit.view'], 'settings.backups' => ['backup.view'], 'settings.backups.download' => ['backup.run'], 'api.backups.show' => ['backup.view'], 'settings.business' => ['settings.manage'], 'branches.index' => ['settings.manage'],
         'registers.index' => ['settings.manage'], 'payment-methods.index' => ['settings.manage'], 'taxes.index' => ['settings.manage'],
         'units.index' => ['settings.manage'], 'users.index' => ['users.manage'], 'users.create' => ['users.manage'],
         'users.edit' => ['users.manage'], 'roles.index' => ['users.manage'],
@@ -143,6 +147,11 @@ beforeEach(function (): void {
     $customer = $world->customer();
     $sale = Sale::factory()->create(['tenant_id' => $tenantId, 'branch_id' => $branchId, 'number' => 'DF1-000001', 'customer_id' => $customer->id]);
 
+    // Backups are installation-wide (not tenant-scoped): a completed archive on the (faked) local disk.
+    Storage::fake('local');
+    Storage::disk('local')->put('POS/matrix.zip', 'zip');
+    $backup = Backup::query()->create(['status' => Backup::STATUS_COMPLETED, 'disk' => 'local', 'path' => 'POS/matrix.zip', 'size_bytes' => 3]);
+
     $this->world = $world;
     $this->fixtures = [
         'product' => $product->uuid,
@@ -153,8 +162,12 @@ beforeEach(function (): void {
         'sale' => $sale->id,
         'return' => SaleReturn::factory()->create(['tenant_id' => $tenantId, 'branch_id' => $branchId, 'sale_id' => $sale->id, 'customer_id' => $customer->id])->id,
         'payment' => Payment::factory()->create(['tenant_id' => $tenantId, 'branch_id' => $branchId, 'party_id' => $customer->id, 'received_by' => $owner->id])->id,
+        'transfer' => StockTransfer::factory()->create(['tenant_id' => $tenantId, 'from_branch_id' => $branchId])->uuid,
         'user' => $owner->id,
+        'backup' => $backup->id,
         'report' => 'sales-by-product',
+        'format' => 'csv',
+        'level' => 'divisions',
     ];
 
     // Tenant B: a lone owner who must never reach any of the records above.
@@ -224,8 +237,10 @@ it('answers 404 when another tenant asks for a record by id', function (): void 
 
     foreach (appGetRoutes() as $route) {
         $name = (string) $route->getName();
-        // Reports are named, not stored; the tenant filter applies to their rows, not to the URL.
-        $recordParameters = array_values(array_diff($route->parameterNames(), ['report']));
+        // Reports are named, not stored, and an export format is not a record; the tenant filter applies to their rows, not to the URL.
+        // A backup archive is installation-wide by design (every Owner may download it), so it is not a tenant record either,
+        // and the geo reference level is global read-only data.
+        $recordParameters = array_values(array_diff($route->parameterNames(), ['report', 'format', 'backup', 'level']));
         if ($recordParameters === [] || ! array_key_exists($name, $table)) {
             continue;
         }

@@ -98,9 +98,9 @@ it('shares today\'s net sales and invoice count for the current branch, only wit
     });
 
     $this->actingAs($world->user)->withSession(['branch_id' => $world->branch->id])->get(route('dashboard'))
-        ->assertInertia(fn (Assert $page) => $page->where('today', ['total_paisa' => 150000, 'sales' => 2]));
+        ->assertInertia(fn (Assert $page) => $page->where('todayTicker', ['total_paisa' => 150000, 'sales' => 2]));
 
     $keeper = CatalogWorld::make(SystemRoles::STOCK_KEEPER);
     $this->actingAs($keeper->user)->withSession(['branch_id' => $keeper->branch->id])->get('/app/stock')
-        ->assertInertia(fn (Assert $page) => $page->where('today', null));
+        ->assertInertia(fn (Assert $page) => $page->where('todayTicker', null));
 });

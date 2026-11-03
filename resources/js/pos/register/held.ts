@@ -132,7 +132,10 @@ export function parseHeld(text: string | null): HeldCart[] {
 
 export function serializeHeld(list: readonly HeldCart[]): string {
     return JSON.stringify(
-        list.map((h) => ({ ...h, state: { ...h.state, approval: null } })),
+        list.map((h) => ({
+            ...h,
+            state: { ...h.state, approval: null, member: null },
+        })),
     );
 }
 
@@ -145,7 +148,7 @@ export function holdCart(
     const held: HeldCart = {
         id: state.clientUuid,
         heldAt: now.toISOString(),
-        state: { ...state, approval: null },
+        state: { ...state, approval: null, member: null },
     };
 
     return [held, ...list.filter((h) => h.id !== held.id)].slice(0, MAX_HELD);

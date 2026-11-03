@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { Keyboard, LogOut, Settings } from 'lucide-react';
+import { BookOpen, Keyboard, LogOut, Settings } from 'lucide-react';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -13,6 +13,7 @@ import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { useT } from '@/i18n';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
+import { HELP_PATH } from '@/manual';
 import type { User } from '@/types';
 
 export function UserMenuContent({ user }: { user: User }) {
@@ -37,6 +38,18 @@ export function UserMenuContent({ user }: { user: User }) {
                     >
                         <Settings aria-hidden="true" />
                         {t('user.profile')}
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="min-h-11 md:min-h-8">
+                    <Link
+                        className="w-full cursor-pointer"
+                        href={HELP_PATH}
+                        prefetch
+                        onClick={cleanup}
+                    >
+                        <BookOpen aria-hidden="true" />
+                        {t('user.manual')}
+                        <Kbd keys="g h" className="ml-auto" />
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem

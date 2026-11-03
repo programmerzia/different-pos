@@ -1,4 +1,5 @@
 import {
+    ArrowLeftRight,
     ArrowUpRight,
     Copy,
     ExternalLink,
@@ -10,6 +11,7 @@ import {
     CopyPlus,
     Download,
     Keyboard,
+    Package,
     ShoppingCart,
     Truck,
     UserPlus,
@@ -17,6 +19,7 @@ import {
 import { actions, type AppAction } from './actions';
 import { registerAdminActions } from './admin-actions';
 import { registerCustomerActions } from './customer-actions';
+import { registerPlatformActions } from './platform-actions';
 import { navigateTo } from './navigate';
 import { useUiStore } from './ui-store';
 import { usePreferencesStore, SCHEMES } from '@/lib/preferences';
@@ -142,6 +145,22 @@ const commands: AppAction[] = [
         href: '/app/purchases/create',
     },
     {
+        id: 'cmd.new_adjustment',
+        entity: null,
+        labelKey: 'commands.new_adjustment',
+        icon: Package,
+        permission: 'stock.adjust',
+        href: '/app/adjustments/create',
+    },
+    {
+        id: 'cmd.new_transfer',
+        entity: null,
+        labelKey: 'commands.new_transfer',
+        icon: ArrowLeftRight,
+        permission: 'stock.transfer',
+        href: '/app/transfers/create',
+    },
+    {
         id: 'cmd.shortcuts',
         entity: null,
         labelKey: 'commands.shortcuts',
@@ -199,6 +218,7 @@ export function registerDefaultActions(): void {
     actions.register(...commands);
     registerCustomerActions();
     registerAdminActions();
+    registerPlatformActions();
 }
 
 export { navigateTo };

@@ -18,10 +18,18 @@ describe('date presets', () => {
             from: '2026-11-02',
             to: '2026-11-02',
         });
+        // Tuesday 3 Nov: the week started on Saturday 31 Oct (not a rolling 7 days).
         expect(presetRange('week', now)).toEqual({
-            from: '2026-10-28',
+            from: '2026-10-31',
             to: '2026-11-03',
         });
+        expect(presetRange('week', new Date(2026, 9, 31, 9, 0))).toEqual({
+            from: '2026-10-31',
+            to: '2026-10-31',
+        });
+        expect(presetRange('week', new Date(2026, 10, 6, 9, 0)).from).toBe(
+            '2026-10-31',
+        );
         expect(presetRange('month', now)).toEqual({
             from: '2026-11-01',
             to: '2026-11-03',

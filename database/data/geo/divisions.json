@@ -1,0 +1,62 @@
+[
+{
+"id": 1,
+"code": "01",
+"name_en": "Chattogram",
+"name_bn": "চট্টগ্রাম",
+"aliases": [
+"Chittagong"
+]
+},
+{
+"id": 2,
+"code": "02",
+"name_en": "Rajshahi",
+"name_bn": "রাজশাহী",
+"aliases": []
+},
+{
+"id": 3,
+"code": "03",
+"name_en": "Khulna",
+"name_bn": "খুলনা",
+"aliases": []
+},
+{
+"id": 4,
+"code": "04",
+"name_en": "Barishal",
+"name_bn": "বরিশাল",
+"aliases": [
+"Barisal"
+]
+},
+{
+"id": 5,
+"code": "05",
+"name_en": "Sylhet",
+"name_bn": "সিলেট",
+"aliases": []
+},
+{
+"id": 6,
+"code": "06",
+"name_en": "Dhaka",
+"name_bn": "ঢাকা",
+"aliases": []
+},
+{
+"id": 7,
+"code": "07",
+"name_en": "Rangpur",
+"name_bn": "রংপুর",
+"aliases": []
+},
+{
+"id": 8,
+"code": "08",
+"name_en": "Mymensingh",
+"name_bn": "ময়মনসিংহ",
+"aliases": []
+}
+]

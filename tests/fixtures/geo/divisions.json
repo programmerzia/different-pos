@@ -1,0 +1,25 @@
+[
+{
+"id": 1,
+"code": "01",
+"name_en": "Chattogram",
+"name_bn": "চট্টগ্রাম",
+"aliases": [
+"Chittagong"
+]
+},
+{
+"id": 2,
+"code": "02",
+"name_en": "Rajshahi",
+"name_bn": "রাজশাহী",
+"aliases": []
+},
+{
+"id": 6,
+"code": "06",
+"name_en": "Dhaka",
+"name_bn": "ঢাকা",
+"aliases": []
+}
+]

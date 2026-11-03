@@ -265,6 +265,7 @@ export default function Dashboard({
                                 type="button"
                                 variant="outline"
                                 size="sm"
+                                className="touch-target"
                                 onClick={refresh}
                                 title={t('dashboard.refresh_all')}
                             >
@@ -734,7 +735,7 @@ export default function Dashboard({
                                         <span className="min-w-0">
                                             <Link
                                                 href={`/app/sales/${sale.id}`}
-                                                className="block truncate font-mono font-bold text-primary hover:underline"
+                                                className="block truncate font-mono font-bold text-primary hover:underline [@media(pointer:coarse)]:py-3.5"
                                             >
                                                 {n(sale.number ?? '')}
                                             </Link>

@@ -42,8 +42,9 @@ export function VoidSaleDialog({
         if (!sale) {
             return;
         }
+        // The list's filters and page ride along so the redirect lands back on the same view.
         router.post(
-            salesUrl.void(sale.id),
+            `${salesUrl.void(sale.id)}${window.location.search}`,
             { reason },
             {
                 preserveScroll: true,

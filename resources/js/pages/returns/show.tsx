@@ -165,38 +165,38 @@ export default function ReturnShow({
                                     <tr>
                                         <th
                                             scope="col"
-                                            className="py-2 text-left"
+                                            className="px-2 py-2 text-left"
                                         >
                                             {t('sales.item')}
                                         </th>
                                         <th
                                             scope="col"
-                                            className="py-2 text-right"
+                                            className="px-2 py-2 text-right"
                                         >
                                             {t('sales.qty')}
                                         </th>
                                         <th
                                             scope="col"
-                                            className="py-2 text-right"
+                                            className="px-2 py-2 text-right"
                                         >
                                             {t('sales.unit_price')}
                                         </th>
                                         <th
                                             scope="col"
-                                            className="py-2 text-right"
+                                            className="px-2 py-2 text-right"
                                         >
                                             {t('returns.value')}
                                         </th>
                                         <th
                                             scope="col"
-                                            className="py-2 text-left"
+                                            className="px-2 py-2 text-left"
                                         >
                                             {t('returns.restock')}
                                         </th>
                                         {showCost ? (
                                             <th
                                                 scope="col"
-                                                className="py-2 text-right"
+                                                className="px-2 py-2 text-right"
                                             >
                                                 {t('returns.cogs_reversed')}
                                             </th>
@@ -209,7 +209,7 @@ export default function ReturnShow({
                                             key={l.id}
                                             className="border-b last:border-0"
                                         >
-                                            <td className="py-2">
+                                            <td className="px-2 py-2">
                                                 <div className="font-medium">
                                                     {l.name}
                                                 </div>
@@ -217,16 +217,16 @@ export default function ReturnShow({
                                                     {l.sku}
                                                 </div>
                                             </td>
-                                            <td className="num py-2 text-right">
+                                            <td className="num px-2 py-2 text-right">
                                                 {digits.qty(l.qty)}
                                             </td>
-                                            <td className="num py-2 text-right">
+                                            <td className="num px-2 py-2 text-right">
                                                 {digits.money(l.unit_price)}
                                             </td>
-                                            <td className="num py-2 text-right font-semibold">
+                                            <td className="num px-2 py-2 text-right font-semibold">
                                                 {digits.money(l.line_total)}
                                             </td>
-                                            <td className="py-2">
+                                            <td className="px-2 py-2">
                                                 {l.restock
                                                     ? t('returns.restocked')
                                                     : t(
@@ -234,7 +234,7 @@ export default function ReturnShow({
                                                       )}
                                             </td>
                                             {showCost ? (
-                                                <td className="num py-2 text-right text-muted-foreground">
+                                                <td className="num px-2 py-2 text-right text-muted-foreground">
                                                     {digits.money(
                                                         l.cogs_reversed ?? 0,
                                                     )}

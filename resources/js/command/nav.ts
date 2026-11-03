@@ -1,7 +1,10 @@
 import {
     Banknote,
+    BookOpen,
     ChartNoAxesColumn,
+    Database,
     FileText,
+    KeyRound,
     IdCard,
     Lock,
     type LucideIcon,
@@ -134,7 +137,7 @@ export const NAV_SECTIONS: NavSection[] = [
                 icon: Send,
                 chord: 'w',
                 href: '/app/messages',
-                permission: 'customers.view',
+                permission: 'sms.view',
             },
         ],
     },
@@ -156,7 +159,7 @@ export const NAV_SECTIONS: NavSection[] = [
                 icon: Package,
                 chord: 'k',
                 href: '/app/stock',
-                activeFor: ['/app/adjustments'],
+                activeFor: ['/app/adjustments', '/app/transfers'],
                 permission: 'stock.view',
             },
             {
@@ -165,6 +168,14 @@ export const NAV_SECTIONS: NavSection[] = [
                 icon: Scale,
                 href: '/app/adjustments',
                 permission: 'stock.adjust',
+                sidebar: false,
+            },
+            {
+                id: 'transfers',
+                labelKey: 'nav.transfers',
+                icon: Truck,
+                href: '/app/transfers',
+                permission: 'stock.view',
                 sidebar: false,
             },
             {
@@ -277,11 +288,38 @@ export const NAV_SECTIONS: NavSection[] = [
                 ],
             },
             {
+                id: 'backup',
+                labelKey: 'nav.backup_restore',
+                icon: Database,
+                chord: 'b',
+                href: '/app/settings/backups',
+                permission: 'backup.view',
+            },
+            {
                 id: 'audit',
                 labelKey: 'nav.audit_log',
                 icon: Lock,
                 href: '/app/settings/audit',
                 permission: 'audit.view',
+            },
+            {
+                // Platform admins only: `platform.admin` is the gate the server shares as their one "permission".
+                id: 'platform',
+                labelKey: 'nav.saas_platform_admin',
+                icon: KeyRound,
+                href: '/platform',
+                permission: 'platform.admin',
+            },
+            {
+                // Drawn in the sidebar footer (next to the shortcuts guide), not in the section.
+                id: 'help',
+                labelKey: 'nav.user_manual',
+                icon: BookOpen,
+                chord: 'h',
+                href: '/app/help',
+                /** Every signed-in user. */
+                permission: [],
+                sidebar: false,
             },
         ],
     },

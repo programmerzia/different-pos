@@ -1,3 +1,4 @@
+import type { ExportFormat } from '@/lib/export-items';
 import {
     Ban,
     BadgeDollarSign,
@@ -10,6 +11,8 @@ import {
     RefreshCw,
     GitMerge,
     IdCard,
+    KeyRound,
+    LockOpen,
     ShoppingCart,
 } from 'lucide-react';
 import { actions, type AppAction } from './actions';
@@ -20,9 +23,10 @@ import type { CardRow, CustomerRow } from '@/types/customers';
 export const cardPrintUrl = (customerUuid: string): string =>
     `/app/membership-cards/print?customers=${customerUuid}&layout=cr80`;
 
-/** The customer list as CSV, with the list's query string (`q`, `filter[...]`, `sort`). */
+/** The customer list as a file (csv | xlsx | pdf), with the list's query string (`q`, `filter[...]`, `sort`). */
 export const customersExportUrl = (
     query: Record<string, string | number> = {},
+    format: ExportFormat = 'csv',
 ): string => {
     const params = new URLSearchParams(
         Object.entries(query)
@@ -30,7 +34,7 @@ export const customersExportUrl = (
             .map(([key, value]) => [key, String(value)]),
     ).toString();
 
-    return `/app/customers/export.csv${params ? `?${params}` : ''}`;
+    return `/app/customers/export.${format}${params ? `?${params}` : ''}`;
 };
 
 /**
@@ -84,6 +88,36 @@ export const customerActions: AppAction<CustomerRow>[] = [
         requires: 'handler',
         visible: (row) => row.is_active && row.card_status !== 'active',
         run: ({ row, handlers }) => handlers?.['customer.issue_card']?.(row),
+    },
+    {
+        id: 'customer.set_pin',
+        entity: 'customer',
+        labelKey: 'customers.actions.set_pin',
+        icon: KeyRound,
+        permission: 'customers.update',
+        requires: 'handler',
+        visible: (row) => row.is_active && row.pin_status === 'pending',
+        run: ({ row, handlers }) => handlers?.['customer.set_pin']?.(row),
+    },
+    {
+        id: 'customer.reset_pin',
+        entity: 'customer',
+        labelKey: 'customers.actions.reset_pin',
+        icon: KeyRound,
+        permission: 'customers.reset_pin',
+        requires: 'handler',
+        visible: (row) => row.pin_status !== 'pending',
+        run: ({ row, handlers }) => handlers?.['customer.reset_pin']?.(row),
+    },
+    {
+        id: 'customer.unlock_pin',
+        entity: 'customer',
+        labelKey: 'customers.actions.unlock_pin',
+        icon: LockOpen,
+        permission: 'customers.reset_pin',
+        requires: 'handler',
+        visible: (row) => row.pin_status === 'locked',
+        run: ({ row, handlers }) => handlers?.['customer.unlock_pin']?.(row),
     },
     {
         id: 'customer.merge',
@@ -219,7 +253,7 @@ export function registerCustomerActions(): void {
         entity: null,
         labelKey: 'customers.export_csv',
         icon: FileSpreadsheet,
-        permission: 'customers.view',
+        permission: 'customers.export',
         run: () => window.location.assign(customersExportUrl()),
     });
 }

@@ -37,7 +37,7 @@ tenants                                    -- one business (customer of the SaaS
   phone VARCHAR(20) NULL, email VARCHAR(150) NULL, address VARCHAR(500) NULL
   currency CHAR(3) DEFAULT 'BDT', timezone VARCHAR(64) DEFAULT 'Asia/Dhaka', locale VARCHAR(5) DEFAULT 'en'
   status VARCHAR(16) DEFAULT 'active'      -- active|suspended  CHECK
-  settings JSON                            -- tax_inclusive, backdate_days, customer_pin_policy(always|credit_only|off),
+  settings JSON                            -- tax_inclusive, backdate_days, customer_pin_policy(off|optional|required; default off; legacy always→required, credit_only→optional),
                                            -- offline_credit_cap (paisa, default 0), offline_login_days (7), lapsed_days, card terms text,
                                            -- default_credit_limit (paisa, null = no limit), return_days (null = no return window)
   branding JSON NULL                       -- white-label (PRD Epic J). Live: logo_path (public disk, tenants/{tenant_id}/logo-{random}.{png|jpg|webp}; Tenant::logoUrl()). Later: display_name, brand_hex
@@ -102,6 +102,13 @@ role_has_permissions(permission_id, role_id)
 
 -- Laravel framework tables: sessions, cache, cache_locks, jobs, job_batches, failed_jobs,
 -- password_reset_tokens, personal_access_tokens, notifications, activity_log (spatie, + tenant_id column & index)
+
+backups                                    -- GLOBAL (no tenant_id): one archive = the whole installation (ADR 0010)
+  id, status ENUM(queued,running,completed,failed), trigger ENUM(manual,scheduled),
+  disk, path, size_bytes, started_at, finished_at, error TEXT,
+  triggered_by FK→users NULL (NULL = scheduler), timestamps
+  INDEX (status, created_at)
+  -- read by every Owner with backup.view; written only by App\Actions\Backup\{RequestBackup,RunBackup}
 ```
 
 ## 2. Catalog
@@ -245,10 +252,11 @@ vendors [tenant] SD
 ```sql
 geo_divisions
   id SMALLINT UNSIGNED PK, code VARCHAR(10) UNIQUE, name_en VARCHAR(60), name_bn VARCHAR(60)        -- 8 rows
+  aliases VARCHAR(255) NULL                 -- comma-separated older romanisations (Chittagong …), searched
 
 geo_districts
   id SMALLINT UNSIGNED PK, division_id FK→geo_divisions, code VARCHAR(10) UNIQUE
-  name_en VARCHAR(60), name_bn VARCHAR(60)                                                        -- 64 rows
+  name_en VARCHAR(60), name_bn VARCHAR(60), aliases VARCHAR(255) NULL                             -- 64 rows
   INDEX(division_id)
 
 geo_upazilas                                -- "City / Upazila / Thana" level
@@ -256,7 +264,8 @@ geo_upazilas                                -- "City / Upazila / Thana" level
   type VARCHAR(16)                          -- upazila | metro_thana | city_corporation
   name_en VARCHAR(80), name_bn VARCHAR(80)
   city_name_en VARCHAR(80) NULL             -- e.g. 'Dhaka North City Corporation' for metro thanas
-  INDEX(district_id, type), FULLTEXT(name_en, name_bn)
+  aliases VARCHAR(255) NULL
+  INDEX(district_id, type), FULLTEXT(name_en, name_bn)   -- 494 upazilas (ids 1–494) + 65 metro thanas (ids 1001+)
 
 geo_unions                                  -- "Union / Ward / Pourashava" level (optional on forms)
   id INT UNSIGNED PK, upazila_id FK→geo_upazilas, code VARCHAR(14) UNIQUE
@@ -267,9 +276,9 @@ geo_unions                                  -- "Union / Ward / Pourashava" level
 geo_post_codes
   id INT UNSIGNED PK, upazila_id NULL FK→geo_upazilas, district_id FK→geo_districts
   post_office_en VARCHAR(80), post_office_bn VARCHAR(80) NULL, post_code CHAR(4)
-  INDEX(post_code), INDEX(upazila_id)
+  INDEX(post_code), INDEX(upazila_id), UNIQUE(district_id, post_office_en, post_code)
 ```
-Data source: an open BD geocode dataset (divisions/districts/upazilas/unions EN+BN) + the BD Post postcode list. Before import, the licence is verified and recorded in `docs/adr/0002-geo-data.md`. Metro thanas / city corporations missing from the dataset are added from a curated JSON in `database/data/geo/`. The data is cached in Redis and served to clients via `/app/api/geo/*` (ETag, 30-day cache).
+Data source (ADR 0008): nuhil/bangladesh-geocode (MIT) for divisions/districts/upazilas/unions EN+BN, ifahimreza/bangladesh-geojson `bd-postcodes.json` (MIT) for post offices, a curated `tools/geo/metro_thanas.json` for the Dhaka (50) and Chattogram (15) metro thanas. Converted by `tools/geo/convert.py` into `database/data/geo/*.json`, loaded by `php artisan geo:import` (idempotent upsert by `code`, stable ids; `GeoSeeder`). Codes are hierarchical (`06`, `06-47`, `06-47-325`, `06-47-M01`, `06-47-325-1234`). `App\Support\Geo\GeoCatalog` caches per data version and serves `/app/api/geo/*` (ETag = version + query, 30-day private cache). The customer geo columns carry FKs (migration `2026_11_03_000200`). Saving a customer location checks the chain (district ∈ division, upazila ∈ district, union ∈ upazila), fills parents from the deepest child, and sets `location_verified = 1`; the legacy import fills ids from a district/upazila name found in the address text with `location_verified = 0` and reports the rest as `unparsed_location`.
 
 ## 4. Inventory
 
@@ -341,7 +350,12 @@ stock_transfers [tenant]
 stock_transfer_items
   id, stock_transfer_id FK ON DELETE CASCADE, product_id FK→products
   qty_sent DECIMAL(14,3), qty_received DECIMAL(14,3) NULL, unit_cost BIGINT, short_reason VARCHAR(255) NULL
+  UNIQUE(stock_transfer_id, product_id)
 ```
+
+> Transfers (2.19): `CreateStockTransfer` writes the row as `in_transit` with `sent_at`/`sent_by` (no draft step yet), issues `transfer_out` FIFO from `from_branch_id` and stores the weighted FIFO cost on `unit_cost`; the destination's `branch_stocks.qty_in_transit` carries the sent quantity until `ReceiveStockTransfer` (destination branch context only) books `transfer_in` batches for `qty_received` (`source_type=transfer_in`, `source_id=stock_transfer_items.id`) and releases it. `qty_received < qty_sent` needs `short_reason`. Migration `2026_11_04_000100_create_stock_transfers_tables`.
+
+> A restock (sale return / void) puts quantity back onto its original batch only up to that batch's headroom (`qty_received − qty_remaining`); any remainder becomes a new batch with `source_type=return`, the same unit cost and `received_at = now` (so FIFO sells it after older stock). Imported legacy batches (step 8, `qty_received = available_stock`) often have no headroom, so this keeps the CHECK above without refusing the return.
 
 ## 5. Purchasing
 
@@ -432,6 +446,8 @@ sales [tenant][B]
   device_created_at TIMESTAMP NULL         -- device clock at commit (sold_at uses it; server receipt time = created_at)
   synced_at TIMESTAMP NULL
   member_auth VARCHAR(16) DEFAULT 'none'   -- none|pin_online|pin_offline_ok|pin_offline_failed|override|no_pin_policy
+                                           -- set by CompleteSale::memberAuth(): walk-in→none; policy off→no_pin_policy; member token→pin_online;
+                                           -- approver with pos.customer_pin_override→override; else none (policy required: web 422, device flag member_unverified)
   member_auth_by NULL FK→users             -- manager on override
   member_pin_box TEXT NULL                 -- sealed-box ciphertext; NULLed after verification
   membership_card_id NULL FK→membership_cards   -- card used, if scanned
@@ -561,14 +577,30 @@ fixed_assets [tenant] SD
 ## 8. Messaging & misc
 
 ```sql
-messages [tenant]                          -- SMS log (un-deferred, ADR 0007)
+messages [tenant]                          -- SMS + WhatsApp log (un-deferred, ADR 0007)
   id, tenant_id, customer_id NULL FK→customers
-  phone VARCHAR(20), body TEXT, driver VARCHAR(32)
-  status VARCHAR(32) DEFAULT 'queued'      -- queued|sent|failed  CHECK
+  channel VARCHAR(16) DEFAULT 'sms'        -- sms|whatsapp  CHECK; INDEX(tenant_id, channel, created_at)
+  phone VARCHAR(20), body TEXT, driver VARCHAR(32)   -- driver: the channel's provider at send time (ssl_wireless|log|null|click_to_chat|meta_cloud)
+  status VARCHAR(32) DEFAULT 'queued'      -- queued|sent|failed|handoff  CHECK (handoff = WhatsApp click-to-chat: opened in the user's WhatsApp, delivery unknown)
   provider_ref VARCHAR(100) NULL, error VARCHAR(500) NULL, sent_at TIMESTAMP NULL
   event VARCHAR(40), related_type VARCHAR(64) NULL, related_id BIGINT UNSIGNED NULL
   created_at, updated_at
   INDEX(tenant_id, status), INDEX(tenant_id, customer_id, created_at), INDEX(related_type, related_id)
+  -- a composer broadcast's rows: event 'manual', related = the sms_broadcasts row (customer_id = recipient)
+
+sms_broadcasts [tenant]                    -- one row per ad-hoc SMS or WhatsApp broadcast from the messaging hub composer
+  id, tenant_id, user_id NULL FK→users (nullOnDelete)
+  channel VARCHAR(16) DEFAULT 'sms'        -- sms|whatsapp  CHECK (whatsapp: cost_paisa 0)
+  audience JSON                            -- {target: customer|group|due|all, customer: uuid|null, group_id|null}
+  template VARCHAR(40) NULL                -- the template key the text started from, if any
+  body TEXT                                -- unfilled text; {name} etc. are filled per recipient at fan-out
+  recipient_count INT UNSIGNED             -- reachable customers with a valid mobile number at send time
+  cost_paisa BIGINT                        -- estimate: segments(body) × recipients × cost_per_segment
+  idempotency_key VARCHAR(64)              -- from the composer; a repeat returns this row, sends nothing
+  status VARCHAR(32) DEFAULT 'queued'      -- queued|sending|completed
+  queued_count INT UNSIGNED DEFAULT 0, skipped_count INT UNSIGNED DEFAULT 0, completed_at TIMESTAMP NULL
+  created_at, updated_at
+  UNIQUE(tenant_id, idempotency_key), INDEX(tenant_id, created_at)
 
 -- Laravel `notifications` table (+ tenant_id) powers the top-bar bell; types listed in 02_AppFlow §1.1.
 
@@ -622,7 +654,7 @@ Request
                              └─ Model `saving` guard: throws CrossTenantWriteException on mismatch
 ```
 - **Device path** (`/api/pos/v1/*`): `AuthenticateDevice` (Sanctum bearer, ability `pos:device`, `devices.status=active`) sets tenant, branch and register from the device row. Each op also carries the operator `user_id`, which is checked as active and assigned to the branch with `pos.sell` at push time. A revoked device gets `401 {code:"device_revoked"}`, which triggers the client wipe.
-- **Platform admins** (`users.tenant_id IS NULL, is_platform_admin=1`) use `/platform/*` only. Impersonation sets a tenant context with an audited, time-boxed (60 min) session flag and a visible banner.
+- **Platform admins** (`users.tenant_id IS NULL, is_platform_admin=1`) use `/platform/*` only (Gate `platform.admin`; `LoginResponse` sends them there). Impersonation = `Auth::login()` as the tenant's first active Owner with the admin id, tenant id and start time in the session (`App\Support\Platform\Impersonation`); audited on the tenant (`tenant.impersonated`, `tenant.impersonation_ended` with reason exit|expired), ended by the banner's Exit (`POST /app/impersonation/exit`) or by the `ExpireImpersonation` web middleware after 60 min. The first admin is created with `php artisan platform:make-admin email`.
 - **Branch scope** applies to: sales, sale_returns, payments, purchases, stock_*, branch_stocks. Catalog, customers, vendors, accounts and categories are **tenant-wide**.
 - **Isolation test matrix (required, 06_Plan Phase 4):** for every tenant model, a factory creates rows for tenant A and B, and the tests assert that tenant B's user gets 404 on show/update/delete, sees no rows in lists, reports, exports or search, and cannot write a foreign `*_id` (validation `exists` rule is scoped: `Rule::exists(...)->where('tenant_id', …)`).
 
@@ -654,7 +686,7 @@ Request
 **As implemented (D1.2, 2026-11-03).** `App\Console\Commands\LegacyImport` → `App\Legacy\Importer` → one class per step in `app/Legacy/Steps`; store-specific facts (branch codes, admin group → role) in `config/legacy.php`. Deviations and precisions to the table above:
 - The whole run is **one** `Transaction::run()` (not one per chunk), so a failure or `--dry-run` leaves nothing; reports are still written. `--fresh` is not implemented yet: re-runs are idempotent through `legacy_id_maps` (`entity` = legacy table name, `legacy_store_id` 0 for tenant-wide entries) instead.
 - Step 1: the logo is not copied (reported as `logo_not_copied`). Step 2: roles via `config/legacy.php`; unmapped groups → Cashier (reported).
-- Step 6: geo ids are **not** matched yet (no geo tables in Phase D); a customer with a free-text address gets `location_verified=0`. A duplicate phone (after E.164 normalisation) is merged into the oldest: the newer row stays as a soft-deleted shell with `merged_into_id`, no `customer_no` and no phone; its legacy id maps to the survivor so its sales follow. A blank name becomes the shop name, else `Customer L{id}` (reported). A `customer_group_id` that does not exist in legacy (store 7's group 2, 1,046 customers) leaves the customer ungrouped (reported once per group). The walk-in customer is created **after** the legacy customers, so legacy customer 1 gets 10000016 and the walk-in the next number.
+- Step 6: the address text is matched against district and upazila/thana names (EN, BN, aliases; `GeoCatalog::matchAddress`): a hit fills the geo ids with `location_verified=0`, a miss is reported as `unparsed_location` and the reconciliation row `customer_locations` counts addresses vs located customers. With empty geo tables every address is unparsed. A duplicate phone (after E.164 normalisation) is merged into the oldest: the newer row stays as a soft-deleted shell with `merged_into_id`, no `customer_no` and no phone; its legacy id maps to the survivor so its sales follow. A blank name becomes the shop name, else `Customer L{id}` (reported). A `customer_group_id` that does not exist in legacy (store 7's group 2, 1,046 customers) leaves the customer ungrouped (reported once per group). The walk-in customer is created **after** the legacy customers, so legacy customer 1 gets 10000016 and the walk-in the next number.
 - Step 7: the same product code in different legacy stores becomes **one product** (the first keeps its name, prices and active flag; later legacy ids map to it in `legacy_id_maps`, reported as `merged_product`; stock stays per branch, reconciled per store). A code repeated inside the same store, or already used by a non-legacy product, gets `{code}-{legacy_id}` (reported as `duplicate_sku`); cost 0 is reported; only `Active` products are active.
 - Step 8: the remainder of each stock invoice line (`available_stock > 0`) goes through `StockLedger::receive()` as an `opening` batch (`qty_received = qty_remaining = available_stock`, `batch_no` = legacy invoice_no, ref = the `purchase_items` row), which also writes the movement and `branch_stocks`; the legacy received quantity is kept on `purchase_items` only. **Exception:** a sold-out line (`available_stock = 0`) gets a directly inserted batch with `source_type=purchase`, `qty_remaining = 0` and no movement, only so sale lines can link to it. Imported purchases are `paid = total`, `due = 0` (legacy never tracked vendor payables). Purchase and sale numbers that another branch already uses get the branch prefix (`DF2-ST1`, `DF2-S-1`), reported.
 - Step 9: writes nothing; it asserts `qty_on_hand = Σ batch remainders = Σ movements` per (branch, product) and reports the legacy `product.quantity` differences.

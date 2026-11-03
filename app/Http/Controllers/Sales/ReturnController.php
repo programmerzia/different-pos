@@ -22,16 +22,25 @@ use App\Models\SaleItem;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnItem;
 use App\Models\User;
+use App\Reports\ColumnType;
+use App\Reports\ReportColumn;
+use App\Reports\ReportResult;
+use App\Support\Export\ExportFormat;
+use App\Support\Export\ExportMeta;
+use App\Support\Export\TabularExport;
 use App\Support\Http\TableQuery;
 use App\Support\Sales\BusinessDay;
 use App\Support\Sales\OrderDiscountShares;
 use App\Support\Tenancy\TenantContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Returns ledger (current branch), the return / exchange wizard and the return detail. */
 final class ReturnController extends Controller
@@ -42,27 +51,8 @@ final class ReturnController extends Controller
     {
         $this->authorize('viewAny', SaleReturn::class);
 
-        $table = TableQuery::fromRequest($request, ['number', 'returned_at', 'total'], ['from', 'to', 'mode', 'reason', 'cashier'], '-returned_at');
-        $query = SaleReturn::query();
-        $this->dateRange($query, 'returned_at', $table->filters['from'] ?? null, $table->filters['to'] ?? null);
-        $mode = RefundMode::tryFrom($table->filters['mode'] ?? '');
-        if ($mode instanceof RefundMode) {
-            $query->where('refund_mode', $mode);
-        }
-        $reason = $table->filters['reason'] ?? null;
-        if (in_array($reason, StoreSaleReturnRequest::REASONS, true)) {
-            $query->where('reason', $reason);
-        }
-        if (isset($table->filters['cashier'])) {
-            $query->where('created_by', (int) $table->filters['cashier']);
-        }
-        if ($table->search !== '') {
-            $prefix = addcslashes($table->search, '\\%_').'%';
-            $like = '%'.addcslashes($table->search, '\\%_').'%';
-            $query->where(fn ($w) => $w->where('number', 'like', $prefix)
-                ->orWhereIn('sale_id', Sale::query()->select('id')->where('number', 'like', $prefix))
-                ->orWhereIn('customer_id', Customer::query()->withTrashed()->select('id')->where(fn ($c) => $c->where('name', 'like', $like)->orWhere('shop_name', 'like', $like))));
-        }
+        $table = $this->listTable($request);
+        $query = $this->listQuery($table);
 
         $sums = (clone $query)->toBase()
             ->selectRaw('COALESCE(SUM(total), 0) AS total, COALESCE(SUM(refunded), 0) AS refunded, COALESCE(SUM(credited), 0) AS credited')
@@ -116,6 +106,95 @@ final class ReturnController extends Controller
             // The return wizard dialog (reloaded alone with wizard_q / wizard_sale).
             'wizard' => Inertia::optional(fn (): array => $this->wizardPayload($request)),
         ]);
+    }
+
+    private function listTable(Request $request): TableQuery
+    {
+        return TableQuery::fromRequest($request, ['number', 'returned_at', 'total'], ['from', 'to', 'period', 'mode', 'reason', 'cashier'], '-returned_at');
+    }
+
+    /**
+     * The filtered returns list (the same query string as the page), shared by the page and the export.
+     *
+     * @return Builder<SaleReturn>
+     */
+    private function listQuery(TableQuery $table): Builder
+    {
+        $query = SaleReturn::query();
+        $this->dateRange($query, 'returned_at', $table->filters['from'] ?? null, $table->filters['to'] ?? null, $table->filters['period'] ?? null);
+        $mode = RefundMode::tryFrom($table->filters['mode'] ?? '');
+        if ($mode instanceof RefundMode) {
+            $query->where('refund_mode', $mode);
+        }
+        $reason = $table->filters['reason'] ?? null;
+        if (in_array($reason, StoreSaleReturnRequest::REASONS, true)) {
+            $query->where('reason', $reason);
+        }
+        if (isset($table->filters['cashier'])) {
+            $query->where('created_by', (int) $table->filters['cashier']);
+        }
+        if ($table->search !== '') {
+            $prefix = addcslashes($table->search, '\\%_').'%';
+            $like = '%'.addcslashes($table->search, '\\%_').'%';
+            $query->where(fn ($w) => $w->where('number', 'like', $prefix)
+                ->orWhereIn('sale_id', Sale::query()->select('id')->where('number', 'like', $prefix))
+                ->orWhereIn('customer_id', Customer::query()->withTrashed()->select('id')->where(fn ($c) => $c->where('name', 'like', $like)->orWhere('shop_name', 'like', $like))));
+        }
+
+        return $query;
+    }
+
+    /** GET /app/returns/export.{csv|xlsx|pdf}: the whole filtered list, same query string as the page. */
+    public function export(Request $request, string $format, TabularExport $export, TenantContext $context): HttpResponse|StreamedResponse
+    {
+        $this->authorize('viewAny', SaleReturn::class);
+        $table = $this->listTable($request);
+        $query = $table->applySort($this->listQuery($table)
+            ->with(['sale:id,number', 'customer' => fn ($q) => $q->withTrashed()])
+            ->withCount(['items', 'items as restocked_count' => fn ($q) => $q->where('restock', true)]));
+        $staff = User::inCurrentTenant()->pluck('name', 'id');
+        $tz = $this->timezone();
+
+        $columns = [
+            new ReportColumn('number', 'Return', ColumnType::Text),
+            new ReportColumn('sale', 'Invoice', ColumnType::Text),
+            new ReportColumn('date', 'Date', ColumnType::Date),
+            new ReportColumn('customer', 'Customer', ColumnType::Text),
+            new ReportColumn('items', 'Items', ColumnType::Int),
+            new ReportColumn('restocked', 'Restocked', ColumnType::Int),
+            new ReportColumn('total', 'Total', ColumnType::Money),
+            new ReportColumn('refunded', 'Refunded', ColumnType::Money),
+            new ReportColumn('credited', 'Credited', ColumnType::Money),
+            new ReportColumn('refund_mode', 'Settlement', ColumnType::Text),
+            new ReportColumn('reason', 'Reason', ColumnType::Text),
+            new ReportColumn('cashier', 'Cashier', ColumnType::Text),
+        ];
+        $rows = [];
+        $totals = ['items' => 0, 'restocked' => 0, 'total' => 0, 'refunded' => 0, 'credited' => 0];
+        foreach ($query->lazy(500) as $r) {
+            /** @var SaleReturn $r */
+            $customer = $this->customerSummary($r->customer);
+            $row = [
+                'number' => $r->number,
+                'sale' => (string) $r->sale?->number,
+                'date' => BusinessDay::localDate($r->returned_at, $tz),
+                'customer' => $customer === null || $customer['walk_in'] ? 'Walk-in' : (string) $customer['name'],
+                'items' => (int) $r->getAttribute('items_count'),
+                'restocked' => (int) $r->getAttribute('restocked_count'),
+                'total' => $r->total->paisa,
+                'refunded' => $r->refunded->paisa,
+                'credited' => $r->credited->paisa,
+                'refund_mode' => $r->refund_mode->value,
+                'reason' => $r->reason,
+                'cashier' => $r->created_by !== null ? $staff->get($r->created_by) : null,
+            ];
+            $rows[] = $row;
+            foreach (array_keys($totals) as $key) {
+                $totals[$key] += (int) $row[$key];
+            }
+        }
+
+        return $export->respond(new ReportResult($columns, $rows, $totals), ExportFormat::from($format), 'returns-'.now($tz)->format('Ymd-His'), ExportMeta::for($context, 'Returns'));
     }
 
     public function create(Request $request): Response

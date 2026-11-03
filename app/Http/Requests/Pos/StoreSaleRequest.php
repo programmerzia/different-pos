@@ -48,11 +48,12 @@ final class StoreSaleRequest extends FormRequest
             'tenders.*.reference' => ['nullable', 'string', 'max:100'],
             'expected_total' => ['required', 'integer'],
             'approval_token' => ['nullable', 'string', 'max:2000'],
+            'member_token' => ['nullable', 'string', 'max:2000'],
             'note' => ['nullable', 'string', 'max:500'],
         ];
     }
 
-    public function toDraft(?User $approver): SaleDraft
+    public function toDraft(?User $approver, bool $memberVerified = false): SaleDraft
     {
         /** @var list<array<string, mixed>> $lines */
         $lines = $this->validated('lines');
@@ -78,6 +79,7 @@ final class StoreSaleRequest extends FormRequest
             expectedTotal: Money::ofPaisa($this->integer('expected_total')),
             clientUuid: (string) $this->validated('client_uuid'),
             approver: $approver,
+            memberVerified: $memberVerified,
         );
     }
 

@@ -6,6 +6,7 @@ namespace App\Actions\Sales;
 
 use App\Actions\Sales\Data\ReturnDraft;
 use App\Actions\Sales\Data\ReturnLineDraft;
+use App\Actions\Settings\EnsureSystemPaymentMethods;
 use App\Enums\AllocatableType;
 use App\Enums\PaymentDirection;
 use App\Enums\PaymentMethodType;
@@ -64,6 +65,7 @@ final readonly class CreateSaleReturn
         private TenantContext $context,
         private SaleGate $gate,
         private CustomerAccounts $accounts,
+        private EnsureSystemPaymentMethods $systemMethods,
     ) {}
 
     public function handle(User $actor, ReturnDraft $draft): SaleReturn
@@ -74,6 +76,7 @@ final readonly class CreateSaleReturn
         }
 
         return Transaction::run(function () use ($actor, $draft): SaleReturn {
+            $this->systemMethods->handle(); // customer_credit for store-credit refunds, before any lock is taken
             $plan = $this->plan($draft->saleId, $draft->lines);
             if ($draft->refundMode === RefundMode::Credit && $plan->customer->is_walk_in) {
                 throw InvalidTender::creditNeedsCustomer();

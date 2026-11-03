@@ -66,6 +66,9 @@ export function ShellHotkeys() {
                 id: 'shell.language',
                 keys: 'alt+l',
                 labelKey: 'hotkeys.language',
+                // The language switch also works with a dialog open and in a field (02_AppFlow §1).
+                inDialog: true,
+                allowInInput: true,
                 handler: () => {
                     const { locale, set } = usePreferencesStore.getState();
                     set({ locale: locale === 'bn' ? 'en' : 'bn' });

@@ -55,7 +55,7 @@ function policyMatrix(): array
         Sale::class => ['viewAny' => 'sales.view', 'view' => 'sales.view', 'create' => 'pos.sell', 'void' => 'sales.void'],
         SaleReturn::class => ['viewAny' => 'returns.view', 'view' => 'returns.view', 'create' => 'returns.create'],
         Payment::class => ['viewAny' => ['payments.collect', 'payments.pay'], 'view' => ['payments.collect', 'payments.pay'], 'collect' => 'payments.collect', 'pay' => 'payments.pay'],
-        Message::class => ['viewAny' => 'customers.view', 'view' => 'customers.view', 'configure' => 'settings.manage', 'send' => 'settings.manage'],
+        Message::class => ['viewAny' => 'sms.view', 'view' => 'sms.view', 'configure' => 'settings.manage', 'send' => 'sms.send'],
         User::class => ['viewAny' => 'users.manage', 'view' => 'users.manage', 'create' => 'users.manage', 'update' => 'users.manage', 'delete' => 'users.manage'],
         Branch::class => ['viewAny' => [], 'view' => []] + $settingsCrud,
         Tenant::class => ['view' => [], 'update' => 'settings.manage'],

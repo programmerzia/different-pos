@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
-import { Banknote, HandCoins, Wallet } from 'lucide-react';
+import { Banknote, HandCoins, Send, Wallet } from 'lucide-react';
+import { toast } from 'sonner';
 import { useMemo, useState } from 'react';
 import {
     ColumnChooser,
@@ -26,18 +27,21 @@ import {
     type CollectInvoice,
 } from '@/components/sales/collect-dialog';
 import { FiltersDialog } from '@/components/sales/filters-dialog';
+import { WhatsAppReminderDialog } from '@/components/messaging/whatsapp-reminder-dialog';
 import { creditUse, rowOpenHandlers } from '@/components/sales/list-tools';
 import { TableToolbar } from '@/components/table-toolbar';
 import { Button } from '@/components/ui/button';
 import { actions } from '@/command/actions';
-import { moneyToDecimalString } from '@/engine/money';
 import { useCan } from '@/hooks/use-can';
 import { useDigits } from '@/hooks/use-digits';
 import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useT } from '@/i18n';
 import { BUCKETS, type Bucket } from '@/lib/dues';
-import { downloadRowsCsv, type CsvColumn } from '@/lib/rows-csv';
+import { DownloadError, downloadFile } from '@/lib/download';
+import { exportItems, exportUrl, type ExportFormat } from '@/lib/export-items';
 import { salesUrl, type CustomerSummary, type MoneyMethod } from '@/lib/sales';
+import type { DirectRecipient } from '@/lib/whatsapp';
+import type { MessagingProps } from '@/types/messaging';
 import { cn } from '@/lib/utils';
 
 type DueCustomer = CustomerSummary & {
@@ -74,8 +78,21 @@ type Props = {
         debtors: Record<Bucket, number>;
     };
     groups: { id: number; name: string }[];
+    messaging: MessagingProps;
     collect?: CollectData;
 };
+
+/** The dialog's recipient for a dues row: the open due of the row (not the whole balance). */
+function recipientOf(row: Row): DirectRecipient | null {
+    return row.customer && !row.customer.walk_in
+        ? {
+              uuid: row.customer.uuid,
+              name: row.customer.name,
+              phone: row.customer.phone ?? null,
+              due: row.total_due,
+          }
+        : null;
+}
 
 /** Mockup aging strip: 0–30 success, 31–60 warning, 61–90 and 90+ danger (coloured border). */
 const BUCKET_TONE: Record<Bucket, KpiTone> = {
@@ -103,6 +120,17 @@ function registerDueActions(): void {
         requires: 'handler',
         run: ({ row, handlers }) => handlers?.['due.collect']?.(row),
     });
+    actions.register<Row>({
+        id: 'due.whatsapp',
+        entity: 'due',
+        labelKey: 'dues.whatsapp_reminder',
+        icon: Send,
+        keys: 'w',
+        permission: 'sms.send',
+        requires: 'handler',
+        visible: (row) => !!row.customer?.phone && !row.customer.walk_in,
+        run: ({ row, handlers }) => handlers?.['due.whatsapp']?.(row),
+    });
 }
 registerDueActions();
 
@@ -112,6 +140,7 @@ export default function DuesIndex({
     filters,
     totals,
     groups,
+    messaging,
     collect,
 }: Props) {
     const { t } = useT();
@@ -120,6 +149,26 @@ export default function DuesIndex({
     const table = useServerTable();
     const [moreOpen, setMoreOpen] = useState(false);
     const [collectFor, setCollectFor] = useState<string | null>(null);
+    const [reminder, setReminder] = useState<{
+        recipient: DirectRecipient;
+        bulk: DirectRecipient[];
+    } | null>(null);
+
+    /** Opens the WhatsApp dialog for one row; Bulk reaches the selected rows, else every debtor on this page. */
+    const startReminder = (
+        row: Row | undefined,
+        selection?: readonly Row[],
+    ) => {
+        const recipient = row ? recipientOf(row) : null;
+        if (!recipient || !messaging.can_send) {
+            return;
+        }
+        const pool = selection && selection.length > 1 ? selection : rows;
+        const bulk = pool
+            .map(recipientOf)
+            .filter((r): r is DirectRecipient => r !== null && !!r.phone);
+        setReminder({ recipient, bulk });
+    };
 
     const startCollect = (row: Row | undefined) => {
         const uuid = row?.customer?.uuid;
@@ -142,28 +191,17 @@ export default function DuesIndex({
         return rows[index] ?? rows[0];
     };
 
-    const csvColumns: CsvColumn<Row>[] = [
-        {
-            header: t('dues.col_customer_no'),
-            value: (r) => r.customer?.customer_no ?? '',
-        },
-        { header: t('dues.col_name'), value: (r) => r.customer?.name ?? '' },
-        { header: t('dues.col_phone'), value: (r) => r.customer?.phone ?? '' },
-        {
-            header: t('dues.col_total'),
-            value: (r) => moneyToDecimalString(r.total_due),
-        },
-        {
-            header: t('dues.col_limit'),
-            value: (r) =>
-                r.customer?.credit_limit !== null &&
-                r.customer?.credit_limit !== undefined
-                    ? moneyToDecimalString(r.customer.credit_limit)
-                    : '',
-        },
-        { header: t('dues.col_last'), value: (r) => r.last_sale_at ?? '' },
-    ];
-    const exportRows = () => downloadRowsCsv('dues.csv', csvColumns, rows);
+    const exportAs = (format: ExportFormat) => {
+        downloadFile(
+            exportUrl('/app/dues', format, window.location.search),
+        ).catch((error: unknown) =>
+            toast.error(
+                error instanceof DownloadError && error.status === 422
+                    ? error.message
+                    : t('table.export_failed'),
+            ),
+        );
+    };
 
     useHotkeys('list', [
         {
@@ -184,11 +222,24 @@ export default function DuesIndex({
                 startCollect(focusedRow());
             },
         },
+        ...(messaging.can_send
+            ? [
+                  {
+                      id: 'dues.whatsapp',
+                      keys: 'w',
+                      labelKey: 'dues.whatsapp_reminder',
+                      handler: (e: KeyboardEvent) => {
+                          e.preventDefault();
+                          startReminder(focusedRow());
+                      },
+                  },
+              ]
+            : []),
         {
             id: 'dues.export',
             keys: 'shift+e',
-            labelKey: 'dues.export_csv',
-            handler: exportRows,
+            labelKey: 'table.export_xlsx',
+            handler: () => exportAs('xlsx'),
         },
         {
             id: 'dues.more_filters',
@@ -334,34 +385,58 @@ export default function DuesIndex({
                 required: true,
                 mobile: 'hidden',
                 cell: (r) =>
-                    can('payments.collect') &&
-                    r.customer &&
-                    !r.customer.walk_in ? (
-                        <span className="flex justify-end">
-                            <Button
-                                type="button"
-                                size="sm"
-                                className="font-semibold"
-                                aria-label={t('dues.collect_from', {
-                                    name: r.customer.name,
-                                })}
-                                onClick={() => startCollect(r)}
-                            >
-                                {t('dues.collect_row')}
-                            </Button>
+                    r.customer && !r.customer.walk_in ? (
+                        <span className="flex justify-end gap-1.5">
+                            {can('payments.collect') ? (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    className="font-semibold"
+                                    aria-label={t('dues.collect_from', {
+                                        name: r.customer.name,
+                                    })}
+                                    onClick={() => startCollect(r)}
+                                >
+                                    {t('dues.collect_row')}
+                                </Button>
+                            ) : null}
+                            {messaging.can_send && r.customer.phone ? (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="bg-surface-sunken px-2 hover:border-primary"
+                                    title={t('dues.whatsapp_reminder')}
+                                    aria-label={`${t('dues.whatsapp_reminder')}: ${r.customer.name}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        startReminder(r);
+                                    }}
+                                >
+                                    <Send aria-hidden="true" />
+                                </Button>
+                            ) : null}
                         </span>
                     ) : null,
             },
         ],
-        // startCollect reads the latest rows through the closure of this render.
+        // startCollect / startReminder read the latest rows through the closure of this render.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [digits, t, can],
+        [digits, t, can, messaging.can_send],
     );
     const columnState = useColumnVisibility(columns);
 
-    const handlers = can('payments.collect')
-        ? { 'due.collect': (r: Row) => startCollect(r) }
-        : {};
+    const handlers = {
+        ...(can('payments.collect')
+            ? { 'due.collect': (r: Row) => startCollect(r) }
+            : {}),
+        ...(messaging.can_send
+            ? {
+                  'due.whatsapp': (r: Row, selection?: readonly Row[]) =>
+                      startReminder(r, selection),
+              }
+            : {}),
+    };
 
     const groupOptions = groups.map((g) => ({
         value: String(g.id),
@@ -441,16 +516,7 @@ export default function DuesIndex({
                                 visibility={columnState.visibility}
                                 onChange={columnState.setVisibility}
                             />
-                            <ExportMenu
-                                items={[
-                                    {
-                                        id: 'csv',
-                                        kind: 'csv',
-                                        label: t('dues.export_csv'),
-                                        onSelect: exportRows,
-                                    },
-                                ]}
-                            />
+                            <ExportMenu items={exportItems(t, exportAs)} />
                             <PrintButton />
                         </>
                     }
@@ -533,6 +599,22 @@ export default function DuesIndex({
                                 : salesUrl.dues
                         }
                         handlers={handlers}
+                        bulkActions={
+                            messaging.can_send
+                                ? [
+                                      {
+                                          id: 'due.whatsapp_bulk',
+                                          labelKey: 'dues.whatsapp_bulk',
+                                          icon: Send,
+                                          run: (selected) =>
+                                              startReminder(
+                                                  selected[0],
+                                                  selected,
+                                              ),
+                                      },
+                                  ]
+                                : []
+                        }
                         sort={table.state.sort}
                         onSort={table.toggleSort}
                         onPage={table.setPage}
@@ -587,6 +669,16 @@ export default function DuesIndex({
                         balance: collectData.customer.balance,
                         credit_limit: collectData.customer.credit_limit,
                     }}
+                />
+            ) : null}
+            {reminder ? (
+                <WhatsAppReminderDialog
+                    key={reminder.recipient.uuid}
+                    open
+                    onOpenChange={(open) => !open && setReminder(null)}
+                    messaging={messaging}
+                    recipient={reminder.recipient}
+                    bulk={reminder.bulk}
                 />
             ) : null}
             <FiltersDialog

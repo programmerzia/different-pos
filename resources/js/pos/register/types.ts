@@ -25,6 +25,8 @@ export type RegisterSettings = {
     auto_print: boolean;
     paper: string;
     allow_negative_stock: boolean;
+    /** tenants.settings.customer_pin_policy. */
+    pin_policy: 'off' | 'optional' | 'required';
 };
 
 export type CatalogVariant = {
@@ -74,7 +76,30 @@ export type CustomerCard = CustomerHit & {
     /** Credit the customer can spend on this sale. */
     advance: Paisa;
     is_active: boolean;
+    /** PIN state only (set / pending / locked); the server never sends the PIN or its hash. */
+    pin_status: 'set' | 'pending' | 'locked';
 };
+
+/** How the attached member was authenticated on this bill (02_AppFlow §4.4). */
+export type MemberAuthState =
+    | {
+          kind: 'pin_online';
+          customerId: number;
+          /** Member token from verify-pin, bound to this cart; rides along with the sale. */
+          token: string;
+          /** Epoch ms. */
+          expiresAt: number;
+      }
+    | {
+          kind: 'override';
+          customerId: number;
+          managerName: string;
+      }
+    | {
+          /** Optional policy: the member chose not to enter (or has no) PIN. */
+          kind: 'skipped';
+          customerId: number;
+      };
 
 export type CartLine = {
     /** Stable row key (the product id: one line per product). */
@@ -108,6 +133,7 @@ export type CartState = {
     /** Idempotency key of this bill; a new one for every new sale. */
     clientUuid: string;
     approval: Approval | null;
+    member: MemberAuthState | null;
 };
 
 export type CompletedSale = {
@@ -119,6 +145,7 @@ export type CompletedSale = {
     change: Paisa;
     due: Paisa;
     flags: string[];
+    member_auth: string;
     receipt_url: string | null;
 };
 

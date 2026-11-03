@@ -19,6 +19,16 @@ final class Templates
         self::DUE_REMINDER => 'Dear {customer}, your outstanding due is ৳{due}. Please pay at your earliest convenience. — {shop}',
     ];
 
+    /**
+     * The WhatsApp reminder / thank-you texts offered in the WhatsApp dialog (editable per send). Bangla by
+     * default, as the shop's customers read it; the same placeholders as the SMS templates plus {shop_phone}
+     * and {last_invoice}.
+     */
+    public const array WHATSAPP_DEFAULTS = [
+        self::DUE_REMINDER => 'প্রিয় {name}, {shop}-এ আপনার পূর্বের বকেয়া {due} টাকা পরিশোধের জন্য বিনীত অনুরোধ জানানো হচ্ছে। ধন্যবাদ, {shop} ({shop_phone})।',
+        self::PAYMENT_RECEIVED => 'প্রিয় {name}, আপনার {amount} টাকা পরিশোধের জন্য ধন্যবাদ। বর্তমান বকেয়া {due} টাকা। — {shop} ({shop_phone})',
+    ];
+
     /** Placeholders per template (also the legend on the settings page). */
     public const array PLACEHOLDERS = [
         self::SALE_COMPLETED => ['customer', 'shop', 'invoice', 'total', 'paid', 'due'],

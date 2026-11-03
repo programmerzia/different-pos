@@ -12,6 +12,7 @@ use App\Http\Requests\Pos\StoreSaleRequest;
 use App\Models\Sale;
 use App\Models\User;
 use App\Support\Pos\ManagerApproval;
+use App\Support\Pos\MemberToken;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
@@ -25,7 +26,7 @@ use Illuminate\Support\Facades\Route;
  */
 final class SaleController extends Controller
 {
-    public function store(StoreSaleRequest $request, CompleteSale $complete, ManagerApproval $approval, TenantContext $context): JsonResponse
+    public function store(StoreSaleRequest $request, CompleteSale $complete, ManagerApproval $approval, MemberToken $members, TenantContext $context): JsonResponse
     {
         Gate::authorize('create', Sale::class);
         $user = $request->user();
@@ -39,8 +40,16 @@ final class SaleController extends Controller
             }
         }
 
+        // The member token (online PIN check) must name this customer and this cart; anything else counts as no PIN.
+        $memberVerified = $request->filled('customer_id') && $members->verifies(
+            $request->filled('member_token') ? (string) $request->validated('member_token') : null,
+            $user,
+            $request->integer('customer_id'),
+            (string) $request->validated('client_uuid'),
+        );
+
         try {
-            $sale = $complete->handle($user, $request->toDraft($approver), SaleOrigin::Web);
+            $sale = $complete->handle($user, $request->toDraft($approver, $memberVerified), SaleOrigin::Web);
         } catch (DomainException $e) {
             $code = self::code($e);
 
@@ -62,6 +71,7 @@ final class SaleController extends Controller
             'change' => $sale->change_given->paisa,
             'due' => $sale->due->paisa,
             'flags' => $sale->sync_flags ?? [],
+            'member_auth' => $sale->member_auth->value,
             'receipt_url' => Route::has('sales.receipt') ? route('sales.receipt', ['sale' => $sale, 'paper' => $paper]) : null,
         ]], $sale->wasRecentlyCreated ? 201 : 200);
     }

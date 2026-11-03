@@ -10,6 +10,7 @@ import type {
     CartState,
     CatalogVariant,
     CustomerCard,
+    MemberAuthState,
     RegisterSettings,
 } from './types';
 
@@ -27,6 +28,7 @@ export function emptyCart(uuid: string = newClientUuid()): CartState {
         customer: null,
         clientUuid: uuid,
         approval: null,
+        member: null,
     };
 }
 
@@ -40,6 +42,7 @@ export type CartAction =
     | { type: 'move'; delta: number }
     | { type: 'customer'; customer: CustomerCard | null }
     | { type: 'approval'; approval: Approval | null }
+    | { type: 'member'; member: MemberAuthState | null }
     | { type: 'load'; state: CartState }
     | { type: 'clear'; uuid?: string };
 
@@ -136,7 +139,18 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
                 ),
             };
         case 'customer':
-            return { ...state, customer: action.customer };
+            // A different customer (or the walk-in) starts the PIN step afresh.
+            return {
+                ...state,
+                customer: action.customer,
+                member:
+                    action.customer !== null &&
+                    state.member?.customerId === action.customer.id
+                        ? state.member
+                        : null,
+            };
+        case 'member':
+            return { ...state, member: action.member };
         case 'approval':
             return { ...state, approval: action.approval };
         case 'load':

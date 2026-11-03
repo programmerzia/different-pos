@@ -160,7 +160,12 @@ const SECTIONS: Section[] = [
         permission: 'settings.manage',
     },
     { id: 'keyboard_shortcuts', icon: Keyboard, overlay: 'shortcuts' },
-    { id: 'data_import_export', icon: Download, permission: 'settings.manage' },
+    {
+        id: 'data_import_export',
+        icon: Download,
+        href: '/app/settings/backups',
+        permission: 'backup.view',
+    },
     {
         id: 'users_roles',
         icon: Shield,

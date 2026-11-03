@@ -359,17 +359,20 @@ export default function BusinessSettings({
                                         )
                                     }
                                 >
-                                    <option value="always">
-                                        {t('business.pin_always')}
-                                    </option>
-                                    <option value="credit_only">
-                                        {t('business.pin_credit_only')}
-                                    </option>
                                     <option value="off">
                                         {t('business.pin_off')}
                                     </option>
+                                    <option value="optional">
+                                        {t('business.pin_optional')}
+                                    </option>
+                                    <option value="required">
+                                        {t('business.pin_required')}
+                                    </option>
                                 </NativeSelect>
                             </FormField>
+                            <p className="text-[11px] text-muted-foreground">
+                                {t('business.pin_policy_hint')}
+                            </p>
                         </HubCard>
                     </HubSection>
                     {/* Enter in a field submits; the visible Save is the hub header's button. */}

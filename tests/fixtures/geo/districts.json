@@ -1,0 +1,46 @@
+[
+{
+"id": 8,
+"code": "01-08",
+"division_code": "01",
+"name_en": "Chattogram",
+"name_bn": "চট্টগ্রাম",
+"aliases": [
+"Chittagong"
+]
+},
+{
+"id": 14,
+"code": "02-14",
+"division_code": "02",
+"name_en": "Bogura",
+"name_bn": "বগুড়া",
+"aliases": [
+"Bogra"
+]
+},
+{
+"id": 17,
+"code": "02-17",
+"division_code": "02",
+"name_en": "Joypurhat",
+"name_bn": "জয়পুরহাট",
+"aliases": []
+},
+{
+"id": 41,
+"code": "06-41",
+"division_code": "06",
+"name_en": "Gazipur",
+"name_bn": "গাজীপুর",
+"aliases": []
+},
+{
+"id": 47,
+"code": "06-47",
+"division_code": "06",
+"name_en": "Dhaka",
+"name_bn": "ঢাকা",
+"aliases": []
+}
+]

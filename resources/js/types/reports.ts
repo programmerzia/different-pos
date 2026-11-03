@@ -1,4 +1,5 @@
-export type ColumnType = 'money' | 'qty' | 'int' | 'text' | 'date';
+/** `percent` cells hold basis points (1234 = 12.34 %). */
+export type ColumnType = 'money' | 'qty' | 'int' | 'text' | 'date' | 'percent';
 
 export type ReportColumn = {
     key: string;
@@ -34,6 +35,10 @@ export type ReportShowProps = {
         categories: { id: number; name: string }[];
         brands: { id: number; name: string }[];
         buckets: string[];
+        cashiers: { id: number; name: string }[];
+        vendors: { id: number; name: string }[];
+        reasons: string[];
+        levels: string[];
     };
 };
 

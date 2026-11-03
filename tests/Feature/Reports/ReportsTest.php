@@ -274,6 +274,6 @@ it('formats a decimal CSV for money and quantity cells', function (): void {
     $csv = $response->assertOk()->streamedContent();
     expect($csv)->toStartWith("\xEF\xBB\xBF")
         ->and($csv)->toContain('SKU,Product')
-        ->and($csv)->toContain(',6.000,0.000,6.000,6000.00,3600.00,2400.00')
+        ->and($csv)->toContain(',6.000,0.000,6.000,0.048,6000.00,3600.00,2400.00,40.00')
         ->and($csv)->toContain('Total');
 });

@@ -1,4 +1,4 @@
-import { Link, useForm } from '@inertiajs/react';
+import { Link, useForm } from "@inertiajs/react";
 import {
     AlertCircle,
     CalendarDays,
@@ -8,29 +8,30 @@ import {
     User,
     UserPlus,
     type LucideIcon,
-} from 'lucide-react';
-import { useId, useState, type ReactNode } from 'react';
-import { ConfirmDialog } from '@/components/confirm-dialog';
-import { Kbd } from '@/components/kbd';
-import { MoneyInput } from '@/components/money-input';
-import { NativeSelect } from '@/components/native-select';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import { useId, useState, type ReactNode } from "react";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { Kbd } from "@/components/kbd";
+import { LocationFields } from "@/components/location-fields";
+import { MoneyInput } from "@/components/money-input";
+import { NativeSelect } from "@/components/native-select";
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogActions,
     DialogBar,
     DialogBody,
     DialogContent,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { useDigits } from '@/hooks/use-digits';
-import { useHotkeys } from '@/hotkeys/use-hotkeys';
-import { useT } from '@/i18n';
-import { apiRequest } from '@/lib/api';
-import { displayPhone } from '@/lib/phone';
-import { cn } from '@/lib/utils';
-import type { Paisa } from '@/engine/money';
-import type { CustomerDetail, GroupOption } from '@/types/customers';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useDigits } from "@/hooks/use-digits";
+import { useHotkeys } from "@/hotkeys/use-hotkeys";
+import { useT } from "@/i18n";
+import { apiRequest } from "@/lib/api";
+import { displayPhone } from "@/lib/phone";
+import { cn } from "@/lib/utils";
+import type { Paisa } from "@/engine/money";
+import type { CustomerDetail, GroupOption } from "@/types/customers";
 
 type Existing = {
     uuid: string;
@@ -49,6 +50,10 @@ type FormData = {
     email: string;
     customer_group_id: string;
     credit_limit: Paisa | null;
+    geo_division_id: number | null;
+    geo_district_id: number | null;
+    geo_upazila_id: number | null;
+    geo_union_id: number | null;
     address_line: string;
     area: string;
     post_code: string;
@@ -101,24 +106,28 @@ function CustomerDialogBody({
     const digits = useDigits();
     const editing = customer !== null;
     const form = useForm<FormData>({
-        name: customer?.name ?? '',
-        name_bn: customer?.name_bn ?? '',
-        shop_name: customer?.shop_name ?? '',
+        name: customer?.name ?? "",
+        name_bn: customer?.name_bn ?? "",
+        shop_name: customer?.shop_name ?? "",
         // Shown in the local 01XXX-XXXXXX form; the server normalises any BD format.
         phone: displayPhone(customer?.phone),
         alt_phone: displayPhone(customer?.alt_phone),
-        email: customer?.email ?? '',
+        email: customer?.email ?? "",
         customer_group_id:
             customer?.customer_group_id != null
                 ? String(customer.customer_group_id)
-                : '',
+                : "",
         credit_limit: customer?.credit_limit ?? null,
-        address_line: customer?.address_line ?? '',
-        area: customer?.area ?? '',
-        post_code: customer?.post_code ?? '',
-        dob: customer?.dob ?? '',
-        anniversary_date: customer?.anniversary_date ?? '',
-        notes: customer?.notes ?? '',
+        geo_division_id: customer?.geo_division_id ?? null,
+        geo_district_id: customer?.geo_district_id ?? null,
+        geo_upazila_id: customer?.geo_upazila_id ?? null,
+        geo_union_id: customer?.geo_union_id ?? null,
+        address_line: customer?.address_line ?? "",
+        area: customer?.area ?? "",
+        post_code: customer?.post_code ?? "",
+        dob: customer?.dob ?? "",
+        anniversary_date: customer?.anniversary_date ?? "",
+        notes: customer?.notes ?? "",
     });
     const [existing, setExisting] = useState<Existing | null>(null);
     const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -133,7 +142,7 @@ function CustomerDialogBody({
         try {
             const query = new URLSearchParams({ phone });
             if (customer) {
-                query.set('except', customer.uuid);
+                query.set("except", customer.uuid);
             }
             const data = await apiRequest<{ existing: Existing | null }>(
                 `/app/customers/check-phone?${query.toString()}`,
@@ -153,7 +162,7 @@ function CustomerDialogBody({
             preserveState: true,
             onSuccess: () => onClose(),
             onError: (errs: Record<string, string>) => {
-                if (errs['phone']) {
+                if (errs["phone"]) {
                     void checkPhone(form.data.phone);
                 }
             },
@@ -161,7 +170,7 @@ function CustomerDialogBody({
         if (customer) {
             form.put(`/app/customers/${customer.uuid}`, options);
         } else {
-            form.post('/app/customers', options);
+            form.post("/app/customers", options);
         }
     };
 
@@ -174,11 +183,11 @@ function CustomerDialogBody({
         onClose();
     };
 
-    useHotkeys('dialog', [
+    useHotkeys("dialog", [
         {
-            id: 'customer_dialog.save',
-            keys: 'mod+enter',
-            labelKey: 'hotkeys.save',
+            id: "customer_dialog.save",
+            keys: "mod+enter",
+            labelKey: "hotkeys.save",
             allowInInput: true,
             handler: (event) => {
                 event.preventDefault();
@@ -186,9 +195,9 @@ function CustomerDialogBody({
             },
         },
         {
-            id: 'customer_dialog.save_s',
-            keys: 'mod+s',
-            labelKey: 'hotkeys.save',
+            id: "customer_dialog.save_s",
+            keys: "mod+s",
+            labelKey: "hotkeys.save",
             allowInInput: true,
             handler: (event) => {
                 event.preventDefault();
@@ -220,7 +229,7 @@ function CustomerDialogBody({
                     <Input
                         {...props}
                         name={key}
-                        value={String(form.data[key] ?? '')}
+                        value={String(form.data[key] ?? "")}
                         onChange={(e) => form.setData(key, e.target.value)}
                         {...rest}
                     />
@@ -252,8 +261,8 @@ function CustomerDialogBody({
                         icon={editing ? User : UserPlus}
                         title={
                             editing
-                                ? t('customers.dialog.edit_title')
-                                : t('customers.dialog.new_title')
+                                ? t("customers.dialog.edit_title")
+                                : t("customers.dialog.new_title")
                         }
                         badge={
                             customer?.customer_no
@@ -262,10 +271,10 @@ function CustomerDialogBody({
                         }
                         subtitle={
                             editing
-                                ? t('customers.dialog.edit_subtitle')
-                                : t('customers.dialog.new_subtitle')
+                                ? t("customers.dialog.edit_subtitle")
+                                : t("customers.dialog.new_subtitle")
                         }
-                        closeLabel={t('customers.dialog.close')}
+                        closeLabel={t("customers.dialog.close")}
                     />
                     <form
                         id="customer-form"
@@ -277,7 +286,7 @@ function CustomerDialogBody({
                         }}
                     >
                         <DialogBody className="space-y-4 bg-background">
-                            {errors['form'] ? (
+                            {errors["form"] ? (
                                 <p
                                     role="alert"
                                     className="flex items-center gap-1.5 rounded-lg border border-destructive bg-danger-soft p-2.5 text-xs font-semibold text-destructive"
@@ -286,50 +295,50 @@ function CustomerDialogBody({
                                         className="size-3.5"
                                         aria-hidden="true"
                                     />
-                                    {errors['form']}
+                                    {errors["form"]}
                                 </p>
                             ) : null}
 
                             <Section
                                 icon={User}
-                                title={t('customers.dialog.section_identity')}
-                                hint={t('customers.dialog.required_hint')}
+                                title={t("customers.dialog.section_identity")}
+                                hint={t("customers.dialog.required_hint")}
                             >
                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     {text(
-                                        'name',
-                                        t('customers.dialog.name_en'),
+                                        "name",
+                                        t("customers.dialog.name_en"),
                                         {
                                             required: true,
                                             placeholder: t(
-                                                'customers.dialog.name_en_ph',
+                                                "customers.dialog.name_en_ph",
                                             ),
                                         },
                                     )}
                                     {text(
-                                        'name_bn',
-                                        t('customers.dialog.name_bn'),
+                                        "name_bn",
+                                        t("customers.dialog.name_bn"),
                                         {
-                                            lang: 'bn',
+                                            lang: "bn",
                                             placeholder: t(
-                                                'customers.dialog.name_bn_ph',
+                                                "customers.dialog.name_bn_ph",
                                             ),
                                         },
                                     )}
                                     {text(
-                                        'shop_name',
-                                        t('customers.form.shop_name'),
+                                        "shop_name",
+                                        t("customers.form.shop_name"),
                                         {
                                             placeholder: t(
-                                                'customers.dialog.shop_ph',
+                                                "customers.dialog.shop_ph",
                                             ),
                                         },
                                     )}
                                     <Field
-                                        label={t('customers.dialog.phone')}
+                                        label={t("customers.dialog.phone")}
                                         required
-                                        error={errors['phone']}
-                                        hint={t('customers.dialog.phone_hint')}
+                                        error={errors["phone"]}
+                                        hint={t("customers.dialog.phone_hint")}
                                         extra={
                                             existing ? (
                                                 <p
@@ -337,17 +346,17 @@ function CustomerDialogBody({
                                                     className="mt-1 rounded-lg border border-warning bg-warning-soft p-2 text-[11px] text-warning"
                                                 >
                                                     {t(
-                                                        'customers.form.duplicate',
+                                                        "customers.form.duplicate",
                                                         {
                                                             name: existing.name,
                                                         },
-                                                    )}{' '}
+                                                    )}{" "}
                                                     <Link
                                                         href={`/app/customers/${existing.uuid}`}
                                                         className="font-bold underline"
                                                     >
                                                         {t(
-                                                            'customers.form.open_existing',
+                                                            "customers.form.open_existing",
                                                         )}
                                                     </Link>
                                                 </p>
@@ -365,7 +374,7 @@ function CustomerDialogBody({
                                                 value={form.data.phone}
                                                 onChange={(e) =>
                                                     form.setData(
-                                                        'phone',
+                                                        "phone",
                                                         e.target.value,
                                                     )
                                                 }
@@ -378,23 +387,23 @@ function CustomerDialogBody({
                                         )}
                                     </Field>
                                     {text(
-                                        'alt_phone',
-                                        t('customers.dialog.alt_phone'),
+                                        "alt_phone",
+                                        t("customers.dialog.alt_phone"),
                                         {
-                                            inputMode: 'tel',
-                                            className: 'font-mono',
+                                            inputMode: "tel",
+                                            className: "font-mono",
                                             placeholder: t(
-                                                'customers.dialog.alt_phone_ph',
+                                                "customers.dialog.alt_phone_ph",
                                             ),
                                         },
                                     )}
                                     {text(
-                                        'email',
-                                        t('customers.dialog.email'),
+                                        "email",
+                                        t("customers.dialog.email"),
                                         {
-                                            type: 'email',
+                                            type: "email",
                                             placeholder: t(
-                                                'customers.dialog.email_ph',
+                                                "customers.dialog.email_ph",
                                             ),
                                         },
                                     )}
@@ -403,56 +412,77 @@ function CustomerDialogBody({
 
                             <Section
                                 icon={MapPin}
-                                title={t('customers.dialog.section_address')}
-                                hint={t('customers.dialog.address_hint')}
+                                title={t("customers.dialog.section_address")}
+                                hint={t("customers.dialog.address_hint")}
                             >
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-                                    <div className="sm:col-span-3">
-                                        {text(
-                                            'area',
-                                            t('customers.dialog.area'),
-                                            {
-                                                placeholder: t(
-                                                    'customers.dialog.area_ph',
-                                                ),
-                                            },
-                                        )}
-                                    </div>
+                                <LocationFields
+                                    value={{
+                                        geo_division_id:
+                                            form.data.geo_division_id,
+                                        geo_district_id:
+                                            form.data.geo_district_id,
+                                        geo_upazila_id:
+                                            form.data.geo_upazila_id,
+                                        geo_union_id: form.data.geo_union_id,
+                                        post_code: form.data.post_code,
+                                    }}
+                                    names={customer?.location}
+                                    errors={{
+                                        geo_division_id:
+                                            errors["geo_division_id"],
+                                        geo_district_id:
+                                            errors["geo_district_id"],
+                                        geo_upazila_id:
+                                            errors["geo_upazila_id"],
+                                        geo_union_id: errors["geo_union_id"],
+                                        post_code: errors["post_code"],
+                                    }}
+                                    onChange={(patch) => {
+                                        for (const [
+                                            key,
+                                            value,
+                                        ] of Object.entries(patch)) {
+                                            form.setData(
+                                                key as keyof FormData,
+                                                value as never,
+                                            );
+                                        }
+                                    }}
+                                />
+                                {customer &&
+                                !customer.location_verified &&
+                                customer.geo_district_id !== null ? (
+                                    <p className="text-[10px] text-warning">
+                                        {t("location.unverified")}
+                                    </p>
+                                ) : null}
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     {text(
-                                        'post_code',
-                                        t('customers.dialog.post_code'),
+                                        "address_line",
+                                        t("customers.dialog.street"),
                                         {
-                                            inputMode: 'numeric',
-                                            maxLength: 4,
-                                            className: 'font-mono',
                                             placeholder: t(
-                                                'customers.dialog.post_code_ph',
+                                                "customers.dialog.street_ph",
                                             ),
                                         },
                                     )}
-                                </div>
-                                <div className="grid grid-cols-1 gap-3">
-                                    {text(
-                                        'address_line',
-                                        t('customers.dialog.street'),
-                                        {
-                                            placeholder: t(
-                                                'customers.dialog.street_ph',
-                                            ),
-                                        },
-                                    )}
+                                    {text("area", t("customers.dialog.area"), {
+                                        placeholder: t(
+                                            "customers.dialog.area_ph",
+                                        ),
+                                    })}
                                 </div>
                             </Section>
 
                             <Section
                                 icon={CreditCard}
-                                title={t('customers.dialog.section_credit')}
-                                hint={t('customers.dialog.credit_hint')}
+                                title={t("customers.dialog.section_credit")}
+                                hint={t("customers.dialog.credit_hint")}
                             >
                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                     <Field
-                                        label={t('customers.dialog.group')}
-                                        error={errors['customer_group_id']}
+                                        label={t("customers.dialog.group")}
+                                        error={errors["customer_group_id"]}
                                     >
                                         {(props) => (
                                             <NativeSelect
@@ -464,14 +494,14 @@ function CustomerDialogBody({
                                                 }
                                                 onChange={(e) =>
                                                     form.setData(
-                                                        'customer_group_id',
+                                                        "customer_group_id",
                                                         e.target.value,
                                                     )
                                                 }
                                             >
                                                 <option value="">
                                                     {t(
-                                                        'customers.form.no_group',
+                                                        "customers.form.no_group",
                                                     )}
                                                 </option>
                                                 {groups.map((g) => (
@@ -481,7 +511,7 @@ function CustomerDialogBody({
                                                     >
                                                         {g.discount_bp > 0
                                                             ? t(
-                                                                  'customers.dialog.group_option',
+                                                                  "customers.dialog.group_option",
                                                                   {
                                                                       name: g.name,
                                                                       pct: discountPercent(
@@ -497,19 +527,19 @@ function CustomerDialogBody({
                                     </Field>
                                     <Field
                                         label={t(
-                                            'customers.dialog.credit_limit',
+                                            "customers.dialog.credit_limit",
                                         )}
-                                        error={errors['credit_limit']}
+                                        error={errors["credit_limit"]}
                                     >
                                         {(props) => (
                                             <MoneyInput
                                                 id={props.id}
                                                 name="credit_limit"
-                                                {...(props['aria-describedby']
+                                                {...(props["aria-describedby"]
                                                     ? {
-                                                          'aria-describedby':
+                                                          "aria-describedby":
                                                               props[
-                                                                  'aria-describedby'
+                                                                  "aria-describedby"
                                                               ],
                                                       }
                                                     : {})}
@@ -517,20 +547,20 @@ function CustomerDialogBody({
                                                 value={form.data.credit_limit}
                                                 onChange={(v) =>
                                                     form.setData(
-                                                        'credit_limit',
+                                                        "credit_limit",
                                                         v,
                                                     )
                                                 }
                                                 invalid={
-                                                    !!errors['credit_limit']
+                                                    !!errors["credit_limit"]
                                                 }
                                             />
                                         )}
                                     </Field>
                                     <Field
-                                        label={t('customers.dialog.discount')}
+                                        label={t("customers.dialog.discount")}
                                         hint={t(
-                                            'customers.dialog.discount_hint',
+                                            "customers.dialog.discount_hint",
                                         )}
                                     >
                                         {(props) => (
@@ -548,23 +578,23 @@ function CustomerDialogBody({
 
                             <Section
                                 icon={CalendarDays}
-                                title={t('customers.dialog.section_dates')}
+                                title={t("customers.dialog.section_dates")}
                             >
                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                    {text('dob', t('customers.form.dob'), {
-                                        type: 'date',
+                                    {text("dob", t("customers.form.dob"), {
+                                        type: "date",
                                     })}
                                     {text(
-                                        'anniversary_date',
-                                        t('customers.form.anniversary'),
+                                        "anniversary_date",
+                                        t("customers.form.anniversary"),
                                         {
-                                            type: 'date',
+                                            type: "date",
                                         },
                                     )}
                                     <div className="sm:col-span-2">
                                         <Field
-                                            label={t('customers.form.notes')}
-                                            error={errors['notes']}
+                                            label={t("customers.form.notes")}
+                                            error={errors["notes"]}
                                         >
                                             {(props) => (
                                                 <textarea
@@ -574,7 +604,7 @@ function CustomerDialogBody({
                                                     value={form.data.notes}
                                                     onChange={(e) =>
                                                         form.setData(
-                                                            'notes',
+                                                            "notes",
                                                             e.target.value,
                                                         )
                                                     }
@@ -591,11 +621,11 @@ function CustomerDialogBody({
                                 <>
                                     <span className="flex items-center gap-1">
                                         <Kbd keys="mod+enter" />
-                                        {t('hotkeys.save')}
+                                        {t("hotkeys.save")}
                                     </span>
                                     <span className="flex items-center gap-1">
                                         <Kbd keys="escape" />
-                                        {t('common.cancel')}
+                                        {t("common.cancel")}
                                     </span>
                                 </>
                             }
@@ -605,11 +635,11 @@ function CustomerDialogBody({
                                 variant="outline"
                                 onClick={requestClose}
                             >
-                                {t('common.cancel')}
+                                {t("common.cancel")}
                             </Button>
                             <Button type="submit" disabled={form.processing}>
                                 <CheckCircle2 aria-hidden="true" />
-                                {t('customers.form.save')}
+                                {t("customers.form.save")}
                             </Button>
                         </DialogActions>
                     </form>
@@ -618,9 +648,9 @@ function CustomerDialogBody({
             <ConfirmDialog
                 open={confirmDiscard}
                 onOpenChange={setConfirmDiscard}
-                title={t('customers.dialog.discard_title')}
-                description={t('customers.dialog.discard_body')}
-                confirmLabel={t('customers.dialog.discard')}
+                title={t("customers.dialog.discard_title")}
+                description={t("customers.dialog.discard_body")}
+                confirmLabel={t("customers.dialog.discard")}
                 destructive
                 onConfirm={onClose}
             />
@@ -671,8 +701,8 @@ function Section({
 
 type ControlProps = {
     id: string;
-    'aria-invalid'?: boolean;
-    'aria-describedby'?: string;
+    "aria-invalid"?: boolean;
+    "aria-describedby"?: string;
 };
 
 /** Mockup field: 11 px semibold muted label, control, 10 px error (with icon) or hint. */
@@ -701,13 +731,13 @@ function Field({
                 className="text-[11px] font-semibold text-muted-foreground"
             >
                 {label}
-                {required ? ' *' : null}
+                {required ? " *" : null}
             </label>
-            <div className={cn('mt-1', error && '[&_input]:bg-danger-soft')}>
+            <div className={cn("mt-1", error && "[&_input]:bg-danger-soft")}>
                 {children({
                     id,
-                    ...(error ? { 'aria-invalid': true } : {}),
-                    ...(describedBy ? { 'aria-describedby': describedBy } : {}),
+                    ...(error ? { "aria-invalid": true } : {}),
+                    ...(describedBy ? { "aria-describedby": describedBy } : {}),
                 })}
             </div>
             {error ? (

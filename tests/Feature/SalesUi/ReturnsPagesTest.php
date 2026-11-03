@@ -150,6 +150,10 @@ it('lists the ledger with items, refund method, cashier, reason chips and totals
 
     $this->get(route('returns.index', ['filter' => ['reason' => 'size']]))->assertInertia(fn (Assert $page) => $page->has('rows', 0));
     $this->get(route('returns.index', ['filter' => ['reason' => 'defect']]))->assertInertia(fn (Assert $page) => $page->has('rows', 1));
+
+    // Named period (Bangladesh week, Saturday to today): today's return is in this week; last month's range is empty.
+    $this->get(route('returns.index', ['filter' => ['period' => 'week']]))->assertInertia(fn (Assert $page) => $page->has('rows', 1));
+    $this->get(route('returns.index', ['filter' => ['period' => 'last_month']]))->assertInertia(fn (Assert $page) => $page->has('rows', 0));
 });
 
 it('loads the wizard dialog alone, never another tenant\'s sale', function (): void {

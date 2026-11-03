@@ -69,7 +69,9 @@ final class InvalidSaleDocument extends DomainException
 
     public static function missingSystemMethod(string $type): self
     {
-        return new self(sprintf('The business has no active %s payment method.', $type));
+        $label = __('app.method_types.'.$type);
+
+        return new self((string) __('app.system_method_missing', ['method' => is_string($label) ? $label : $type]));
     }
 
     public static function changed(string $number): self

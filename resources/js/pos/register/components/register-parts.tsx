@@ -1,6 +1,7 @@
 import {
     Banknote,
     CreditCard,
+    KeyRound,
     LayoutGrid,
     Minus,
     Percent,
@@ -20,7 +21,12 @@ import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { breakdownRows, stockTone } from '../present';
-import type { CartLine, CatalogItem, CustomerCard } from '../types';
+import type {
+    CartLine,
+    CatalogItem,
+    CustomerCard,
+    MemberAuthState,
+} from '../types';
 
 /**
  * The register's presentational pieces in the mockup's layout (render_pos_sales_returns.py, screen 1).
@@ -211,13 +217,61 @@ export function FnButton({
  * The customer strip on top of the bill: amber "attach customer" while walk-in (the owner's request),
  * else avatar, name, number, phone, due / credit, group with its discount, Collect and detach.
  */
+/** The member's PIN state on the strip (02_AppFlow §4.4: "✓ PIN", "Override by …", locked, not set). */
+export function MemberPinChip({
+    customer,
+    member,
+    policy,
+}: {
+    customer: CustomerCard;
+    member: MemberAuthState | null;
+    policy: 'off' | 'optional' | 'required';
+}) {
+    const { t } = useT();
+    const own = member !== null && member.customerId === customer.id ? member : null;
+    const tone =
+        own?.kind === 'pin_online' || own?.kind === 'override'
+            ? 'bg-success-soft text-success'
+            : customer.pin_status === 'locked' || (policy === 'required' && own === null)
+              ? 'bg-danger-soft text-danger'
+              : 'bg-warning-soft text-warning';
+    const label =
+        own?.kind === 'pin_online'
+            ? t('pos.pin.chip_verified')
+            : own?.kind === 'override'
+              ? t('pos.pin.chip_override', { name: own.managerName })
+              : customer.pin_status === 'locked'
+                ? t('pos.pin.chip_locked')
+                : customer.pin_status === 'pending'
+                  ? t('pos.pin.chip_not_set')
+                  : own?.kind === 'skipped'
+                    ? t('pos.pin.chip_skipped')
+                    : t('pos.pin.chip_unverified');
+
+    return (
+        <span
+            className={`rounded px-1 font-bold ${tone}`}
+            data-testid="member-pin-chip"
+        >
+            {label}
+        </span>
+    );
+}
+
 export function CustomerStrip({
     customer,
+    member = null,
+    pinPolicy = 'off',
+    onPin,
     onOpen,
     onCollect,
     onDetach,
 }: {
     customer: CustomerCard | null;
+    member?: MemberAuthState | null;
+    pinPolicy?: 'off' | 'optional' | 'required';
+    /** Alt+P: verify / set the member's PIN. */
+    onPin?: () => void;
     onOpen: () => void;
     onCollect: (() => void) | null;
     onDetach: () => void;
@@ -307,10 +361,28 @@ export function CustomerStrip({
                                 {groupPct > 0 && ` −${d.n(groupPct)}%`}
                             </span>
                         )}
+                        {pinPolicy !== 'off' && (
+                            <MemberPinChip
+                                customer={customer}
+                                member={member}
+                                policy={pinPolicy}
+                            />
+                        )}
                     </span>
                 </span>
             </button>
             <span className="ml-2 flex shrink-0 items-center gap-1">
+                {onPin && pinPolicy !== 'off' && (
+                    <button
+                        type="button"
+                        onClick={onPin}
+                        className="touch-target flex h-7 items-center gap-1 rounded border px-2 text-[10px] font-bold text-muted-foreground hover:bg-surface"
+                        aria-label={t('pos.pin.action')}
+                        title={`${t('pos.pin.action')} (Alt+P)`}
+                    >
+                        <KeyRound className="size-3" aria-hidden="true" />
+                    </button>
+                )}
                 {onCollect && customer.balance > 0 && (
                     <button
                         type="button"

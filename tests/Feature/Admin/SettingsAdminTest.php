@@ -40,20 +40,20 @@ it('shows and updates the business profile and rules', function (): void {
     $this->put('/app/settings/business', [
         'name' => 'Different Fashion', 'legal_name' => 'Different Fashion Ltd', 'vat_bin' => '000123456-0101', 'phone' => '01712345678',
         'currency' => 'bdt', 'timezone' => 'Asia/Dhaka', 'locale' => 'bn', 'tax_inclusive' => false, 'backdate_days' => 7,
-        'return_days' => 14, 'default_credit_limit' => 5_000_000, 'customer_pin_policy' => 'credit_only', 'offline_credit_cap' => 200_000,
+        'return_days' => 14, 'default_credit_limit' => 5_000_000, 'customer_pin_policy' => 'required', 'offline_credit_cap' => 200_000,
     ])->assertRedirect();
 
     $tenant->refresh();
     expect($tenant->name)->toBe('Different Fashion')->and($tenant->currency)->toBe('BDT')->and($tenant->locale)->toBe('bn')
         ->and($tenant->setting('tax_inclusive'))->toBeFalse()->and($tenant->setting('backdate_days'))->toBe(7)
         ->and($tenant->setting('return_days'))->toBe(14)->and($tenant->setting('default_credit_limit'))->toBe(5_000_000)
-        ->and($tenant->setting('customer_pin_policy'))->toBe('credit_only')->and($tenant->setting('lapsed_days'))->toBe(90);
+        ->and($tenant->setting('customer_pin_policy'))->toBe('required')->and($tenant->setting('lapsed_days'))->toBe(90);
 });
 
 it('treats empty limits as no limit and rejects bad business input', function (): void {
     [$owner, $tenant] = adminActor();
     $valid = ['name' => 'Shop', 'currency' => 'BDT', 'timezone' => 'Asia/Dhaka', 'locale' => 'en', 'tax_inclusive' => true, 'backdate_days' => 3,
-        'customer_pin_policy' => 'always', 'offline_credit_cap' => 0];
+        'customer_pin_policy' => 'optional', 'offline_credit_cap' => 0];
 
     $this->actingAs($owner)->put('/app/settings/business', $valid + ['return_days' => null, 'default_credit_limit' => null])->assertRedirect();
     expect($tenant->refresh()->setting('return_days'))->toBeNull()->and($tenant->setting('default_credit_limit'))->toBeNull();
@@ -62,6 +62,7 @@ it('treats empty limits as no limit and rejects bad business input', function ()
     $this->put('/app/settings/business', ['locale' => 'fr'] + $valid)->assertSessionHasErrors('locale');
     $this->put('/app/settings/business', ['default_credit_limit' => -1] + $valid)->assertSessionHasErrors('default_credit_limit');
     $this->put('/app/settings/business', ['name' => ''] + $valid)->assertSessionHasErrors('name');
+    $this->put('/app/settings/business', ['customer_pin_policy' => 'always'] + $valid)->assertSessionHasErrors('customer_pin_policy');
 });
 
 it('only ever changes the signed-in tenant', function (): void {
@@ -69,7 +70,7 @@ it('only ever changes the signed-in tenant', function (): void {
     $other = Tenant::factory()->create(['name' => 'Other Co']);
 
     $this->actingAs($owner)->put('/app/settings/business', ['name' => 'Mine', 'currency' => 'BDT', 'timezone' => 'Asia/Dhaka', 'locale' => 'en',
-        'tax_inclusive' => true, 'backdate_days' => 3, 'customer_pin_policy' => 'always', 'offline_credit_cap' => 0])->assertRedirect();
+        'tax_inclusive' => true, 'backdate_days' => 3, 'customer_pin_policy' => 'optional', 'offline_credit_cap' => 0])->assertRedirect();
 
     expect($tenant->refresh()->name)->toBe('Mine')->and($other->refresh()->name)->toBe('Other Co');
 });

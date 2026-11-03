@@ -110,6 +110,24 @@ it('merges a code shared across stores into one product, suffixes a same-store d
         ->and($panjabi->is_active)->toBeFalse();
 });
 
+it('suffixes a code from a store already mapped to the merged product on an incremental re-import', function (): void {
+    ($this->import)();
+    $merged = (int) DB::table('products')->where('legacy_id', 2418)->value('id');
+    // Another tenant's mapping for the same product id must not leak into this tenant's store lookup.
+    DB::table('legacy_id_maps')->insert(['entity' => 'store_product_list', 'legacy_store_id' => 99, 'legacy_id' => 999999, 'new_id' => $merged + 100000]);
+
+    $row = ['product_name' => 'Shirt Chaina new', 'product_code' => '410500', 'category_id' => 272, 'brand_id' => 257, 'vendor_id' => 0, 'quantity' => 0, 'mrp' => 1050, 'buy_price' => 500, 'min_sale_qty' => 1, 'stock_out_alert' => 0, 'status' => 'Active'];
+    DB::connection(LegacyFixture::CONNECTION)->table('store_product_list')->insert([
+        ['id' => 2470, 'store_id' => 7, ...$row],  // the store the product was first imported from
+        ['id' => 2471, 'store_id' => 10, ...$row], // the store merged into it
+    ]);
+    ($this->import)();
+
+    $skus = ($this->as)(fn (): array => Product::query()->whereIn('legacy_id', [2470, 2471])->orderBy('legacy_id')->pluck('sku', 'legacy_id')->all());
+    expect($skus)->toBe([2470 => '410500-2470', 2471 => '410500-2471'])
+        ->and(DB::table('legacy_id_maps')->where('entity', 'store_product_list')->where('legacy_id', 2470)->value('new_id'))->not->toBe($merged);
+});
+
 it('numbers customers in ascending legacy id order with valid Luhn numbers', function (): void {
     ($this->import)();
 
@@ -129,6 +147,35 @@ it('numbers customers in ascending legacy id order with valid Luhn numbers', fun
     expect($karim->name)->toBe('Karim Traders')
         ->and($karim->phone)->toBeNull()
         ->and(($this->report)('invalid_phone'))->toHaveCount(2); // customer 816 and vendor 3
+});
+
+it('fills geo ids from a legacy address that names a known thana and district, reports the rest as unparsed', function (): void {
+    $this->artisan('geo:import', ['--path' => __DIR__.'/../../fixtures/geo'])->assertSuccessful();
+    ($this->import)();
+
+    $rahim = ($this->as)(fn () => Customer::query()->withTrashed()->where('legacy_id', 815)->firstOrFail()); // 'Mirpur, Dhaka'
+    $dhaka = DB::table('geo_districts')->where('name_en', 'Dhaka')->value('id');
+    expect($rahim->geo_district_id)->toBe($dhaka)
+        ->and(DB::table('geo_upazilas')->where('id', $rahim->geo_upazila_id)->value('name_en'))->toBe('Mirpur')
+        ->and($rahim->geo_division_id)->not->toBeNull()
+        ->and($rahim->address_line)->toBe('Mirpur, Dhaka')
+        ->and($rahim->location_verified)->toBeFalse();
+
+    // Only legacy 815 has an address in the fixture; nothing was unparsed, and the reconciliation shows 1 of 1 located.
+    expect(($this->report)('unparsed_location'))->toBe([]);
+    $rows = array_map(str_getcsv(...), array_slice(file($this->reportDir.'/reconciliation.csv', FILE_IGNORE_NEW_LINES) ?: [], 1));
+    $locations = array_values(array_filter($rows, fn (array $r): bool => $r[1] === 'customer_locations' && $r[0] === '7'));
+    expect($locations[0][2])->toBe('1')->and($locations[0][3])->toBe('1')->and($locations[0][6])->toBe('0');
+});
+
+it('keeps an address that names no known place as street text and reports it', function (): void {
+    $this->artisan('geo:import', ['--path' => __DIR__.'/../../fixtures/geo'])->assertSuccessful();
+    DB::connection(LegacyFixture::CONNECTION)->table('store_customer_list')->where('id', 815)->update(['address' => 'Beside the big tree']);
+    ($this->import)();
+
+    $rahim = ($this->as)(fn () => Customer::query()->withTrashed()->where('legacy_id', 815)->firstOrFail());
+    expect($rahim->geo_district_id)->toBeNull()->and($rahim->address_line)->toBe('Beside the big tree')->and($rahim->location_verified)->toBeFalse()
+        ->and(($this->report)('unparsed_location'))->toHaveCount(1);
 });
 
 it('merges a duplicate phone into the oldest customer and remaps its sales', function (): void {

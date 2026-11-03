@@ -1,13 +1,15 @@
 /**
  * Client-side CSV of rows already on screen (mockup "Export ▾" on the catalog/stock lists).
- * Cells that a spreadsheet would read as a formula (= + - @ tab CR) are prefixed with `'`.
+ * Cells that a spreadsheet would read as a formula (= + - @ tab CR) are prefixed with `'`;
+ * plain numbers (`-50.00`, `+8801712345678`) are data and stay numeric.
  */
 export type CsvColumn<Row> = { header: string; value: (row: Row) => string };
 
 const FORMULA = /^[=+\-@\t\r]/;
+const NUMBER = /^[+-]?\d+(\.\d+)?$/;
 
 export function csvCell(raw: string): string {
-    const text = FORMULA.test(raw) ? `'${raw}` : raw;
+    const text = FORMULA.test(raw) && !NUMBER.test(raw) ? `'${raw}` : raw;
 
     return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }

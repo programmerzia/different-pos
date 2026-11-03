@@ -11,13 +11,16 @@ use App\Legacy\Transform\Text;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Support\Customers\CustomerNumber;
+use App\Support\Geo\GeoCatalog;
 use stdClass;
 
 /**
  * Step 6: customer groups and customers. customer_no is allocated in ascending legacy id order.
  * A duplicate phone within the tenant is merged into the oldest customer: the newer row is kept as a
  * soft-deleted shell (merged_into_id) and its legacy id maps to the survivor, so its sales follow.
- * The legacy customer credentials (plaintext) are never selected.
+ * The legacy customer credentials (plaintext) are never selected. The free-text address is kept as
+ * address_line; when it names a district / upazila the geo ids are filled (location_verified = 0),
+ * otherwise the row is reported as `unparsed_location` (counted in the reconciliation).
  */
 final readonly class CustomerGroupsAndCustomers implements Step
 {
@@ -27,7 +30,9 @@ final readonly class CustomerGroupsAndCustomers implements Step
 
     public const string WALK_IN = 'walk_in_customer';
 
-    public function __construct(private CustomerNumber $numbers) {}
+    public const string UNPARSED_LOCATION = 'unparsed_location';
+
+    public function __construct(private CustomerNumber $numbers, private GeoCatalog $geo) {}
 
     public function name(): string
     {
@@ -112,6 +117,10 @@ final readonly class CustomerGroupsAndCustomers implements Step
         }
         $address = Text::limit(Text::orNull($context->text($row->address, self::TABLE, $id, 'address')), 500);
         $groupId = (int) $row->customer_group_id > 0 ? ($context->ids->get(self::GROUPS, (int) $row->customer_group_id) ?: null) : null;
+        $location = $address === null ? null : $this->geo->matchAddress($address);
+        if ($address !== null && $location === null) {
+            $context->report->add(self::UNPARSED_LOCATION, self::TABLE, $id, 'Address names no known district or upazila; kept as street address only');
+        }
 
         $customer = new Customer;
         $customer->forceFill([
@@ -122,7 +131,8 @@ final readonly class CustomerGroupsAndCustomers implements Step
             'dob' => LegacyDate::date($row->dob),
             'anniversary_date' => LegacyDate::date($row->marriage_date),
             'address_line' => $address,
-            // Geo ids are not matched yet (no geo tables in Phase D), so a free-text address is unverified.
+            ...($location ?? []),
+            // A location parsed from free text is unverified until a user confirms it on the form.
             'location_verified' => $address === null,
             'member_since' => LegacyDate::date($row->created_at),
             'is_active' => true,

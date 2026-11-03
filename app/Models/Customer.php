@@ -10,6 +10,10 @@ use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasUuid;
 use App\Models\Concerns\LogsTenantActivity;
 use App\Models\Concerns\Syncable;
+use App\Models\Geo\GeoDistrict;
+use App\Models\Geo\GeoDivision;
+use App\Models\Geo\GeoUnion;
+use App\Models\Geo\GeoUpazila;
 use App\Support\Money\Money;
 use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -93,6 +97,30 @@ final class Customer extends Model
     public function mergedInto(): BelongsTo
     {
         return $this->belongsTo(Customer::class, 'merged_into_id');
+    }
+
+    /** @return BelongsTo<GeoDivision, $this> */
+    public function geoDivision(): BelongsTo
+    {
+        return $this->belongsTo(GeoDivision::class, 'geo_division_id');
+    }
+
+    /** @return BelongsTo<GeoDistrict, $this> */
+    public function geoDistrict(): BelongsTo
+    {
+        return $this->belongsTo(GeoDistrict::class, 'geo_district_id');
+    }
+
+    /** @return BelongsTo<GeoUpazila, $this> */
+    public function geoUpazila(): BelongsTo
+    {
+        return $this->belongsTo(GeoUpazila::class, 'geo_upazila_id');
+    }
+
+    /** @return BelongsTo<GeoUnion, $this> */
+    public function geoUnion(): BelongsTo
+    {
+        return $this->belongsTo(GeoUnion::class, 'geo_union_id');
     }
 
     /** @return HasMany<MembershipCard, $this> */

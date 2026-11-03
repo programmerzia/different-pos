@@ -78,7 +78,7 @@ it('blocks platform admins from tenant routes and allows them on /platform', fun
 
     $this->actingAs($admin)->get('/app')->assertForbidden();
     $this->actingAs($admin)->get(route('branch.select'))->assertForbidden();
-    $this->actingAs($admin)->get('/platform')->assertOk()->assertJson(['ok' => true]);
+    $this->actingAs($admin)->get('/platform')->assertOk();
 });
 
 it('blocks tenant users from /platform', function (): void {

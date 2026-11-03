@@ -26,17 +26,27 @@ use App\Models\SaleItemBatch;
 use App\Models\SaleReturn;
 use App\Models\StockBatch;
 use App\Models\User;
+use App\Reports\ColumnType;
+use App\Reports\ReportColumn;
+use App\Reports\ReportResult;
+use App\Support\Export\ExportFormat;
+use App\Support\Export\ExportMeta;
+use App\Support\Export\TabularExport;
 use App\Support\Http\TableQuery;
+use App\Support\Sales\BusinessDay;
 use App\Support\Sales\CustomerAccounts;
 use App\Support\Tenancy\TenantContext;
 use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Activitylog\Models\Activity;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Sales history (current branch): list, detail, void and share link. */
 final class SaleController extends Controller
@@ -71,7 +81,8 @@ final class SaleController extends Controller
         $voided = $this->guarded(fn (): Sale => $void->handle($this->actor($request), $model, $request->string('reason')->trim()->value()), 'reason');
         Inertia::flash('toast', ['type' => 'success', 'message' => __('receipts.flash.voided', ['number' => $voided->number])]);
 
-        return to_route('sales.show', $voided->id);
+        // Back to the invoice on the same filtered, paged list (the dialog posts the list's query string).
+        return to_route('sales.show', [...$request->query(), 'sale' => $voided->id]);
     }
 
     public function share(Request $request, int $sale, ShareSaleReceipt $share): JsonResponse
@@ -116,50 +127,8 @@ final class SaleController extends Controller
     /** @return array{rows: list<array<string, mixed>>, meta: array<string, int>, totals: array<string, int>, filters: array<string, string>, customer: array<string, mixed>|null} */
     private function listPayload(Request $request): array
     {
-        $table = TableQuery::fromRequest(
-            $request,
-            ['number', 'sold_at', 'total', 'paid', 'due'],
-            ['from', 'to', 'status', 'payment_status', 'customer', 'cashier', 'sync', 'returns'],
-            '-sold_at',
-        );
-
-        $query = Sale::query()->whereNotNull('number');
-
-        $this->dateRange($query, 'sold_at', $table->filters['from'] ?? null, $table->filters['to'] ?? null);
-        $status = SaleStatus::tryFrom($table->filters['status'] ?? '');
-        if ($status instanceof SaleStatus) {
-            $query->where('status', $status);
-        }
-        $paymentStatus = PaymentStatus::tryFrom($table->filters['payment_status'] ?? '');
-        if ($paymentStatus instanceof PaymentStatus) {
-            $query->where('payment_status', $paymentStatus)->where('status', SaleStatus::Completed);
-        }
-        if (isset($table->filters['customer'])) {
-            $query->where('customer_id', (int) $table->filters['customer']);
-        }
-        if (isset($table->filters['cashier'])) {
-            $query->where('sold_by', (int) $table->filters['cashier']);
-        }
-        match ($table->filters['sync'] ?? null) {
-            'flagged' => $query->whereNotNull('sync_flags')->whereNull('sync_flags_ack_at'),
-            'synced' => $query->where(fn ($w) => $w->whereNull('sync_flags')->orWhereNotNull('sync_flags_ack_at')),
-            default => null,
-        };
-        match ($table->filters['returns'] ?? null) {
-            'yes' => $query->where('returned_total', '>', 0),
-            'no' => $query->where('returned_total', 0),
-            default => null,
-        };
-        if ($table->search !== '') {
-            $prefix = addcslashes($table->search, '\\%_').'%';
-            $like = '%'.addcslashes($table->search, '\\%_').'%';
-            $digits = preg_replace('/\D+/', '', $table->search) ?? '';
-            $query->where(fn ($w) => $w->where('number', 'like', $prefix)
-                ->orWhereIn('customer_id', Customer::query()->withTrashed()->select('id')->where(fn ($c) => $c
-                    ->where('name', 'like', $like)
-                    ->orWhere('shop_name', 'like', $like)
-                    ->when(strlen($digits) >= 4, fn ($c) => $c->orWhere('phone', 'like', '%'.$digits)->orWhere('customer_no', 'like', $digits.'%')))));
-        }
+        $table = $this->listTable($request);
+        $query = $this->listQuery($table);
 
         // Totals row: the whole filtered set; money sums skip voided sales (they no longer count).
         $sums = (clone $query)->toBase()
@@ -169,7 +138,7 @@ final class SaleController extends Controller
             ->selectRaw("COALESCE(SUM(CASE WHEN status = 'completed' THEN paid ELSE 0 END), 0) AS paid")
             ->selectRaw("COALESCE(SUM(CASE WHEN status = 'completed' THEN due ELSE 0 END), 0) AS due")
             ->first();
-        $items = SaleItem::query()->whereIn('sale_id', (clone $query)->select('id'))->count();
+        $items = SaleItem::query()->whereIn('sale_id', (clone $query)->where('status', SaleStatus::Completed)->select('id'))->count();
 
         $query->with(['customer' => fn ($q) => $q->withTrashed(), 'soldBy:id,name', 'register:id,name,code'])->withCount('items');
         $page = $table->paginate($query);
@@ -211,6 +180,119 @@ final class SaleController extends Controller
             'filters' => [...$table->filters, 'q' => $table->search],
             'customer' => $this->customerSummary($customer),
         ];
+    }
+
+    private function listTable(Request $request): TableQuery
+    {
+        return TableQuery::fromRequest(
+            $request,
+            ['number', 'sold_at', 'total', 'paid', 'due'],
+            ['from', 'to', 'period', 'status', 'payment_status', 'customer', 'cashier', 'sync', 'returns'],
+            '-sold_at',
+        );
+
+    }
+
+    /**
+     * The filtered sales list (the same query string as the page), shared by the page and the export.
+     *
+     * @return Builder<Sale>
+     */
+    private function listQuery(TableQuery $table): Builder
+    {
+        $query = Sale::query()->whereNotNull('number');
+
+        $this->dateRange($query, 'sold_at', $table->filters['from'] ?? null, $table->filters['to'] ?? null, $table->filters['period'] ?? null);
+        $status = SaleStatus::tryFrom($table->filters['status'] ?? '');
+        if ($status instanceof SaleStatus) {
+            $query->where('status', $status);
+        }
+        $paymentStatus = PaymentStatus::tryFrom($table->filters['payment_status'] ?? '');
+        if ($paymentStatus instanceof PaymentStatus) {
+            $query->where('payment_status', $paymentStatus)->where('status', SaleStatus::Completed);
+        }
+        if (isset($table->filters['customer'])) {
+            $query->where('customer_id', (int) $table->filters['customer']);
+        }
+        if (isset($table->filters['cashier'])) {
+            $query->where('sold_by', (int) $table->filters['cashier']);
+        }
+        match ($table->filters['sync'] ?? null) {
+            'flagged' => $query->whereNotNull('sync_flags')->whereNull('sync_flags_ack_at'),
+            'synced' => $query->where(fn ($w) => $w->whereNull('sync_flags')->orWhereNotNull('sync_flags_ack_at')),
+            default => null,
+        };
+        match ($table->filters['returns'] ?? null) {
+            'yes' => $query->where('returned_total', '>', 0),
+            'no' => $query->where('returned_total', 0),
+            default => null,
+        };
+        if ($table->search !== '') {
+            $prefix = addcslashes($table->search, '\\%_').'%';
+            $like = '%'.addcslashes($table->search, '\\%_').'%';
+            $digits = preg_replace('/\D+/', '', $table->search) ?? '';
+            $query->where(fn ($w) => $w->where('number', 'like', $prefix)
+                ->orWhereIn('customer_id', Customer::query()->withTrashed()->select('id')->where(fn ($c) => $c
+                    ->where('name', 'like', $like)
+                    ->orWhere('shop_name', 'like', $like)
+                    ->when(strlen($digits) >= 4, fn ($c) => $c->orWhere('phone', 'like', '%'.$digits)->orWhere('customer_no', 'like', $digits.'%')))));
+        }
+
+        return $query;
+    }
+
+    /** GET /app/sales/export.{csv|xlsx|pdf}: the whole filtered list, same query string as the page. */
+    public function export(Request $request, string $format, TabularExport $export, TenantContext $context): HttpResponse|StreamedResponse
+    {
+        $this->authorize('viewAny', Sale::class);
+        $table = $this->listTable($request);
+        $query = $table->applySort($this->listQuery($table)->with(['customer' => fn ($q) => $q->withTrashed(), 'soldBy:id,name'])->withCount('items'));
+        $tz = $this->timezone();
+
+        $columns = [
+            new ReportColumn('number', 'Invoice', ColumnType::Text),
+            new ReportColumn('date', 'Date', ColumnType::Date),
+            new ReportColumn('customer', 'Customer', ColumnType::Text),
+            new ReportColumn('customer_no', 'Customer No', ColumnType::Text),
+            new ReportColumn('items', 'Items', ColumnType::Int),
+            new ReportColumn('discount', 'Discount', ColumnType::Money),
+            new ReportColumn('vat', 'VAT', ColumnType::Money),
+            new ReportColumn('total', 'Total', ColumnType::Money),
+            new ReportColumn('paid', 'Paid', ColumnType::Money),
+            new ReportColumn('due', 'Due', ColumnType::Money),
+            new ReportColumn('status', 'Status', ColumnType::Text),
+            new ReportColumn('payment_status', 'Payment', ColumnType::Text),
+            new ReportColumn('cashier', 'Cashier', ColumnType::Text),
+        ];
+        $rows = [];
+        $totals = ['items' => 0, 'discount' => 0, 'vat' => 0, 'total' => 0, 'paid' => 0, 'due' => 0];
+        foreach ($query->lazy(500) as $sale) {
+            /** @var Sale $sale */
+            $customer = $this->customerSummary($sale->customer);
+            $row = [
+                'number' => (string) $sale->number,
+                'date' => BusinessDay::localDate($sale->sold_at, $tz),
+                'customer' => $customer === null || $customer['walk_in'] ? 'Walk-in' : (string) $customer['name'],
+                'customer_no' => $customer === null || $customer['walk_in'] ? null : $customer['customer_no'],
+                'items' => (int) $sale->getAttribute('items_count'),
+                'discount' => $sale->item_discount_total->plus($sale->order_discount)->paisa,
+                'vat' => $sale->tax_total->paisa,
+                'total' => $sale->total->paisa,
+                'paid' => $sale->paid->paisa,
+                'due' => $sale->due->paisa,
+                'status' => $sale->status->value,
+                'payment_status' => $sale->payment_status->value,
+                'cashier' => $sale->soldBy?->name,
+            ];
+            $rows[] = $row;
+            if ($sale->status === SaleStatus::Completed) {
+                foreach (array_keys($totals) as $key) {
+                    $totals[$key] += (int) $row[$key];
+                }
+            }
+        }
+
+        return $export->respond(new ReportResult($columns, $rows, $totals), ExportFormat::from($format), 'sales-'.now($tz)->format('Ymd-His'), ExportMeta::for($context, 'Sales'));
     }
 
     /** @return array<string, mixed> The invoice dialog: the sale, its lines (cost and batches with products.view_cost), payments, returns, SMS and audit. */

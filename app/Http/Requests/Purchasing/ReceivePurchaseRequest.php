@@ -16,7 +16,7 @@ final class ReceivePurchaseRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user instanceof User && $user->can('create', Purchase::class) && $user->checkPermissionTo('purchases.receive');
+        return $user instanceof User && $user->can('create', Purchase::class) && $user->can('purchases.receive');
     }
 
     /** @return array<string, array<int, mixed>> */

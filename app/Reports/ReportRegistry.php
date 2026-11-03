@@ -9,16 +9,26 @@ final class ReportRegistry
 {
     /** @var list<class-string<ReportContract>> */
     private const array REPORTS = [
+        DailyCashSummary::class,
+        Discounts::class,
+        ReturnsByReason::class,
         SalesByDay::class,
         SalesByProduct::class,
+        DuesAging::class,
+        TopCustomersByPurchase::class,
+        StockValuation::class,
+        LowStock::class,
+        DeadStock::class,
+        BranchTransfers::class,
+        VendorPayables::class,
+        ProfitAndLoss::class,
+        VatOutput::class,
+        // Beyond the mockup's 14 cards ("More reports").
         SalesByUser::class,
         SalesByTender::class,
         Returns::class,
-        TopCustomersByPurchase::class,
         CustomersByLastPurchase::class,
-        DuesAging::class,
-        StockValuation::class,
-        DailyCashSummary::class,
+        CustomersByArea::class,
     ];
 
     /** @return list<ReportContract> */

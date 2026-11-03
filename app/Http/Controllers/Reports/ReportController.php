@@ -6,15 +6,20 @@ namespace App\Http\Controllers\Reports;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reports\ReportRequest;
+use App\Http\Requests\Sales\StoreSaleReturnRequest;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\User;
+use App\Models\Vendor;
+use App\Reports\CustomersByArea;
 use App\Reports\CustomersByLastPurchase;
 use App\Reports\ReportContract;
-use App\Reports\ReportCsv;
 use App\Reports\ReportRegistry;
+use App\Support\Export\ExportMeta;
+use App\Support\Export\TabularExport;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -70,15 +75,16 @@ final class ReportController extends Controller
             'result' => $result->toArray(),
             'canAllBranches' => $canAll,
             'canExport' => $user instanceof User && $user->can('reports.export'),
-            'options' => [
-                'categories' => in_array('category', $definition->filters(), true) ? Category::query()->orderBy('name')->get(['id', 'name'])->toArray() : [],
-                'brands' => in_array('brand', $definition->filters(), true) ? Brand::query()->orderBy('name')->get(['id', 'name'])->toArray() : [],
-                'buckets' => in_array('bucket', $definition->filters(), true) ? CustomersByLastPurchase::BUCKETS : [],
-            ],
+            'options' => $this->options($definition),
         ]);
     }
 
-    public function export(ReportRequest $request, string $report): StreamedResponse
+    /**
+     * POST /app/reports/{report}/export?format=csv|xlsx|pdf (+ the report's query string).
+     * CSV and XLSX stream; the PDF renders synchronously up to PdfRenderer::MAX_TABLE_ROWS and is
+     * refused with a validation error above that. Filename `<report>-<from>-<to>.<ext>`.
+     */
+    public function export(ReportRequest $request, string $report, TabularExport $export, TenantContext $context): HttpResponse|StreamedResponse
     {
         Gate::authorize('reports.export');
         $definition = $this->find($report);
@@ -89,9 +95,33 @@ final class ReportController extends Controller
             $result = $result->withoutProfit();
         }
 
-        $name = $definition->name().($definition->usesPeriod() ? "-{$parameters->fromDate}_{$parameters->toDate}" : '-'.$parameters->today()->format('Y-m-d'));
+        $period = $definition->usesPeriod()
+            ? ExportMeta::periodLabel($parameters->fromDate, $parameters->toDate)
+            : $parameters->today()->format('Y-m-d');
+        $name = $definition->name().($definition->usesPeriod() ? "-{$parameters->fromDate}-{$parameters->toDate}" : '-'.$parameters->today()->format('Y-m-d'));
+        $title = ucfirst(str_replace('-', ' ', $definition->name()));
 
-        return ReportCsv::stream($result, $name.'.csv');
+        return $export->respond($result, $request->exportFormat(), $name, ExportMeta::for($context, $title, $period));
+    }
+
+    /**
+     * Choices for the report's own filters (only the ones it declares, to keep the page light).
+     *
+     * @return array<string, array<mixed>>
+     */
+    private function options(ReportContract $definition): array
+    {
+        $has = static fn (string $filter): bool => in_array($filter, $definition->filters(), true);
+
+        return [
+            'categories' => $has('category') ? Category::query()->orderBy('name')->get(['id', 'name'])->toArray() : [],
+            'brands' => $has('brand') ? Brand::query()->orderBy('name')->get(['id', 'name'])->toArray() : [],
+            'buckets' => $has('bucket') ? CustomersByLastPurchase::BUCKETS : [],
+            'cashiers' => $has('cashier') ? User::query()->inCurrentTenant()->orderBy('name')->get(['id', 'name'])->toArray() : [],
+            'vendors' => $has('vendor') ? Vendor::query()->orderBy('name')->get(['id', 'name'])->toArray() : [],
+            'reasons' => $has('reason') ? StoreSaleReturnRequest::REASONS : [],
+            'levels' => $has('level') ? CustomersByArea::LEVELS : [],
+        ];
     }
 
     private function find(string $name): ReportContract

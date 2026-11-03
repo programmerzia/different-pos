@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Settings;
 
+use App\Enums\CustomerPinPolicy;
 use App\Exceptions\Domain\InvalidAdminData;
 use App\Models\Tenant;
 use App\Models\User;
@@ -65,7 +66,7 @@ final readonly class SaveBusinessSettings
     {
         return match ($key) {
             'tax_inclusive' => (bool) $value,
-            'customer_pin_policy' => in_array($value, ['always', 'credit_only', 'off'], true) ? $value : throw InvalidAdminData::invalid('Unknown customer PIN policy.'),
+            'customer_pin_policy' => is_string($value) && CustomerPinPolicy::tryFrom($value) instanceof CustomerPinPolicy ? $value : throw InvalidAdminData::invalid('Unknown customer PIN policy.'),
             'backdate_days', 'offline_credit_cap' => $this->whole($value, false),
             // return_days, default_credit_limit: empty means "no limit"
             default => $this->whole($value, true),

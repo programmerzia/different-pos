@@ -50,6 +50,7 @@ export const STATUS_TONE: Record<string, Tone> = {
     locked: 'warning',
     not_set: 'warning',
     pending: 'warning',
+    in_transit: 'warning',
     unpaid: 'danger',
     due: 'danger',
     overdue: 'danger',

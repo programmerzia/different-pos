@@ -15,6 +15,7 @@ use App\Exceptions\Domain\InvalidPartyData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customers\MergeCustomerRequest;
 use App\Http\Requests\Customers\SaveCustomerRequest;
+use App\Messaging\MessagingUi;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\MembershipCard;
@@ -23,13 +24,23 @@ use App\Models\Payment;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\User;
+use App\Reports\ColumnType;
+use App\Reports\ReportColumn;
+use App\Reports\ReportResult;
 use App\Support\Cards\CardBrand;
 use App\Support\Customers\CustomerNumber;
+use App\Support\Customers\CustomerPin;
 use App\Support\Customers\CustomerSearch;
 use App\Support\Customers\CustomerSearchResult;
+use App\Support\Export\ExportFormat;
+use App\Support\Export\ExportMeta;
+use App\Support\Export\TabularExport;
+use App\Support\Geo\GeoCatalog;
+use App\Support\Http\RecencyFilter;
 use App\Support\Http\TableQuery;
 use App\Support\Money\Money;
 use App\Support\Phone\BdPhone;
+use App\Support\Sales\BusinessDay;
 use App\Support\Sales\CustomerAccounts;
 use App\Support\Tenancy\BranchScope;
 use App\Support\Tenancy\TenantContext;
@@ -38,6 +49,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -51,7 +63,7 @@ final class CustomerController extends Controller
 {
     private const int TAB_LIMIT = 50;
 
-    public function __construct(private readonly CustomerSearch $search) {}
+    public function __construct(private readonly CustomerSearch $search, private readonly GeoCatalog $geo) {}
 
     public function index(Request $request): Response
     {
@@ -68,31 +80,50 @@ final class CustomerController extends Controller
         return Inertia::render('customers/index', [...$this->listProps($request), 'dialog' => 'create']);
     }
 
-    /** GET /app/customers/export.csv: the filtered list (same query string as the page) as CSV. */
-    public function export(Request $request): StreamedResponse
+    /** GET /app/customers/export.{csv|xlsx|pdf}: the filtered list (same query string as the page). */
+    public function export(Request $request, string $format, TabularExport $export, TenantContext $context): HttpResponse|StreamedResponse
     {
         Gate::authorize('viewAny', Customer::class);
         $query = $this->listQuery($this->table($request))->with(['customerGroup', 'membershipCards'])->orderBy('name')->orderBy('id');
+        $tz = $this->timezone();
 
-        return response()->streamDownload(function () use ($query): void {
-            $out = fopen('php://output', 'wb');
-            if ($out === false) {
-                return;
-            }
-            fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM so Excel reads Bangla names
-            fputcsv($out, ['Customer No', 'Name', 'Name BN', 'Shop', 'Phone', 'Area', 'Address', 'Post code', 'Group', 'Balance', 'Credit limit', 'Card status', 'Last purchase'], ',', '"', '');
-            foreach ($query->lazy(500) as $c) {
-                /** @var Customer $c */
-                $row = $this->row($c);
-                fputcsv($out, [
-                    (string) $row['customer_no'], $c->name, (string) $c->name_bn, (string) $c->shop_name, (string) $c->phone,
-                    (string) $c->area, (string) $c->address_line, (string) $c->post_code, (string) $row['group'],
-                    $c->balance->toDecimalString(), is_int($row['credit_limit']) ? Money::ofPaisa($row['credit_limit'])->toDecimalString() : '', (string) $row['card_status'],
-                    $c->last_purchase_at?->toDateString() ?? '',
-                ], ',', '"', '');
-            }
-            fclose($out);
-        }, 'customers-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        $columns = [
+            new ReportColumn('customer_no', 'Customer No', ColumnType::Text),
+            new ReportColumn('name', 'Name', ColumnType::Text),
+            new ReportColumn('name_bn', 'Name BN', ColumnType::Text),
+            new ReportColumn('shop_name', 'Shop', ColumnType::Text),
+            new ReportColumn('phone', 'Phone', ColumnType::Text),
+            new ReportColumn('district', 'District', ColumnType::Text),
+            new ReportColumn('upazila', 'Upazila / Thana', ColumnType::Text),
+            new ReportColumn('area', 'Area', ColumnType::Text),
+            new ReportColumn('address', 'Address', ColumnType::Text),
+            new ReportColumn('post_code', 'Post code', ColumnType::Text),
+            new ReportColumn('group', 'Group', ColumnType::Text),
+            new ReportColumn('balance', 'Balance', ColumnType::Money),
+            new ReportColumn('credit_limit', 'Credit limit', ColumnType::Money),
+            new ReportColumn('card_status', 'Card status', ColumnType::Text),
+            new ReportColumn('last_purchase', 'Last purchase', ColumnType::Date),
+        ];
+        $rows = [];
+        $balance = 0;
+        foreach ($query->lazy(500) as $c) {
+            /** @var Customer $c */
+            $row = $this->row($c);
+            $balance += $c->balance->paisa;
+            $rows[] = [
+                'customer_no' => (string) $row['customer_no'], 'name' => $c->name, 'name_bn' => (string) $c->name_bn, 'shop_name' => (string) $c->shop_name,
+                'phone' => (string) $c->phone, 'district' => (string) ($row['location']['district']['name_en'] ?? ''), 'upazila' => (string) ($row['location']['upazila']['name_en'] ?? ''), 'area' => (string) $c->area, 'address' => (string) $c->address_line, 'post_code' => (string) $c->post_code,
+                'group' => (string) $row['group'], 'balance' => $c->balance->paisa, 'credit_limit' => is_int($row['credit_limit']) ? $row['credit_limit'] : null,
+                'card_status' => (string) $row['card_status'], 'last_purchase' => BusinessDay::localDate($c->last_purchase_at, $tz),
+            ];
+        }
+
+        return $export->respond(
+            new ReportResult($columns, $rows, ['balance' => $balance]),
+            ExportFormat::from($format),
+            'customers-'.now($tz)->format('Ymd-His'),
+            ExportMeta::for($context, 'Customers'),
+        );
     }
 
     public function store(SaveCustomerRequest $request, SaveCustomer $save): RedirectResponse|JsonResponse
@@ -225,7 +256,7 @@ final class CustomerController extends Controller
         return TableQuery::fromRequest(
             $request,
             ['name', 'customer_no', 'phone', 'area', 'balance', 'credit_limit', 'last_purchase_at'],
-            ['group', 'card', 'status', 'due', 'view', 'balance', 'date'],
+            ['group', 'card', 'status', 'due', 'view', 'balance', 'date', 'pin', 'district', 'upazila'],
             'name',
         );
     }
@@ -246,6 +277,12 @@ final class CustomerController extends Controller
         if (isset($f['group'])) {
             $query->where('customer_group_id', (int) $f['group']);
         }
+        if (isset($f['district']) && preg_match('/^[0-9]+$/', (string) $f['district']) === 1) {
+            $query->where('geo_district_id', (int) $f['district']);
+        }
+        if (isset($f['upazila']) && preg_match('/^[0-9]+$/', (string) $f['upazila']) === 1) {
+            $query->where('geo_upazila_id', (int) $f['upazila']);
+        }
         if (isset($f['card'])) {
             $f['card'] === 'yes'
                 ? $query->whereHas('membershipCards', fn (Builder $q) => $q->where('status', CardStatus::Active))
@@ -258,16 +295,19 @@ final class CustomerController extends Controller
             'advance' => $query->where('balance', '<', 0),
             default => null,
         };
-        $since = match ($f['date'] ?? null) {
-            'today' => CarbonImmutable::today(),
-            '7d' => CarbonImmutable::today()->subDays(6),
-            '30d' => CarbonImmutable::today()->subDays(29),
-            '90d' => CarbonImmutable::today()->subDays(89),
-            'year' => CarbonImmutable::today()->startOfYear(),
+        // Security PIN status: set | pending (none yet) | locked (wrong tries, still within the lock window).
+        match ($f['pin'] ?? null) {
+            'set' => $query->whereNotNull('pin_hash')->where(fn (Builder $q) => $q->whereNull('pin_locked_until')->orWhere('pin_locked_until', '<=', now())),
+            'pending' => $query->whereNull('pin_hash'),
+            'locked' => $query->where('pin_locked_until', '>', now()),
             default => null,
         };
-        if ($since !== null) {
-            $query->where('last_purchase_at', '>=', $since);
+        // Last purchase since the start of the tenant's business day / local year (RecencyFilter).
+        $recency = in_array($f['date'] ?? null, ['today', '7d', '30d', '90d', 'year'], true)
+            ? RecencyFilter::resolve($f['date'], $this->timezone())
+            : null;
+        if ($recency !== null) {
+            $query->where('last_purchase_at', '>=', $recency[0]);
         }
         if ($table->search !== '') {
             $this->applySearch($query, $table->search);
@@ -298,6 +338,7 @@ final class CustomerController extends Controller
                 'credit_limit' => (int) ($sums->credit_limit ?? 0),
             ],
             'groups' => $this->groups(),
+            'districts' => $this->geo->children(GeoCatalog::DISTRICTS, null),
             'can' => $this->abilities($request),
         ];
     }
@@ -320,6 +361,7 @@ final class CustomerController extends Controller
             'messages' => $user->can('viewAny', Message::class) ? $this->messages($model) : [],
             'groups' => $this->groups(),
             'can' => [...$this->abilities($request), 'sms' => $user->can('send', Message::class)],
+            'messaging' => fn (): array => app(MessagingUi::class)->props($user),
         ];
     }
 
@@ -361,6 +403,11 @@ final class CustomerController extends Controller
             'credit_used' => $used,
             'credit_available' => $limit instanceof Money ? max(0, $limit->paisa - $used) : null,
         ];
+    }
+
+    private function timezone(): string
+    {
+        return BusinessDay::timezone(app(TenantContext::class)->tenant());
     }
 
     private function defaultCreditLimit(): ?int
@@ -413,6 +460,7 @@ final class CustomerController extends Controller
             'collect' => $user->can('payments.collect'),
             'cards' => $user->can('viewAny', MembershipCard::class),
             'issue_card' => $user->can('create', MembershipCard::class),
+            'reset_pin' => $user->can('customers.reset_pin'),
         ];
     }
 
@@ -430,10 +478,22 @@ final class CustomerController extends Controller
             'area' => $c->area,
             'address_line' => $c->address_line,
             'post_code' => $c->post_code,
+            'location' => $this->location($c),
             'last_purchase_at' => $c->last_purchase_at?->toIso8601String(),
             'card_status' => $card instanceof MembershipCard ? $card->status->value : null,
+            'pin_status' => CustomerPin::status($c),
             'is_active' => $c->is_active,
         ];
+    }
+
+    /**
+     * The customer's structured location as display names (division → district → upazila → union).
+     *
+     * @return array{division: array{id: int, name_en: string, name_bn: string}|null, district: array{id: int, name_en: string, name_bn: string}|null, upazila: array{id: int, name_en: string, name_bn: string}|null, union: array{id: int, name_en: string, name_bn: string}|null}
+     */
+    private function location(Customer $c): array
+    {
+        return $this->geo->chainFor($c->geo_division_id, $c->geo_district_id, $c->geo_upazila_id, $c->geo_union_id);
     }
 
     /** @return array<string, mixed> */
@@ -471,6 +531,11 @@ final class CustomerController extends Controller
             'address_line' => $c->address_line,
             'area' => $c->area,
             'post_code' => $c->post_code,
+            'geo_division_id' => $c->geo_division_id,
+            'geo_district_id' => $c->geo_district_id,
+            'geo_upazila_id' => $c->geo_upazila_id,
+            'geo_union_id' => $c->geo_union_id,
+            'location' => $this->location($c),
             'location_verified' => $c->location_verified,
             'dob' => $c->dob?->toDateString(),
             'anniversary_date' => $c->anniversary_date?->toDateString(),
@@ -479,6 +544,9 @@ final class CustomerController extends Controller
             'last_purchase_at' => $c->last_purchase_at?->toIso8601String(),
             'is_active' => $c->is_active,
             'is_walk_in' => $c->is_walk_in,
+            'pin_status' => CustomerPin::status($c),
+            'pin_set_at' => $c->pin_set_at?->toIso8601String(),
+            'pin_locked_until' => CustomerPin::isLocked($c) ? $c->pin_locked_until?->toIso8601String() : null,
         ];
     }
 
@@ -490,7 +558,7 @@ final class CustomerController extends Controller
             'card_code' => $card->card_code,
             'status' => $card->status->value,
             'issue_no' => $card->issue_no,
-            'issued_at' => $card->issued_at->toDateString(),
+            'issued_at' => BusinessDay::localDate($card->issued_at, $this->timezone()),
             'print_count' => $card->print_count,
             'member_since' => $customer->member_since?->toDateString(),
         ];

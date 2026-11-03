@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
+import { permissionLabel } from '@/lib/labels';
 
 export type MatrixRole = {
     id: number;
@@ -318,7 +319,7 @@ function GroupRows({
     locked: (role: MatrixRole) => boolean;
     toggle: (role: MatrixRole, permission: string) => void;
 }) {
-    const { t } = useT();
+    const { t, locale } = useT();
 
     return (
         <>
@@ -338,14 +339,18 @@ function GroupRows({
                 >
                     <th
                         scope="row"
+                        title={name}
                         className="sticky left-0 z-[1] bg-surface px-3 py-2 text-left font-medium text-foreground"
                     >
                         <span className="block">
-                            {t(`roles.perm.${name.replace('.', '_')}`)}
+                            {permissionLabel(t, name)}
                         </span>
-                        <span className="font-mono text-[10px] font-normal text-muted-foreground">
-                            {name}
-                        </span>
+                        {/* The technical code helps English-speaking admins; Bangla shows the label only (code on hover). */}
+                        {locale === 'en' ? (
+                            <span className="font-mono text-[10px] font-normal text-muted-foreground">
+                                {name}
+                            </span>
+                        ) : null}
                     </th>
                     {roles.map((role) => {
                         const on = has(role, name);
@@ -365,7 +370,7 @@ function GroupRows({
                                         className="sr-only"
                                         checked={on}
                                         disabled={locked(role)}
-                                        aria-label={`${role.name}: ${t(`roles.perm.${name.replace('.', '_')}`)}`}
+                                        aria-label={`${role.name}: ${permissionLabel(t, name)}`}
                                         onChange={() => toggle(role, name)}
                                     />
                                     {on ? (

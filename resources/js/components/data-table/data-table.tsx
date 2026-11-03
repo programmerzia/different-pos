@@ -26,6 +26,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
+import { focusListEntryRow, isInListRows } from './row-focus';
 import { INITIAL_NAV, reduceNavKey, type NavState } from './table-nav';
 
 export type DataColumn<Row> = {
@@ -138,7 +139,11 @@ export function ColumnChooser<Row>({
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline">
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="touch-target"
+                >
                     <Columns3 aria-hidden="true" />
                     <span className="max-sm:sr-only">{t('table.columns')}</span>
                 </Button>
@@ -178,21 +183,37 @@ export function ColumnChooser<Row>({
 }
 
 const noop = () => undefined;
-/** Listed in the `?` overlay (the table handles the keys itself, on the focused row). */
+/**
+ * `J`/`K` with no row focused enter the list on its first (roving) row; once a row has focus the
+ * table's own onKeyDown handles them (and marks the event handled, so this does nothing).
+ */
+const enterRows = (event: globalThis.KeyboardEvent) => {
+    if (!event.defaultPrevented && !isInListRows(document.activeElement)) {
+        focusListEntryRow();
+    }
+};
+/** Listed in the `?` overlay (the table handles most keys itself, on the focused row). */
 const LIST_KEYS: HotkeySpec[] = [
     {
         id: 'list.down',
         keys: 'j',
         labelKey: 'hotkeys.move',
-        display: true,
-        handler: noop,
+        handler: enterRows,
     },
     {
         id: 'list.up',
         keys: 'k',
         labelKey: 'hotkeys.move',
-        display: true,
-        handler: noop,
+        handler: enterRows,
+    },
+    {
+        id: 'list.focus_rows',
+        keys: 'alt+arrowdown',
+        labelKey: 'hotkeys.focus_rows',
+        allowInInput: true,
+        handler: () => {
+            focusListEntryRow();
+        },
     },
     {
         id: 'list.open',
@@ -376,6 +397,7 @@ export function DataTable<Row extends Record<string, unknown>>({
         },
         tabIndex:
             nav.active === index || (nav.active < 0 && index === 0) ? 0 : -1,
+        'data-list-row': '',
         'data-selected': selection[getRowId(row)] === true ? '' : undefined,
         onFocus: () =>
             setNav((s) => (s.active === index ? s : { ...s, active: index })),
@@ -533,7 +555,11 @@ export function DataTable<Row extends Record<string, unknown>>({
         return (
             <div className="flex flex-col gap-3">
                 {bulkBar}
-                <ul aria-label={caption} className="flex flex-col gap-2">
+                <ul
+                    aria-label={caption}
+                    data-list-rows=""
+                    className="flex flex-col gap-2"
+                >
                     {loading
                         ? Array.from({ length: SKELETON_ROWS }, (_, i) => (
                               <li key={i}>
@@ -627,6 +653,7 @@ export function DataTable<Row extends Record<string, unknown>>({
                         aria-busy={loading}
                         className="w-full border-collapse text-left"
                         style={{ fontSize: 'var(--table-font)' }}
+                        data-list-rows=""
                         onKeyDown={onKeyDown}
                     >
                         <caption className="sr-only">{caption}</caption>

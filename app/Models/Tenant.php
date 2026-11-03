@@ -52,7 +52,7 @@ final class Tenant extends Model
     public const array DEFAULT_SETTINGS = [
         'tax_inclusive' => true,
         'backdate_days' => 3,
-        'customer_pin_policy' => 'always', // always|credit_only|off
+        'customer_pin_policy' => 'off', // off|optional|required (App\Enums\CustomerPinPolicy)
         'offline_credit_cap' => 0,         // paisa
         'offline_login_days' => 7,
         'lapsed_days' => 90,
@@ -106,11 +106,21 @@ final class Tenant extends Model
     }
 
     /** The public URL of the business logo, or null without one. */
+    /**
+     * Host-relative URL of the logo ("/storage/tenants/1/logo-x.png"): never APP_URL-absolute, so it
+     * works on whatever host the app is opened at (127.0.0.1 vs localhost, a LAN IP, a tunnel).
+     */
     public function logoUrl(): ?string
     {
         $path = $this->logoPath();
+        if ($path === null) {
+            return null;
+        }
 
-        return $path === null ? null : Storage::disk('public')->url($path);
+        $url = Storage::disk('public')->url($path);
+        $relative = parse_url($url, PHP_URL_PATH);
+
+        return is_string($relative) && $relative !== '' ? $relative : $url;
     }
 
     public function isActive(): bool

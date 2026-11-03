@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Sms;
 
+use App\Enums\MessageChannel;
 use App\Enums\MessageStatus;
 use App\Jobs\Middleware\WithTenantContext;
+use App\Messaging\MessageDispatcher;
 use App\Models\Customer;
 use App\Models\Message;
 use App\Support\Phone\BdPhone;
 use App\Support\Tenancy\TenantContext;
+use App\WhatsApp\WhatsAppSettings;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +21,8 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Sends one logged SMS. The `messages` row is written (queued) before the job is dispatched, so the
+ * Sends one logged message (SMS, or WhatsApp through the tenant's WhatsApp gateway: the row's `channel`
+ * decides). The `messages` row is written (queued) before the job is dispatched, so the
  * log shows every attempt; the job moves it to sent or failed. The body is never logged at info level.
  */
 final class SendSms implements ShouldQueue
@@ -41,10 +45,10 @@ final class SendSms implements ShouldQueue
         return [30, 120];
     }
 
-    public function handle(SmsSender $sender): void
+    public function handle(MessageDispatcher $sender): void
     {
         $message = Message::query()->findOrFail($this->messageId);
-        if ($message->status === MessageStatus::Sent) {
+        if ($message->status === MessageStatus::Sent || $message->status === MessageStatus::Handoff) {
             return;
         }
 
@@ -60,26 +64,43 @@ final class SendSms implements ShouldQueue
      * Writes the log row and queues the job. Returns null when the phone is not a valid BD mobile
      * number (nothing to send to).
      */
-    public static function enqueue(string $event, ?string $phone, string $body, ?Customer $customer = null, ?Model $related = null): ?Message
+    public static function enqueue(string $event, ?string $phone, string $body, ?Customer $customer = null, ?Model $related = null, MessageChannel $channel = MessageChannel::Sms): ?Message
+    {
+        $message = self::log($event, $phone, $body, $customer, $related, $channel);
+        if (! $message instanceof Message) {
+            return null;
+        }
+
+        // Inside a transaction (FanOutSmsBroadcast) the job must not run before its row is committed.
+        self::dispatch($message->id)->afterCommit();
+
+        return $message;
+    }
+
+    /**
+     * Writes the queued log row only (no job): for a synchronous delivery such as WhatsApp click-to-chat,
+     * whose result (the wa.me link) the request itself needs. Null without a valid BD mobile number.
+     */
+    public static function log(string $event, ?string $phone, string $body, ?Customer $customer = null, ?Model $related = null, MessageChannel $channel = MessageChannel::Sms): ?Message
     {
         $e164 = BdPhone::toE164($phone);
         if ($e164 === null) {
             return null;
         }
 
+        $tenant = app(TenantContext::class)->tenant();
         $message = new Message([
             'customer_id' => $customer?->id,
+            'channel' => $channel,
             'phone' => $e164,
             'body' => $body,
-            'driver' => SmsSettings::fromTenant(app(TenantContext::class)->tenant())->driver,
+            'driver' => $channel === MessageChannel::WhatsApp ? WhatsAppSettings::fromTenant($tenant)->driver : SmsSettings::fromTenant($tenant)->driver,
             'status' => MessageStatus::Queued,
             'event' => $event,
             'related_type' => $related?->getMorphClass(),
             'related_id' => $related?->getKey(),
         ]);
         $message->save();
-
-        self::dispatch($message->id);
 
         return $message;
     }

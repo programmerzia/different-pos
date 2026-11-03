@@ -21,7 +21,8 @@ import { TableToolbar, type ToolbarFilter } from '@/components/table-toolbar';
 import { useDigits, type Digits } from '@/hooks/use-digits';
 import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { i18n, useT } from '@/i18n';
-import { downloadCsv } from '@/lib/csv-download';
+import { DownloadError, downloadFile } from '@/lib/download';
+import { exportItems, type ExportFormat } from '@/lib/export-items';
 import type { ReportColumn, ReportRow, ReportShowProps } from '@/types/reports';
 
 const LIMITS = ['10', '50', '100', '500'];
@@ -44,6 +45,8 @@ function cellText(
             return digits.n(Number(value));
         case 'date':
             return digits.n(String(value));
+        case 'percent':
+            return `${digits.n((Number(value) / 100).toFixed(2))}%`;
         default:
             return column.valuePrefix
                 ? t(`${column.valuePrefix}${String(value)}`)
@@ -105,15 +108,23 @@ export default function ReportShow({
     const setFilter = (key: string, value: string) =>
         visit({ filters: { ...params.filters, [key]: value } });
 
-    const exportCsv = async () => {
+    // POST (the export is a job the server runs, not a page); the same query string as the page plus the format.
+    const exportAs = async (format: ExportFormat) => {
         setExporting(true);
         try {
-            const search = new URLSearchParams(query({})).toString();
-            await downloadCsv(
-                `/app/reports/${report.name}/export${search ? `?${search}` : ''}`,
+            const search = new URLSearchParams({
+                ...query({}),
+                format,
+            }).toString();
+            await downloadFile(`/app/reports/${report.name}/export?${search}`, {
+                method: 'POST',
+            });
+        } catch (error) {
+            toast.error(
+                error instanceof DownloadError && error.status === 422
+                    ? error.message
+                    : t('reports.export_failed'),
             );
-        } catch {
-            toast.error(t('reports.export_failed'));
         } finally {
             setExporting(false);
         }
@@ -125,8 +136,14 @@ export default function ReportShow({
                   {
                       id: 'report.export',
                       keys: 'e',
-                      labelKey: 'reports.export',
-                      handler: () => void exportCsv(),
+                      labelKey: 'table.export_xlsx',
+                      handler: () => void exportAs('xlsx'),
+                  },
+                  {
+                      id: 'report.export_pdf',
+                      keys: 'shift+e',
+                      labelKey: 'table.export_pdf',
+                      handler: () => void exportAs('pdf'),
                   },
               ]
             : []),
@@ -199,10 +216,7 @@ export default function ReportShow({
             id: column.key,
             headerKey: `reports.col.${column.key}`,
             sortKey: column.key,
-            numeric:
-                column.type === 'money' ||
-                column.type === 'qty' ||
-                column.type === 'int',
+            numeric: column.type !== 'text' && column.type !== 'date',
             required: index === 0,
             ...(index === 0 ? { mobile: 'title' as const } : {}),
             cell: (row) => cellText(column, row[column.key] ?? null, digits, t),
@@ -224,9 +238,7 @@ export default function ReportShow({
                   );
     }
     const tileColumns = totalColumns
-        .filter(
-            (c) => c.type === 'money' || c.type === 'int' || c.type === 'qty',
-        )
+        .filter((c) => c.type !== 'text' && c.type !== 'date')
         .slice(-4);
 
     const toggleSort = (key: string) => {
@@ -286,6 +298,55 @@ export default function ReportShow({
             onChange: (value) => setFilter('bucket', value),
         });
     }
+    if (report.filters.includes('cashier')) {
+        toolbarFilters.push({
+            key: 'cashier',
+            labelKey: 'reports.filter.all_cashiers',
+            value: params.filters['cashier'] ?? '',
+            options: options.cashiers.map((u) => ({
+                value: String(u.id),
+                label: u.name,
+            })),
+            onChange: (value) => setFilter('cashier', value),
+        });
+    }
+    if (report.filters.includes('vendor')) {
+        toolbarFilters.push({
+            key: 'vendor',
+            labelKey: 'reports.filter.all_vendors',
+            value: params.filters['vendor'] ?? '',
+            options: options.vendors.map((v) => ({
+                value: String(v.id),
+                label: v.name,
+            })),
+            onChange: (value) => setFilter('vendor', value),
+        });
+    }
+    if (report.filters.includes('reason')) {
+        toolbarFilters.push({
+            key: 'reason',
+            labelKey: 'reports.filter.all_reasons',
+            value: params.filters['reason'] ?? '',
+            options: options.reasons.map((r) => ({
+                value: r,
+                label: t(`returns.reason_${r}`),
+            })),
+            onChange: (value) => setFilter('reason', value),
+        });
+    }
+    if (report.filters.includes('level')) {
+        // The level always has a value: the server defaults to district.
+        toolbarFilters.push({
+            key: 'level',
+            labelKey: 'reports.filter.level',
+            value: params.filters['level'] ?? 'district',
+            options: options.levels.map((l) => ({
+                value: l,
+                label: t(`reports.level.${l}`),
+            })),
+            onChange: (value) => setFilter('level', value || 'district'),
+        });
+    }
     if (report.filters.includes('limit')) {
         toolbarFilters.push({
             key: 'limit',
@@ -325,15 +386,10 @@ export default function ReportShow({
                             <ExportMenu
                                 items={
                                     canExport && !exporting
-                                        ? [
-                                              {
-                                                  id: 'csv',
-                                                  kind: 'csv',
-                                                  label: t('reports.export'),
-                                                  onSelect: () =>
-                                                      void exportCsv(),
-                                              },
-                                          ]
+                                        ? exportItems(
+                                              t,
+                                              (format) => void exportAs(format),
+                                          )
                                         : []
                                 }
                             />

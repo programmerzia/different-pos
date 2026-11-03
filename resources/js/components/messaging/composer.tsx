@@ -1,27 +1,35 @@
-import { Link, router } from '@inertiajs/react';
-import { AlertTriangle, Search, Send, Smartphone, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ConfirmDialog } from '@/components/confirm-dialog';
-import { Kbd } from '@/components/kbd';
-import { NativeSelect } from '@/components/native-select';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useDigits } from '@/hooks/use-digits';
-import { useHotkeys } from '@/hotkeys/use-hotkeys';
-import { useT } from '@/i18n';
-import { cn } from '@/lib/utils';
-import { PhonePreview } from './phone-preview';
+import { Link, router } from "@inertiajs/react";
+import { AlertTriangle, Search, Send, Smartphone, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { Kbd } from "@/components/kbd";
+import { NativeSelect } from "@/components/native-select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useDigits } from "@/hooks/use-digits";
+import { useHotkeys } from "@/hotkeys/use-hotkeys";
+import { useT } from "@/i18n";
+import { ApiError, apiRequest } from "@/lib/api";
+import { preOpenTab, sendDirect } from "@/lib/whatsapp";
+import type { MessageChannel, WhatsAppConfig } from "@/types/messaging";
+import { cn } from "@/lib/utils";
+import { PhonePreview } from "./phone-preview";
 import {
+    type BroadcastKey,
+    broadcastKey,
     insertVariable,
+    previewValues,
     renderPreview,
     smsCost,
     smsSegments,
-} from './sms-text';
+} from "./sms-text";
 
 export type ComposerConfig = {
     configured: boolean;
     driver: string;
+    whatsapp: WhatsAppConfig;
     cost_per_segment: number;
     shop: string;
     max_body: number;
@@ -47,22 +55,24 @@ export function audienceCount(
     config: ComposerConfig,
     picked: Picked | null,
 ): number {
-    if (target === 'customer') {
+    if (target === "customer") {
         return picked?.phone ? 1 : 0;
     }
-    if (target.startsWith('group:')) {
+    if (target.startsWith("group:")) {
         const id = Number(target.slice(6));
 
         return config.groups.find((g) => g.id === id)?.count ?? 0;
     }
 
-    return target === 'all' ? config.counts.all : config.counts.due;
+    return target === "all" ? config.counts.all : config.counts.due;
 }
 
 /**
- * Mockup "Dispatch Campaign Composer" (screen 10): channel (SMS; WhatsApp is a later phase), recipient
+ * Mockup "Dispatch Campaign Composer" (screen 10): channel (SMS or WhatsApp Business), recipient
  * target, a template from the tenant's SMS templates, variable chips, the text with characters / SMS parts,
  * the cost estimate and Send (Ctrl+Enter) behind a confirm with the recipient count and total cost.
+ * WhatsApp has no per-part cost; with click-to-chat only the Single target works (the wa.me link opens in
+ * a tab pre-opened on the click), bulk needs the Cloud API, and the UI says so.
  */
 export function Composer({
     config,
@@ -77,22 +87,32 @@ export function Composer({
 }) {
     const { t } = useT();
     const digits = useDigits();
+    const [channel, setChannel] = useState<MessageChannel>(
+        config.configured || !config.whatsapp.configured ? "sms" : "whatsapp",
+    );
     const [target, setTarget] = useState<Target>(
-        config.counts.due > 0 ? 'due' : 'all',
+        config.counts.due > 0 ? "due" : "all",
     );
     const [picked, setPicked] = useState<Picked | null>(null);
-    const [template, setTemplate] = useState('');
-    const [body, setBody] = useState(draft?.body ?? '');
+    const [template, setTemplate] = useState("");
+    const [body, setBody] = useState(draft?.body ?? "");
     const [confirming, setConfirming] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    /** Recipients of the last accepted send (the success line under the Send bar). */
+    const [sent, setSent] = useState<number | null>(null);
     const area = useRef<HTMLTextAreaElement>(null);
+    // Idempotency key, made when the composer opens: a repeated send of the same payload reuses it.
+    const sendKey = useRef<BroadcastKey>({
+        key: globalThis.crypto.randomUUID(),
+        fingerprint: "",
+    });
 
     const seq = draft?.seq ?? 0;
     const [seenSeq, setSeenSeq] = useState(seq);
     if (seenSeq !== seq) {
         setSeenSeq(seq);
-        setBody(draft?.body ?? '');
-        setTemplate('');
+        setBody(draft?.body ?? "");
+        setTemplate("");
     }
     useEffect(() => {
         if (seq > 0) {
@@ -108,20 +128,58 @@ export function Composer({
         config.cost_per_segment,
     );
     const total = smsCost(info.segments, recipients, config.cost_per_segment);
-    const canSend = config.configured && body.trim() !== '' && recipients > 0;
+    const wa = channel === "whatsapp";
+    const channelConfigured = wa
+        ? config.whatsapp.configured
+        : config.configured;
+    // Click-to-chat hands one chat to the user's own WhatsApp: only a single customer can be targeted.
+    const clickOnly = wa && config.whatsapp.configured && !config.whatsapp.bulk;
+    const canSend =
+        channelConfigured &&
+        body.trim() !== "" &&
+        recipients > 0 &&
+        (!clickOnly || target === "customer");
+
+    // The picked customer's live template values (same source as the send), else samples.
+    const [live, setLive] = useState<{
+        uuid: string;
+        values: Record<string, string>;
+    } | null>(null);
+    useEffect(() => {
+        if (!picked) {
+            return;
+        }
+        let stale = false;
+        apiRequest<{ values: Record<string, string> }>(
+            `/app/messages/preview?customer=${encodeURIComponent(picked.uuid)}`,
+        )
+            .then((r) => {
+                if (!stale) {
+                    setLive({ uuid: picked.uuid, values: r.values });
+                }
+            })
+            .catch(() => undefined);
+
+        return () => {
+            stale = true;
+        };
+    }, [picked]);
 
     const sample = useMemo(
-        () => ({
-            name: picked?.name ?? t('sms.hub.sample_name'),
-            customer: picked?.name ?? t('sms.hub.sample_name'),
-            shop: config.shop,
-            due: t('sms.hub.sample_due'),
-            balance: t('sms.hub.sample_due'),
-            number: picked?.customer_no
-                ? String(picked.customer_no)
-                : t('sms.hub.sample_number'),
-        }),
-        [picked, config.shop, t],
+        () =>
+            previewValues(
+                {
+                    name: picked?.name ?? t("sms.hub.sample_name"),
+                    shop: config.shop,
+                    due: t("sms.hub.sample_due"),
+                    balance: t("sms.hub.sample_due"),
+                    number: picked?.customer_no
+                        ? String(picked.customer_no)
+                        : t("sms.hub.sample_number"),
+                },
+                picked && live?.uuid === picked.uuid ? live.values : null,
+            ),
+        [picked, live, config.shop, t],
     );
 
     const chooseTemplate = (key: string) => {
@@ -147,26 +205,78 @@ export function Composer({
         });
     };
 
+    const sendHandoff = async () => {
+        setError(null);
+        setSent(null);
+        const tab = preOpenTab();
+        try {
+            const result = await sendDirect({
+                channel: "whatsapp",
+                event: "manual",
+                customers: picked ? [picked.uuid] : [],
+                body,
+            });
+            const link = result.handoff[0]?.url;
+            if (link && tab) {
+                tab.location.href = link;
+            } else if (link) {
+                window.open(link, "_blank", "noopener");
+            } else {
+                tab?.close();
+            }
+            toast.success(
+                t("sms.whatsapp.opened", { name: picked?.name ?? "" }),
+            );
+            setSent(1);
+            setBody("");
+            setTemplate("");
+        } catch (e) {
+            tab?.close();
+            setError(
+                e instanceof ApiError && e.detail
+                    ? e.detail
+                    : t("sms.whatsapp.send_failed"),
+            );
+        }
+    };
+
     const send = () =>
         new Promise<void>((resolve) => {
+            if (clickOnly) {
+                void sendHandoff().finally(resolve);
+
+                return;
+            }
             setError(null);
-            const group = target.startsWith('group:')
+            setSent(null);
+            const group = target.startsWith("group:")
                 ? Number(target.slice(6))
                 : null;
+            const payload = {
+                channel,
+                target: group !== null ? "group" : target,
+                customer: target === "customer" ? (picked?.uuid ?? null) : null,
+                group_id: group,
+                body,
+                template: template === "" ? null : template,
+            };
+            sendKey.current = broadcastKey(
+                sendKey.current,
+                JSON.stringify(payload),
+            );
             router.post(
-                '/app/messages/send',
-                {
-                    target: group !== null ? 'group' : target,
-                    customer:
-                        target === 'customer' ? (picked?.uuid ?? null) : null,
-                    group_id: group,
-                    body,
-                },
+                "/app/messages/send",
+                { ...payload, idempotency_key: sendKey.current.key },
                 {
                     preserveScroll: true,
                     onSuccess: () => {
-                        setBody('');
-                        setTemplate('');
+                        setSent(recipients);
+                        setBody("");
+                        setTemplate("");
+                        sendKey.current = {
+                            key: globalThis.crypto.randomUUID(),
+                            fingerprint: "",
+                        };
                     },
                     onError: (errors) =>
                         setError(Object.values(errors)[0] ?? null),
@@ -175,11 +285,11 @@ export function Composer({
             );
         });
 
-    useHotkeys('form', [
+    useHotkeys("form", [
         {
-            id: 'messages.send',
-            keys: 'mod+enter',
-            labelKey: 'sms.hub.send',
+            id: "messages.send",
+            keys: "mod+enter",
+            labelKey: "sms.hub.send",
             allowInInput: true,
             handler: (event) => {
                 event.preventDefault();
@@ -191,18 +301,18 @@ export function Composer({
     ]);
 
     const sendLabel =
-        target === 'customer'
-            ? t('sms.hub.send_one')
-            : t('sms.hub.send_many', { n: digits.n(recipients) });
+        target === "customer"
+            ? t("sms.hub.send_one")
+            : t("sms.hub.send_many", { n: digits.n(recipients) });
 
     return (
         <div className="flex flex-1 flex-col items-start gap-4 lg:flex-row">
             <div className="w-full flex-1 space-y-4 rounded-xl border bg-surface p-4 shadow-xs">
                 <h2 className="text-xs font-bold tracking-wider text-foreground uppercase">
-                    {t('sms.hub.composer_title')}
+                    {t("sms.hub.composer_title")}
                 </h2>
 
-                {!config.configured ? (
+                {!channelConfigured ? (
                     <p
                         role="alert"
                         className="flex items-center gap-2 rounded-lg border border-warning bg-warning-soft p-2.5 text-xs text-foreground"
@@ -212,13 +322,15 @@ export function Composer({
                             aria-hidden="true"
                         />
                         <span className="flex-1">
-                            {t('sms.hub.not_configured')}
+                            {wa
+                                ? t("sms.whatsapp.not_configured")
+                                : t("sms.hub.not_configured")}
                         </span>
                         <Link
                             href="/app/settings/sms"
                             className="font-bold text-primary underline"
                         >
-                            {t('sms.hub.open_settings')}
+                            {t("sms.hub.open_settings")}
                         </Link>
                     </p>
                 ) : null}
@@ -226,33 +338,48 @@ export function Composer({
                 <div className="space-y-3">
                     <fieldset>
                         <legend className="text-[11px] font-semibold text-muted-foreground">
-                            {t('sms.hub.channel')}
+                            {t("sms.hub.channel")}
                         </legend>
                         <div className="mt-1 grid grid-cols-2 gap-2">
                             <button
                                 type="button"
-                                aria-disabled="true"
-                                title={t('sms.hub.next_phase')}
-                                className="flex h-8 cursor-not-allowed items-center justify-center gap-1.5 rounded-lg border bg-surface-sunken text-xs font-semibold text-muted-foreground opacity-70 [@media(pointer:coarse)]:min-h-11"
+                                aria-pressed={wa}
+                                onClick={() => setChannel("whatsapp")}
+                                className={cn(
+                                    "flex h-8 items-center justify-center gap-1.5 rounded-lg border text-xs font-semibold [@media(pointer:coarse)]:min-h-11",
+                                    wa
+                                        ? "border-success bg-success-soft font-bold text-success"
+                                        : "bg-surface-sunken text-muted-foreground hover:text-foreground",
+                                )}
                             >
                                 <Smartphone
                                     className="size-3.5"
                                     aria-hidden="true"
                                 />
-                                <span>{t('sms.hub.whatsapp')}</span>
-                                <span className="rounded bg-surface px-1 text-[9px] font-bold uppercase">
-                                    {t('sms.hub.next_phase')}
-                                </span>
+                                <span>{t("sms.hub.whatsapp")}</span>
                             </button>
                             <button
                                 type="button"
-                                aria-pressed="true"
-                                className="flex h-8 items-center justify-center gap-1.5 rounded-lg border border-primary bg-primary-soft text-xs font-bold text-primary [@media(pointer:coarse)]:min-h-11"
+                                aria-pressed={!wa}
+                                onClick={() => setChannel("sms")}
+                                className={cn(
+                                    "flex h-8 items-center justify-center gap-1.5 rounded-lg border text-xs font-semibold [@media(pointer:coarse)]:min-h-11",
+                                    !wa
+                                        ? "border-primary bg-primary-soft font-bold text-primary"
+                                        : "bg-surface-sunken text-muted-foreground hover:text-foreground",
+                                )}
                             >
                                 <Send className="size-3.5" aria-hidden="true" />
-                                <span>{t('sms.hub.sms')}</span>
+                                <span>{t("sms.hub.sms")}</span>
                             </button>
                         </div>
+                        {wa && channelConfigured ? (
+                            <p className="mt-1.5 text-[11px] text-muted-foreground">
+                                {clickOnly
+                                    ? t("sms.whatsapp.composer_click_single")
+                                    : t("sms.whatsapp.composer_no_cost")}
+                            </p>
+                        ) : null}
                     </fieldset>
 
                     <div>
@@ -260,7 +387,7 @@ export function Composer({
                             htmlFor="sms-target"
                             className="text-muted-foreground"
                         >
-                            {t('sms.hub.target')}
+                            {t("sms.hub.target")}
                         </Label>
                         <NativeSelect
                             id="sms-target"
@@ -269,32 +396,32 @@ export function Composer({
                             onChange={(e) => setTarget(e.target.value)}
                         >
                             <option value="due">
-                                {t('sms.hub.target_due', {
+                                {t("sms.hub.target_due", {
                                     n: digits.n(config.counts.due),
                                 })}
                             </option>
                             <option value="customer">
-                                {t('sms.hub.target_one', {
+                                {t("sms.hub.target_one", {
                                     name: picked
                                         ? picked.name
-                                        : t('sms.hub.pick_customer'),
+                                        : t("sms.hub.pick_customer"),
                                 })}
                             </option>
                             {config.groups.map((g) => (
                                 <option key={g.id} value={`group:${g.id}`}>
-                                    {t('sms.hub.target_group', {
+                                    {t("sms.hub.target_group", {
                                         name: g.name,
                                         n: digits.n(g.count),
                                     })}
                                 </option>
                             ))}
                             <option value="all">
-                                {t('sms.hub.target_all', {
+                                {t("sms.hub.target_all", {
                                     n: digits.n(config.counts.all),
                                 })}
                             </option>
                         </NativeSelect>
-                        {target === 'customer' ? (
+                        {target === "customer" ? (
                             <CustomerPicker
                                 picked={picked}
                                 onPick={setPicked}
@@ -307,7 +434,7 @@ export function Composer({
                             htmlFor="sms-template"
                             className="text-muted-foreground"
                         >
-                            {t('sms.hub.template')}
+                            {t("sms.hub.template")}
                         </Label>
                         <NativeSelect
                             id="sms-template"
@@ -316,7 +443,7 @@ export function Composer({
                             onChange={(e) => chooseTemplate(e.target.value)}
                         >
                             <option value="">
-                                {t('sms.hub.template_custom')}
+                                {t("sms.hub.template_custom")}
                             </option>
                             {config.templates.map((tpl) => (
                                 <option key={tpl.key} value={tpl.key}>
@@ -328,7 +455,7 @@ export function Composer({
 
                     <div>
                         <div className="mb-1 text-[10px] text-muted-foreground">
-                            {t('sms.hub.variables')}
+                            {t("sms.hub.variables")}
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                             {config.variables.map((v) => (
@@ -337,7 +464,7 @@ export function Composer({
                                     type="button"
                                     onClick={() => addVariable(v)}
                                     className="rounded border bg-surface-sunken px-2 py-0.5 font-mono text-[10px] text-foreground hover:border-primary [@media(pointer:coarse)]:min-h-11"
-                                    aria-label={t('sms.hub.insert_variable', {
+                                    aria-label={t("sms.hub.insert_variable", {
                                         name: `{${v}}`,
                                     })}
                                 >
@@ -350,16 +477,18 @@ export function Composer({
                     <div>
                         <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                             <Label htmlFor="sms-body">
-                                {t('sms.hub.body')}
+                                {t("sms.hub.body")}
                             </Label>
                             <span className="num font-mono" aria-live="polite">
-                                {t('sms.hub.counter', {
-                                    chars: digits.n(body.length),
-                                    parts: digits.n(info.segments),
-                                    encoding: t(
-                                        `sms.hub.encoding_${info.encoding}`,
-                                    ),
-                                })}
+                                {wa
+                                    ? digits.n(body.length)
+                                    : t("sms.hub.counter", {
+                                          chars: digits.n(body.length),
+                                          parts: digits.n(info.segments),
+                                          encoding: t(
+                                              `sms.hub.encoding_${info.encoding}`,
+                                          ),
+                                      })}
                             </span>
                         </div>
                         <textarea
@@ -368,10 +497,13 @@ export function Composer({
                             rows={4}
                             maxLength={config.max_body}
                             value={body}
-                            placeholder={t('sms.hub.body_ph')}
+                            placeholder={t("sms.hub.body_ph")}
                             aria-invalid={error ? true : undefined}
-                            aria-describedby={error ? 'sms-error' : undefined}
-                            onChange={(e) => setBody(e.target.value)}
+                            aria-describedby={error ? "sms-error" : undefined}
+                            onChange={(e) => {
+                                setBody(e.target.value);
+                                setSent(null);
+                            }}
                             className="mt-1 w-full rounded-lg border bg-surface-sunken p-2.5 font-mono text-xs leading-relaxed text-foreground outline-none focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive"
                         />
                         {error ? (
@@ -388,22 +520,32 @@ export function Composer({
 
                 <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
                     <span className="text-xs text-muted-foreground">
-                        {t('sms.hub.cost_estimate')}{' '}
-                        <strong className="num text-foreground">
-                            {t('sms.hub.cost_per_msg', {
-                                amount: digits.money(perMessage),
-                            })}
-                        </strong>
-                        {recipients > 1 ? (
+                        {wa ? (
+                            clickOnly ? (
+                                t("sms.whatsapp.composer_handoff")
+                            ) : (
+                                t("sms.whatsapp.composer_no_cost")
+                            )
+                        ) : (
                             <>
-                                {' · '}
-                                <span className="num">
-                                    {t('sms.hub.cost_total', {
-                                        amount: digits.money(total),
+                                {t("sms.hub.cost_estimate")}{" "}
+                                <strong className="num text-foreground">
+                                    {t("sms.hub.cost_per_msg", {
+                                        amount: digits.money(perMessage),
                                     })}
-                                </span>
+                                </strong>
+                                {recipients > 1 ? (
+                                    <>
+                                        {" · "}
+                                        <span className="num">
+                                            {t("sms.hub.cost_total", {
+                                                amount: digits.money(total),
+                                            })}
+                                        </span>
+                                    </>
+                                ) : null}
                             </>
-                        ) : null}
+                        )}
                     </span>
                     <Button
                         type="button"
@@ -416,6 +558,11 @@ export function Composer({
                         <Kbd keys="mod+enter" onButton />
                     </Button>
                 </div>
+                {sent !== null ? (
+                    <output className="block rounded-lg border border-success bg-success-soft p-2.5 text-xs text-foreground">
+                        {t("sms.hub.sent_banner", { n: digits.n(sent) })}
+                    </output>
+                ) : null}
             </div>
 
             <PhonePreview
@@ -426,12 +573,22 @@ export function Composer({
             <ConfirmDialog
                 open={confirming}
                 onOpenChange={setConfirming}
-                title={t('sms.hub.confirm_title')}
-                description={t('sms.hub.confirm_body', {
-                    n: digits.n(recipients),
-                    parts: digits.n(info.segments),
-                    amount: digits.money(total),
-                })}
+                title={
+                    wa
+                        ? t("sms.whatsapp.confirm_title")
+                        : t("sms.hub.confirm_title")
+                }
+                description={
+                    wa
+                        ? t("sms.whatsapp.confirm_body", {
+                              n: digits.n(recipients),
+                          })
+                        : t("sms.hub.confirm_body", {
+                              n: digits.n(recipients),
+                              parts: digits.n(info.segments),
+                              amount: digits.money(total),
+                          })
+                }
                 confirmLabel={sendLabel}
                 onConfirm={send}
             />
@@ -449,7 +606,7 @@ function CustomerPicker({
 }) {
     const { t } = useT();
     const digits = useDigits();
-    const [q, setQ] = useState('');
+    const [q, setQ] = useState("");
     const [results, setResults] = useState<Picked[]>([]);
 
     useEffect(() => {
@@ -460,7 +617,7 @@ function CustomerPicker({
         const ctrl = new AbortController();
         const timer = window.setTimeout(() => {
             fetch(`/app/customers/search?q=${encodeURIComponent(term)}`, {
-                headers: { Accept: 'application/json' },
+                headers: { Accept: "application/json" },
                 signal: ctrl.signal,
             })
                 .then((r) => (r.ok ? r.json() : { customers: [] }))
@@ -480,11 +637,11 @@ function CustomerPicker({
         return (
             <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border bg-surface-sunken px-2.5 py-1.5 text-xs">
                 <span>
-                    <span className="font-semibold">{picked.name}</span>{' '}
+                    <span className="font-semibold">{picked.name}</span>{" "}
                     <span className="num font-mono text-muted-foreground">
                         {picked.phone
                             ? digits.n(picked.phone)
-                            : t('sms.hub.no_phone')}
+                            : t("sms.hub.no_phone")}
                     </span>
                 </span>
                 <Button
@@ -492,7 +649,7 @@ function CustomerPicker({
                     variant="ghost"
                     size="icon"
                     className="size-6"
-                    aria-label={t('sms.hub.clear_customer')}
+                    aria-label={t("sms.hub.clear_customer")}
                     onClick={() => onPick(null)}
                 >
                     <X aria-hidden="true" />
@@ -514,8 +671,8 @@ function CustomerPicker({
                 className="pl-8"
                 value={q}
                 autoFocus
-                placeholder={t('sms.hub.search_customer')}
-                aria-label={t('sms.hub.search_customer')}
+                placeholder={t("sms.hub.search_customer")}
+                aria-label={t("sms.hub.search_customer")}
                 onChange={(e) => setQ(e.target.value)}
             />
             {shown.length > 0 ? (
@@ -525,19 +682,19 @@ function CustomerPicker({
                             <button
                                 type="button"
                                 className={cn(
-                                    'flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-surface-sunken focus-visible:bg-surface-sunken focus-visible:outline-none',
-                                    !c.phone && 'opacity-60',
+                                    "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-surface-sunken focus-visible:bg-surface-sunken focus-visible:outline-none",
+                                    !c.phone && "opacity-60",
                                 )}
                                 onClick={() => {
                                     onPick(c);
-                                    setQ('');
+                                    setQ("");
                                 }}
                             >
                                 <span className="font-semibold">{c.name}</span>
                                 <span className="num font-mono text-muted-foreground">
                                     {c.phone
                                         ? digits.n(c.phone)
-                                        : t('sms.hub.no_phone')}
+                                        : t("sms.hub.no_phone")}
                                 </span>
                             </button>
                         </li>

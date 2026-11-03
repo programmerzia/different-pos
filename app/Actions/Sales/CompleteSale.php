@@ -8,6 +8,7 @@ use App\Actions\Sales\Data\SaleDraft;
 use App\Actions\Sales\Data\SaleLineDraft;
 use App\Actions\Sales\Data\TenderDraft;
 use App\Enums\AllocatableType;
+use App\Enums\CustomerPinPolicy;
 use App\Enums\MemberAuth;
 use App\Enums\PaymentDirection;
 use App\Enums\PaymentMethodType;
@@ -22,6 +23,7 @@ use App\Exceptions\Domain\CreditLimitExceeded;
 use App\Exceptions\Domain\DiscountCapExceeded;
 use App\Exceptions\Domain\InvalidSaleDocument;
 use App\Exceptions\Domain\InvalidTender;
+use App\Exceptions\Domain\MemberPinRequired;
 use App\Exceptions\Domain\PriceOverrideNotAllowed;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
@@ -202,6 +204,7 @@ final readonly class CompleteSale
         }
 
         $flags = [];
+        $memberAuth = $this->memberAuth($actor, $draft, $customer, $origin, $flags);
         $clientTotals = null;
         if ($draft->expectedTotal instanceof Money && ! $draft->expectedTotal->equals($total)) {
             $flags[] = 'price_mismatch';
@@ -226,7 +229,40 @@ final readonly class CompleteSale
             clientTotals: $clientTotals,
             clientUuid: $draft->clientUuid ?? (string) Str::uuid7(),
             overrides: array_values(array_unique($overrides)),
+            memberAuth: $memberAuth,
         );
+    }
+
+    /**
+     * How the attached member was authenticated (05_Schema sales.member_auth). Walk-in → none. Policy off →
+     * no_pin_policy. A member token for this cart → pin_online. A manager with pos.customer_pin_override →
+     * override. Otherwise none; under policy `required` a web sale is refused and a synced sale is flagged.
+     *
+     * @param  list<string>  $flags
+     */
+    private function memberAuth(User $actor, SaleDraft $draft, Customer $customer, SaleOrigin $origin, array &$flags): MemberAuth
+    {
+        if ($customer->is_walk_in) {
+            return MemberAuth::None;
+        }
+        $policy = CustomerPinPolicy::fromSetting($this->context->tenant()->setting('customer_pin_policy'));
+        if ($policy === CustomerPinPolicy::Off) {
+            return MemberAuth::NoPinPolicy;
+        }
+        if ($draft->memberVerified) {
+            return MemberAuth::PinOnline;
+        }
+        if ($draft->approver instanceof User && $this->gate->allows($actor, $draft->approver, 'pos.customer_pin_override')) {
+            return MemberAuth::Override;
+        }
+        if ($policy === CustomerPinPolicy::Required) {
+            if ($origin === SaleOrigin::Web) {
+                throw MemberPinRequired::forSale();
+            }
+            $flags[] = 'member_unverified';
+        }
+
+        return MemberAuth::None;
     }
 
     /**
@@ -266,7 +302,7 @@ final readonly class CompleteSale
             'origin' => $prepared->origin,
             'device_created_at' => $prepared->origin === SaleOrigin::Device ? $prepared->soldAt : null,
             'synced_at' => $prepared->origin === SaleOrigin::Device ? now() : null,
-            'member_auth' => MemberAuth::None,
+            'member_auth' => $prepared->memberAuth,
             'sync_flags' => $prepared->flags === [] ? null : $prepared->flags,
             'client_totals' => $prepared->clientTotals,
             'note' => $prepared->draft->note,

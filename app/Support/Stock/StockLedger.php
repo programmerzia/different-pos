@@ -295,7 +295,9 @@ final readonly class StockLedger
 
     /**
      * Puts issued quantity back onto the batches it came from (sale void, sale return).
-     * Backorder allocations (no batch) only restore branch_stocks.
+     * Backorder allocations (no batch) only restore branch_stocks. A batch takes back at most its
+     * headroom (received - remaining); any remainder goes into a new `return` batch at the same
+     * unit cost (never throws: imported legacy batches may have sold more than they received).
      *
      * @param  list<StockAllocation>  $allocations
      * @param  StockRef  $ref
@@ -337,21 +339,89 @@ final readonly class StockLedger
             $batch = $allocation['batch'];
             $qty = $allocation['qty'];
 
-            if ($batch instanceof StockBatch) {
-                $locked = $batches->get($batch->id) ?? throw new LogicException(sprintf('Batch %d does not hold product %d in branch %d.', $batch->id, $product->id, $branch->id));
-                $restored = $locked->qty_remaining->plus($qty);
-                if ($restored->compareTo($locked->qty_received) > 0) {
-                    throw new LogicException(sprintf('Batch %d cannot hold more than it received.', $locked->id));
-                }
-                $locked->qty_remaining = $restored;
-                $locked->save();
+            $total += $qty->milli;
+
+            if (! $batch instanceof StockBatch) {
+                $this->record($branch, $product->id, null, $type, $qty, $allocation['unit_cost'], $ref, true);
+
+                continue;
             }
 
-            $this->record($branch, $product->id, $batch?->id, $type, $qty, $allocation['unit_cost'], $ref, ! $batch instanceof StockBatch);
-            $total += $qty->milli;
+            $locked = $batches->get($batch->id) ?? throw new LogicException(sprintf('Batch %d does not hold product %d in branch %d.', $batch->id, $product->id, $branch->id));
+
+            // The original batch takes back only up to its headroom (received - remaining). Imported
+            // legacy batches can have sold more than they received; the rest becomes a new return
+            // batch at the same unit cost, received now, so FIFO sells it after the older batches.
+            $headroom = $locked->qty_received->minus($locked->qty_remaining);
+            $back = match (true) {
+                ! $headroom->isPositive() => Quantity::zero(),
+                $headroom->compareTo($qty) < 0 => $headroom,
+                default => $qty,
+            };
+            $extra = $qty->minus($back);
+
+            if ($back->isPositive()) {
+                $locked->qty_remaining = $locked->qty_remaining->plus($back);
+                $locked->save();
+                $this->record($branch, $product->id, $locked->id, $type, $back, $allocation['unit_cost'], $ref, false);
+            }
+
+            if ($extra->isPositive()) {
+                $fresh = new StockBatch;
+                $fresh->forceFill([
+                    'tenant_id' => $branch->tenant_id,
+                    'branch_id' => $branch->id,
+                    'product_id' => $product->id,
+                    'source_type' => StockSourceType::Return,
+                    'source_id' => $ref['id'],
+                    'batch_no' => $locked->batch_no,
+                    'unit_cost' => $allocation['unit_cost'],
+                    'qty_received' => $extra,
+                    'qty_remaining' => $extra,
+                    'received_at' => now(),
+                    'expires_at' => $locked->expires_at,
+                ])->save();
+                $this->record($branch, $product->id, $fresh->id, $type, $extra, $allocation['unit_cost'], $ref, false);
+            }
         }
 
         $this->bump($stock, Quantity::ofMilli($total));
+    }
+
+    /**
+     * Moves a branch's qty_in_transit by $delta: positive when a transfer is dispatched to it, negative when
+     * the transfer is received. The destination is not the context branch while dispatching, so this is the
+     * one branch_stocks write that bypasses the branch-scoped model (tenant still checked).
+     */
+    public function moveInTransit(Branch $branch, Product $product, Quantity $delta): void
+    {
+        if (DB::transactionLevel() < 1) {
+            throw new LogicException('StockLedger must be called inside Transaction::run().');
+        }
+        if ($this->context->tenantId() !== $branch->tenant_id || $product->tenant_id !== $branch->tenant_id) {
+            throw new LogicException(sprintf('StockLedger was called for branch %d outside its tenant context.', $branch->id));
+        }
+
+        DB::table('branch_stocks')->insertOrIgnore([
+            'tenant_id' => $branch->tenant_id,
+            'branch_id' => $branch->id,
+            'product_id' => $product->id,
+            'qty_on_hand' => '0.000',
+            'qty_in_transit' => '0.000',
+            'updated_at' => now(),
+        ]);
+        $current = DB::table('branch_stocks')
+            ->where('branch_id', $branch->id)
+            ->where('product_id', $product->id)
+            ->lockForUpdate()
+            ->value('qty_in_transit');
+        DB::table('branch_stocks')
+            ->where('branch_id', $branch->id)
+            ->where('product_id', $product->id)
+            ->update([
+                'qty_in_transit' => Quantity::parse((string) $current)->plus($delta)->toDecimalString(),
+                'updated_at' => now(),
+            ]);
     }
 
     private function guard(Branch $branch): void

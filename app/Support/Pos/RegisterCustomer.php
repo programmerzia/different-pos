@@ -7,11 +7,13 @@ namespace App\Support\Pos;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Support\Customers\CustomerNumber;
+use App\Support\Customers\CustomerPin;
 use App\Support\Sales\CustomerAccounts;
 
 /**
  * The customer card the register shows once a customer is attached: what pricing needs (group
- * discount) and what the tender panel needs (balance, credit limit, spendable advance). No PIN data.
+ * discount), what the tender panel needs (balance, credit limit, spendable advance) and the PIN
+ * state (set / pending / locked) for the member flow. Never the PIN or its hash.
  */
 final readonly class RegisterCustomer
 {
@@ -37,6 +39,8 @@ final readonly class RegisterCustomer
             'credit_limit' => $limit?->paisa,
             'advance' => $this->accounts->advance($customer)->paisa,
             'is_active' => $customer->is_active,
+            // PIN state only (04_TRD §3.9 customers-min): never the hash or the digits.
+            'pin_status' => CustomerPin::status($customer),
         ];
     }
 }

@@ -23,6 +23,7 @@
         "laravel/tinker": "^3.0",
         "laravel/wayfinder": "^0.1.14",
         "league/flysystem-aws-s3-v3": "^3.35",
+        "mpdf/mpdf": "^8.3",
         "picqer/php-barcode-generator": "^3.3",
         "sentry/sentry-laravel": "^4.29",
         "spatie/laravel-activitylog": "^5.1",

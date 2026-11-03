@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Cards\MembershipCardController;
 use App\Http\Controllers\Customers\CustomerController;
+use App\Http\Controllers\Customers\CustomerPinController;
 use App\Http\Controllers\Customers\CustomerStatementController;
+use App\Support\Export\ExportFormat;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('customers/search', [CustomerController::class, 'search'])->name('customers.search');
 Route::get('customers/check-phone', [CustomerController::class, 'checkPhone'])->name('customers.check-phone');
 Route::get('customers/statement', [CustomerStatementController::class, 'index'])->name('customers.statement.index');
-Route::get('customers/export.csv', [CustomerController::class, 'export'])->name('customers.export');
+Route::get('customers/export.{format}', [CustomerController::class, 'export'])->where('format', ExportFormat::pattern())->middleware('can:customers.export')->name('customers.export');
 
 Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
 Route::get('customers/create', [CustomerController::class, 'create'])->name('customers.create');
@@ -26,6 +28,9 @@ Route::get('customers/{customer}/edit', [CustomerController::class, 'edit'])->na
 Route::match(['put', 'patch'], 'customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
 Route::post('customers/{customer}/deactivate', [CustomerController::class, 'deactivate'])->name('customers.deactivate');
 Route::post('customers/{customer}/merge', [CustomerController::class, 'merge'])->name('customers.merge');
+Route::post('customers/{customer}/pin', [CustomerPinController::class, 'set'])->name('customers.pin.set');
+Route::post('customers/{customer}/pin/reset', [CustomerPinController::class, 'reset'])->name('customers.pin.reset');
+Route::post('customers/{customer}/pin/unlock', [CustomerPinController::class, 'unlock'])->name('customers.pin.unlock');
 
 Route::get('customers/{customer}/statement', [CustomerStatementController::class, 'show'])->name('customers.statement');
 Route::post('customers/{customer}/statement/sms', [CustomerStatementController::class, 'sms'])->name('customers.statement.sms');

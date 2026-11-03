@@ -16,6 +16,7 @@ return [
         'invalid_sale_document' => 'The bill is not valid.',
         'invalid_quantity' => 'A quantity is not valid.',
         'invalid_money' => 'An amount is not valid.',
+        'member_pin_required' => 'This customer must enter their PIN (or a manager must override) before the sale completes.',
     ],
     'approval' => [
         'invalid' => 'Wrong login or password.',

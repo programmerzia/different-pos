@@ -1,5 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { FileText, Plus, RefreshCw, Undo2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useMemo, useState } from 'react';
 import {
     ColumnChooser,
@@ -42,6 +43,8 @@ import { useCan } from '@/hooks/use-can';
 import { useDigits } from '@/hooks/use-digits';
 import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useT } from '@/i18n';
+import { DownloadError, downloadFile } from '@/lib/download';
+import { exportItems, exportUrl, type ExportFormat } from '@/lib/export-items';
 import { downloadRowsCsv, type CsvColumn } from '@/lib/rows-csv';
 import { salesUrl, type CustomerSummary } from '@/lib/sales';
 
@@ -177,6 +180,17 @@ export default function ReturnsIndex({
     ];
     const exportRows = (list: Row[]) =>
         downloadRowsCsv('returns.csv', csvColumns, list);
+    const exportAs = (format: ExportFormat) => {
+        downloadFile(
+            exportUrl('/app/returns', format, window.location.search),
+        ).catch((error: unknown) =>
+            toast.error(
+                error instanceof DownloadError && error.status === 422
+                    ? error.message
+                    : t('table.export_failed'),
+            ),
+        );
+    };
 
     useHotkeys('list', [
         {
@@ -206,8 +220,8 @@ export default function ReturnsIndex({
         {
             id: 'returns.export',
             keys: 'shift+e',
-            labelKey: 'returns.export_csv',
-            handler: () => exportRows(rows),
+            labelKey: 'table.export_xlsx',
+            handler: () => exportAs('xlsx'),
         },
         {
             id: 'returns.more_filters',
@@ -417,16 +431,7 @@ export default function ReturnsIndex({
                                 visibility={columnState.visibility}
                                 onChange={columnState.setVisibility}
                             />
-                            <ExportMenu
-                                items={[
-                                    {
-                                        id: 'csv',
-                                        kind: 'csv',
-                                        label: t('returns.export_csv'),
-                                        onSelect: () => exportRows(rows),
-                                    },
-                                ]}
-                            />
+                            <ExportMenu items={exportItems(t, exportAs)} />
                             <PrintButton />
                         </>
                     }

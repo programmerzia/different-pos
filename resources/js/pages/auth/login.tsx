@@ -467,7 +467,7 @@ export function LoginFields({
                         type="checkbox"
                         id="remember"
                         name="remember"
-                        className="size-3.5 rounded border-border accent-primary"
+                        className="size-3.5 rounded border-border accent-primary [@media(pointer:coarse)]:size-5"
                     />
                     <span className="text-[11px] text-muted-foreground">
                         {t('login.remember')}

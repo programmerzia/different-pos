@@ -3,6 +3,7 @@ import {
     Download,
     FileSpreadsheet,
     FileText,
+    FileType,
     Printer,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -108,8 +109,8 @@ export function PageHeader({
 export type ExportItem = {
     id: string;
     label: string;
-    /** `excel` / `csv` / `print` pick the mockup's coloured icon. */
-    kind?: 'excel' | 'csv' | 'print';
+    /** `excel` / `pdf` / `csv` / `print` pick the mockup's coloured icon. */
+    kind?: 'excel' | 'csv' | 'pdf' | 'print';
     onSelect: () => void;
 };
 
@@ -123,7 +124,11 @@ export function ExportMenu({ items }: { items: ExportItem[] }) {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline">
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="touch-target"
+                >
                     <Download aria-hidden="true" />
                     <span className="max-sm:sr-only">{t('table.export')}</span>
                     <ChevronDown className="size-3" aria-hidden="true" />
@@ -139,7 +144,9 @@ export function ExportMenu({ items }: { items: ExportItem[] }) {
                             ? Printer
                             : item.kind === 'excel'
                               ? FileSpreadsheet
-                              : FileText;
+                              : item.kind === 'pdf'
+                                ? FileType
+                                : FileText;
 
                     return (
                         <div key={item.id}>
@@ -156,6 +163,8 @@ export function ExportMenu({ items }: { items: ExportItem[] }) {
                                         'size-3.5',
                                         item.kind === 'excel' && 'text-success',
                                         item.kind === 'csv' && 'text-info',
+                                        item.kind === 'pdf' &&
+                                            'text-destructive',
                                         item.kind === 'print' && 'text-primary',
                                     )}
                                 />
@@ -180,7 +189,12 @@ export function PrintButton({
     const { t } = useT();
 
     return (
-        <Button type="button" variant="outline" onClick={onPrint}>
+        <Button
+            type="button"
+            variant="outline"
+            className="touch-target"
+            onClick={onPrint}
+        >
             <Printer aria-hidden="true" />
             <span className="max-sm:sr-only">{label ?? t('table.print')}</span>
         </Button>

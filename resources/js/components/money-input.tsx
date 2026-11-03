@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type KeyboardEventHandler, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { useDigits } from '@/hooks/use-digits';
 import {
@@ -18,6 +18,7 @@ type Props = {
     invalid?: boolean;
     'aria-describedby'?: string;
     className?: string;
+    onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
 };
 
 /**

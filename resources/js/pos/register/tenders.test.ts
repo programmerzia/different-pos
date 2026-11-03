@@ -26,6 +26,7 @@ const named = (over: Partial<CustomerCard> = {}): CustomerCard => ({
     credit_limit: null,
     advance: 0,
     is_active: true,
+    pin_status: 'pending',
     ...over,
 });
 const row = (methodId: number, amount: number, reference = '') => ({

@@ -16,7 +16,8 @@ final class Permission
         'devices.manage',
         'sales.view', 'sales.void', 'returns.view', 'returns.create',
         'payments.collect', 'payments.pay',
-        'customers.view', 'customers.create', 'customers.update', 'customers.delete', 'customers.reset_pin',
+        'customers.view', 'customers.create', 'customers.update', 'customers.delete', 'customers.reset_pin', 'customers.export',
+        'sms.view', 'sms.send',
         'cards.view', 'cards.issue',
         'products.view', 'products.create', 'products.update', 'products.delete', 'products.view_cost',
         'stock.view', 'stock.adjust', 'stock.count', 'stock.transfer',
@@ -26,6 +27,7 @@ final class Permission
         'reports.view', 'reports.export', 'reports.profit', 'reports.all_branches',
         'branches.switch',
         'users.manage', 'settings.manage', 'audit.view',
+        'backup.view', 'backup.run',
     ];
 
     /**

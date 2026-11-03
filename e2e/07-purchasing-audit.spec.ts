@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { open, signIn } from './support';
 
 test.beforeEach(async ({ page }) => {
@@ -39,6 +39,56 @@ test('the purchases list shows the KPI strip above the list', async ({
     await expect(page.getByText('Total Inward Bills')).toBeVisible();
     await expect(page.getByText('Outstanding Vendor Payables')).toBeVisible();
     await expect(page.getByText('No purchases yet')).toBeVisible();
+});
+
+/** On hand and the number of purchase movements on the product's stock movements page. */
+async function stockOf(page: Page, sku: string) {
+    await open(page, `/app/stock?q=${sku}`);
+    // Keyboard entry into the list: Alt+↓ focuses the first row, Enter opens its movements.
+    await page.keyboard.press('Alt+ArrowDown');
+    await expect(page.locator('[data-list-row]').first()).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/movements$/);
+    const onHand = Number(
+        ((await page.locator('[data-test="on-hand"]').textContent()) ?? '')
+            .replace(/[^0-9.]/g, ''),
+    );
+    const purchases = await page
+        .locator('tbody tr')
+        .filter({ has: page.getByRole('cell', { name: 'Purchase', exact: true }) })
+        .count();
+
+    return { onHand, purchases };
+}
+
+test('receives a GRN from the keyboard and the stock and batches rise', async ({
+    page,
+}) => {
+    const before = await stockOf(page, 'E2E-TEE');
+
+    await open(page, '/app/purchases/create');
+    await expect(
+        page.getByRole('heading', { name: 'New purchase' }),
+    ).toBeVisible();
+    await page
+        .getByLabel('Vendor', { exact: true })
+        .selectOption({ label: 'E2E Textile Mills' });
+
+    // F2 focuses the scan field; each Enter of the same SKU adds one more unit.
+    await page.keyboard.press('F2');
+    await expect(page.locator('#scan')).toBeFocused();
+    for (let i = 0; i < 3; i++) {
+        await page.keyboard.type('E2E-TEE');
+        await page.keyboard.press('Enter');
+        await expect(page.locator('#scan')).toHaveValue('');
+    }
+    await expect(page.getByRole('rowheader', { name: /E2E Tee/ })).toBeVisible();
+    await page.keyboard.press('Control+Enter');
+    await expect(page).toHaveURL(/\/app\/purchases\/[0-9a-f-]{36}$/);
+
+    const after = await stockOf(page, 'E2E-TEE');
+    expect(after.onHand).toBe(before.onHand + 3);
+    expect(after.purchases).toBe(before.purchases + 1);
 });
 
 test('the audit log and the customer statement keep the mockup layout', async ({

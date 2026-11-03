@@ -117,6 +117,19 @@ it('voids a same-day sale with sales.void only', function (): void {
     expect($sale->refresh()->status)->toBe(SaleStatus::Voided)->and($sale->void_reason)->toBe('wrong size');
 });
 
+it('keeps the list\'s filters and page after a void, and leaves voided sales out of the items total', function (): void {
+    $kept = SalesUi::sale($this->world, $this->shirt);
+    $sale = SalesUi::sale($this->world, $this->shirt);
+    $manager = $this->world->user('Manager');
+
+    $this->actingAs($manager)->post(route('sales.void', ['sale' => $sale->id, 'filter' => ['status' => 'completed'], 'page' => 3]), ['reason' => 'wrong size'])
+        ->assertRedirect(route('sales.show', ['sale' => $sale->id, 'filter' => ['status' => 'completed'], 'page' => 3]));
+
+    $this->actingAs($manager)->get(route('sales.index'))->assertInertia(fn (Assert $page) => $page
+        ->where('totals.items', $kept->items()->count())
+        ->where('totals.total', $kept->total->paisa));
+});
+
 it('refuses a void after midnight with the domain message', function (): void {
     $sale = SalesUi::sale($this->world, $this->shirt);
     $this->travelTo(now()->addDay());
@@ -175,7 +188,7 @@ it('sums the whole filtered list in the totals row, skipping voided sales', func
         ->assertInertia(fn (Assert $page) => $page
             ->has('rows', 2)
             ->where('meta.total', 2)
-            ->where('totals.items', 2)
+            ->where('totals.items', 1) // the voided sale's line no longer counts
             ->where('totals.total', 200_000)
             ->where('totals.paid', 150_000)
             ->where('totals.due', 50_000));

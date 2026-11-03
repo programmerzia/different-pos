@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router } from "@inertiajs/react";
 import {
     CalendarClock,
     Database,
@@ -7,24 +7,25 @@ import {
     RotateCw,
     Send,
     Settings,
-} from 'lucide-react';
-import { type ReactNode, useEffect, useState } from 'react';
-import { DataTable, type DataColumn } from '@/components/data-table/data-table';
-import { useServerTable } from '@/components/data-table/server-table';
-import { EmptyState } from '@/components/empty-state';
-import { Composer, type ComposerConfig } from '@/components/messaging/composer';
-import { smsCost, smsSegments } from '@/components/messaging/sms-text';
-import { Page, PageHeader } from '@/components/page-header';
-import { StatusBadge, type Tone } from '@/components/status-badge';
-import { TableToolbar } from '@/components/table-toolbar';
-import { Button } from '@/components/ui/button';
-import { actions, type AppAction } from '@/command/actions';
-import { useDigits } from '@/hooks/use-digits';
-import { useHotkeys } from '@/hotkeys/use-hotkeys';
-import { useT } from '@/i18n';
-import { cn } from '@/lib/utils';
-import type { MessageRow } from '@/types/messaging';
-import type { TableMetaProp } from '@/types/customers';
+} from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
+import { DataTable, type DataColumn } from "@/components/data-table/data-table";
+import { useServerTable } from "@/components/data-table/server-table";
+import { EmptyState } from "@/components/empty-state";
+import { Composer, type ComposerConfig } from "@/components/messaging/composer";
+import { smsCost, smsSegments } from "@/components/messaging/sms-text";
+import { Page, PageHeader } from "@/components/page-header";
+import { StatusBadge, type Tone } from "@/components/status-badge";
+import { TableToolbar } from "@/components/table-toolbar";
+import { Button } from "@/components/ui/button";
+import { actions, type AppAction } from "@/command/actions";
+import { useDigits } from "@/hooks/use-digits";
+import { useHotkeys } from "@/hotkeys/use-hotkeys";
+import { useT } from "@/i18n";
+import { cn } from "@/lib/utils";
+import type { MessageRow, WhatsAppConfig } from "@/types/messaging";
+import type { TableMetaProp } from "@/types/customers";
+import { DateTime } from "@/components/sales/date-time";
 
 type Props = {
     rows: MessageRow[];
@@ -32,55 +33,66 @@ type Props = {
     canResend: boolean;
     costPerSegment: number;
     composer: ComposerConfig | null;
+    whatsapp: WhatsAppConfig;
 };
 
-type Tab = 'composer' | 'templates' | 'log';
+type Tab = "composer" | "templates" | "log";
 
-const TONE: Record<MessageRow['status'], Tone> = {
-    queued: 'info',
-    sent: 'success',
-    failed: 'danger',
+const TONE: Record<MessageRow["status"], Tone> = {
+    queued: "info",
+    sent: "success",
+    failed: "danger",
+    handoff: "info",
+};
+
+/** The header pill: connected = success, click-to-chat / log = primary, credentials missing = warning, off = muted. */
+const WA_PILL: Record<WhatsAppConfig["status"], string> = {
+    connected: "bg-success-soft text-success",
+    click_to_chat: "bg-primary-soft text-primary",
+    log: "bg-primary-soft text-primary",
+    incomplete: "bg-warning-soft text-warning",
+    off: "bg-surface-sunken text-muted-foreground",
 };
 
 const resendAction: AppAction<MessageRow> = {
-    id: 'message.resend',
-    entity: 'message',
-    labelKey: 'sms.log.resend',
+    id: "message.resend",
+    entity: "message",
+    labelKey: "sms.log.resend",
     icon: RotateCw,
-    keys: 'r',
-    permission: 'settings.manage',
-    requires: 'handler',
-    visible: (row) => row.status === 'failed',
-    run: ({ row, handlers }) => handlers?.['message.resend']?.(row),
+    keys: "r",
+    permission: "settings.manage",
+    requires: "handler",
+    visible: (row) => row.status === "failed",
+    run: ({ row, handlers }) => handlers?.["message.resend"]?.(row),
 };
 
 const tabClass =
-    'flex h-7 items-center gap-1.5 rounded-lg px-3 transition-colors [@media(pointer:coarse)]:min-h-11';
-const tabOn = 'bg-surface font-bold text-primary shadow-xs';
-const tabOff = 'text-muted-foreground hover:text-foreground';
+    "flex h-7 items-center gap-1.5 rounded-lg px-3 transition-colors [@media(pointer:coarse)]:min-h-11";
+const tabOn = "bg-surface font-bold text-primary shadow-xs";
+const tabOff = "text-muted-foreground hover:text-foreground";
 
 function initialTab(url: string, canSend: boolean): Tab {
     const params = new URLSearchParams(
-        url.includes('?') ? url.slice(url.indexOf('?')) : '',
+        url.includes("?") ? url.slice(url.indexOf("?")) : "",
     );
-    const asked = params.get('tab');
+    const asked = params.get("tab");
     if (
-        asked === 'log' ||
-        (canSend && (asked === 'composer' || asked === 'templates'))
+        asked === "log" ||
+        (canSend && (asked === "composer" || asked === "templates"))
     ) {
         return asked;
     }
     const listing = [...params.keys()].some(
         (k) =>
-            k === 'q' || k === 'page' || k === 'sort' || k.startsWith('filter'),
+            k === "q" || k === "page" || k === "sort" || k.startsWith("filter"),
     );
 
-    return canSend && !listing ? 'composer' : 'log';
+    return canSend && !listing ? "composer" : "log";
 }
 
 /**
- * WhatsApp & SMS hub (baseline mockup screen 10): Composer & Dispatch, Templates Library, Scheduled
- * (later phase), Message Log and a link to the SMS settings. Sending needs settings.manage; the log
+ * WhatsApp & SMS hub (baseline mockup screen 10): Composer & Dispatch (SMS or WhatsApp), Templates Library,
+ * Scheduled (later phase), Message Log (channel badge, filter and saved views) and a link to Messaging Providers. Sending needs settings.manage; the log
  * needs customers.view (02_AppFlow §2 row 55a).
  */
 export default function MessagesIndex({
@@ -89,17 +101,18 @@ export default function MessagesIndex({
     canResend,
     costPerSegment,
     composer,
+    whatsapp,
 }: Props) {
     const { t } = useT();
     const digits = useDigits();
-    const table = useServerTable({ only: ['rows', 'meta'] });
+    const table = useServerTable({ only: ["rows", "meta"] });
     const [tab, setTab] = useState<Tab>(() =>
         initialTab(
-            typeof window === 'undefined' ? '' : window.location.search,
+            typeof window === "undefined" ? "" : window.location.search,
             composer !== null,
         ),
     );
-    const [draft, setDraft] = useState({ body: '', seq: 0 });
+    const [draft, setDraft] = useState({ body: "", seq: 0 });
 
     useEffect(
         () => actions.register(resendAction as unknown as AppAction<never>),
@@ -107,33 +120,33 @@ export default function MessagesIndex({
     );
 
     const tabs: {
-        id: Tab | 'scheduled' | 'settings';
+        id: Tab | "scheduled" | "settings";
         label: string;
         icon: typeof Send;
         show: boolean;
     }[] = [
         {
-            id: 'composer',
-            label: t('sms.hub.tab_composer'),
+            id: "composer",
+            label: t("sms.hub.tab_composer"),
             icon: Send,
             show: composer !== null,
         },
         {
-            id: 'templates',
-            label: t('sms.hub.tab_templates'),
+            id: "templates",
+            label: t("sms.hub.tab_templates"),
             icon: FileText,
             show: composer !== null,
         },
         {
-            id: 'scheduled',
-            label: t('sms.hub.tab_scheduled'),
+            id: "scheduled",
+            label: t("sms.hub.tab_scheduled"),
             icon: CalendarClock,
             show: true,
         },
-        { id: 'log', label: t('sms.hub.tab_log'), icon: Database, show: true },
+        { id: "log", label: t("sms.hub.tab_log"), icon: Database, show: true },
         {
-            id: 'settings',
-            label: t('sms.hub.tab_settings'),
+            id: "settings",
+            label: t("sms.hub.tab_settings"),
             icon: Settings,
             show: composer !== null,
         },
@@ -141,11 +154,11 @@ export default function MessagesIndex({
     const live = tabs.filter(
         (x) =>
             x.show &&
-            (x.id === 'composer' || x.id === 'templates' || x.id === 'log'),
+            (x.id === "composer" || x.id === "templates" || x.id === "log"),
     );
 
     useHotkeys(
-        'list',
+        "list",
         live.map((x, i) => ({
             id: `messages.tab.${x.id}`,
             keys: `alt+${i + 1}`,
@@ -163,35 +176,28 @@ export default function MessagesIndex({
             {},
             { preserveScroll: true },
         );
-    const handlers = canResend ? { 'message.resend': resend } : {};
+    const handlers = canResend ? { "message.resend": resend } : {};
 
     const columns: DataColumn<MessageRow>[] = [
         {
-            id: 'created_at',
-            headerKey: 'sms.log.col.time',
-            sortKey: 'created_at',
-            cell: (r) => (
-                <span className="num font-mono text-muted-foreground">
-                    {r.created_at
-                        ? digits.n(
-                              r.created_at.slice(0, 16).replace('T', ' · '),
-                          )
-                        : '-'}
-                </span>
-            ),
+            id: "created_at",
+            headerKey: "sms.log.col.time",
+            sortKey: "created_at",
+            cell: (r) =>
+                r.created_at ? <DateTime value={r.created_at} /> : "-",
         },
         {
-            id: 'customer',
-            headerKey: 'sms.log.col.customer',
+            id: "customer",
+            headerKey: "sms.log.col.customer",
             required: true,
-            mobile: 'title',
+            mobile: "title",
             cell: (r) => (
-                <span className="font-semibold">{r.customer ?? '-'}</span>
+                <span className="font-semibold">{r.customer ?? "-"}</span>
             ),
         },
         {
-            id: 'phone',
-            headerKey: 'sms.log.col.phone',
+            id: "phone",
+            headerKey: "sms.log.col.phone",
             cell: (r) => (
                 <span className="num font-mono text-muted-foreground">
                     {digits.n(r.phone)}
@@ -199,17 +205,25 @@ export default function MessagesIndex({
             ),
         },
         {
-            id: 'channel',
-            headerKey: 'sms.log.col.channel',
+            id: "channel",
+            headerKey: "sms.log.col.channel",
             cell: (r) => (
-                <span className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-bold text-primary">
-                    {t('sms.hub.sms')} · {t(`sms.event.${r.event}`)}
+                <span
+                    className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                        r.channel === "whatsapp"
+                            ? "bg-success-soft text-success"
+                            : "bg-primary-soft text-primary",
+                    )}
+                >
+                    {t(`sms.channel.${r.channel}`)} ·{" "}
+                    {t(`sms.event.${r.event}`)}
                 </span>
             ),
         },
         {
-            id: 'body',
-            headerKey: 'sms.log.col.message',
+            id: "body",
+            headerKey: "sms.log.col.message",
             cell: (r) => (
                 <span
                     className="line-clamp-1 max-w-xs text-foreground"
@@ -220,25 +234,28 @@ export default function MessagesIndex({
             ),
         },
         {
-            id: 'cost',
-            headerKey: 'sms.log.col.cost',
+            id: "cost",
+            headerKey: "sms.log.col.cost",
             numeric: true,
-            cell: (r) => (
-                <span className="num font-semibold text-foreground">
-                    {digits.money(
-                        smsCost(
-                            smsSegments(r.body).segments,
-                            1,
-                            costPerSegment,
-                        ),
-                    )}
-                </span>
-            ),
+            cell: (r) =>
+                r.channel === "whatsapp" ? (
+                    <span className="text-muted-foreground">—</span>
+                ) : (
+                    <span className="num font-semibold text-foreground">
+                        {digits.money(
+                            smsCost(
+                                smsSegments(r.body).segments,
+                                1,
+                                costPerSegment,
+                            ),
+                        )}
+                    </span>
+                ),
         },
         {
-            id: 'status',
-            headerKey: 'sms.log.col.status',
-            sortKey: 'status',
+            id: "status",
+            headerKey: "sms.log.col.status",
+            sortKey: "status",
             cell: (r) => (
                 <div className="flex flex-col gap-1">
                     <StatusBadge
@@ -255,11 +272,11 @@ export default function MessagesIndex({
             ),
         },
         {
-            id: 'actions',
-            headerKey: 'admin.actions',
+            id: "actions",
+            headerKey: "admin.actions",
             required: true,
             cell: (r) =>
-                canResend && r.status === 'failed' ? (
+                canResend && r.status === "failed" ? (
                     <Button
                         type="button"
                         variant="outline"
@@ -270,21 +287,21 @@ export default function MessagesIndex({
                             resend(r);
                         }}
                         onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
+                            if (e.key === "Enter" || e.key === " ") {
                                 e.stopPropagation();
                             }
                         }}
                     >
-                        {t('sms.log.resend')}
+                        {t("sms.log.resend")}
                     </Button>
                 ) : null,
         },
     ];
 
     let body: ReactNode = null;
-    if (tab === 'composer') {
+    if (tab === "composer") {
         body = null;
-    } else if (tab === 'templates' && composer) {
+    } else if (tab === "templates" && composer) {
         body = (
             <section aria-labelledby="tpl-title" className="space-y-4">
                 <div>
@@ -292,10 +309,10 @@ export default function MessagesIndex({
                         id="tpl-title"
                         className="text-xs font-bold tracking-wider text-foreground uppercase"
                     >
-                        {t('sms.hub.templates_title')}
+                        {t("sms.hub.templates_title")}
                     </h2>
                     <p className="text-[11px] text-muted-foreground">
-                        {t('sms.hub.templates_hint')}
+                        {t("sms.hub.templates_hint")}
                     </p>
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -308,15 +325,15 @@ export default function MessagesIndex({
                                 <div className="flex items-center justify-between">
                                     <span
                                         className={cn(
-                                            'rounded-full px-2 py-0.5 text-[10px] font-bold',
+                                            "rounded-full px-2 py-0.5 text-[10px] font-bold",
                                             tpl.enabled
-                                                ? 'bg-success-soft text-success'
-                                                : 'bg-surface-sunken text-muted-foreground',
+                                                ? "bg-success-soft text-success"
+                                                : "bg-surface-sunken text-muted-foreground",
                                         )}
                                     >
                                         {tpl.enabled
-                                            ? t('sms.hub.tpl_auto_on')
-                                            : t('sms.hub.tpl_auto_off')}
+                                            ? t("sms.hub.tpl_auto_on")
+                                            : t("sms.hub.tpl_auto_off")}
                                     </span>
                                     <span className="font-mono text-[10px] font-semibold text-primary">
                                         {tpl.key}
@@ -339,11 +356,11 @@ export default function MessagesIndex({
                                             body: tpl.body,
                                             seq: d.seq + 1,
                                         }));
-                                        setTab('composer');
+                                        setTab("composer");
                                     }}
                                 >
                                     <Send aria-hidden="true" />
-                                    {t('sms.hub.use_template')}
+                                    {t("sms.hub.use_template")}
                                 </Button>
                             </div>
                         </article>
@@ -358,27 +375,57 @@ export default function MessagesIndex({
                     search={table.searchText}
                     onSearch={table.setSearch}
                     placeholderKey="sms.log.search"
+                    view={{
+                        value: table.state.filters["channel"] ?? "",
+                        options: [
+                            { value: "", label: t("sms.log.view_default") },
+                            {
+                                value: "whatsapp",
+                                label: t("sms.log.view_whatsapp"),
+                            },
+                            { value: "sms", label: t("sms.log.view_sms") },
+                        ],
+                        onChange: (v) => table.setFilter("channel", v),
+                    }}
                     chips={[
                         {
-                            key: 'status',
-                            label: t('sms.log.col.status'),
-                            value: table.state.filters['status'] ?? '',
+                            key: "channel",
+                            label: t("sms.log.col.channel"),
+                            value: table.state.filters["channel"] ?? "",
                             options: [
-                                { value: '', label: t('sms.log.all_statuses') },
-                                ...(['queued', 'sent', 'failed'] as const).map(
-                                    (s) => ({
-                                        value: s,
-                                        label: t(`sms.status.${s}`),
-                                    }),
-                                ),
+                                { value: "", label: t("sms.log.all_channels") },
+                                ...(["whatsapp", "sms"] as const).map((c) => ({
+                                    value: c,
+                                    label: t(`sms.channel.${c}`),
+                                })),
                             ],
-                            onChange: (v) => table.setFilter('status', v),
+                            onChange: (v) => table.setFilter("channel", v),
+                        },
+                        {
+                            key: "status",
+                            label: t("sms.log.col.status"),
+                            value: table.state.filters["status"] ?? "",
+                            options: [
+                                { value: "", label: t("sms.log.all_statuses") },
+                                ...(
+                                    [
+                                        "queued",
+                                        "sent",
+                                        "handoff",
+                                        "failed",
+                                    ] as const
+                                ).map((s) => ({
+                                    value: s,
+                                    label: t(`sms.status.${s}`),
+                                })),
+                            ],
+                            onChange: (v) => table.setFilter("status", v),
                         },
                     ]}
                 />
                 <DataTable<MessageRow>
                     entity="message"
-                    caption={t('sms.log.title')}
+                    caption={t("sms.log.title")}
                     rows={rows}
                     columns={columns}
                     meta={meta}
@@ -395,8 +442,8 @@ export default function MessagesIndex({
                     empty={
                         <EmptyState
                             icon={MessageSquare}
-                            title={t('sms.log.empty')}
-                            description={t('sms.log.empty_hint')}
+                            title={t("sms.log.empty")}
+                            description={t("sms.log.empty_hint")}
                         />
                     }
                 />
@@ -406,31 +453,41 @@ export default function MessagesIndex({
 
     return (
         <>
-            <Head title={t('sms.hub.title')} />
-            <Page fill={tab === 'log'}>
+            <Head title={t("sms.hub.title")} />
+            <Page fill={tab === "log"}>
                 <PageHeader
-                    title={t('sms.hub.title')}
-                    subtitle={t('sms.hub.subtitle')}
+                    title={t("sms.hub.title")}
+                    subtitle={t("sms.hub.subtitle")}
                     className="border-b pb-3"
                     actions={
                         <>
-                            <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+                            <span
+                                className={cn(
+                                    "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+                                    WA_PILL[whatsapp.status],
+                                )}
+                            >
                                 <span
-                                    className="size-2 rounded-full bg-muted-foreground"
+                                    className={cn(
+                                        "size-2 rounded-full",
+                                        whatsapp.status === "connected"
+                                            ? "animate-pulse bg-success"
+                                            : "bg-current opacity-60",
+                                    )}
                                     aria-hidden="true"
                                 />
-                                {t('sms.hub.whatsapp_soon')}
+                                {t(`sms.whatsapp.status.${whatsapp.status}`)}
                             </span>
                             {composer ? (
                                 <span
                                     className={cn(
-                                        'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold',
+                                        "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
                                         composer.configured
-                                            ? 'bg-primary-soft text-primary'
-                                            : 'bg-warning-soft text-warning',
+                                            ? "bg-primary-soft text-primary"
+                                            : "bg-warning-soft text-warning",
                                     )}
                                 >
-                                    {t('sms.hub.gateway', {
+                                    {t("sms.hub.gateway", {
                                         driver: t(
                                             `sms.driver.${composer.driver}`,
                                         ),
@@ -442,7 +499,7 @@ export default function MessagesIndex({
                 />
 
                 <nav
-                    aria-label={t('sms.hub.tabs')}
+                    aria-label={t("sms.hub.tabs")}
                     className="flex w-fit max-w-full shrink-0 flex-wrap items-center gap-1 rounded-xl border bg-surface-sunken p-1 text-xs font-semibold"
                 >
                     {tabs
@@ -458,7 +515,7 @@ export default function MessagesIndex({
                                     <span>{x.label}</span>
                                 </>
                             );
-                            if (x.id === 'settings') {
+                            if (x.id === "settings") {
                                 return (
                                     <Link
                                         key={x.id}
@@ -469,22 +526,22 @@ export default function MessagesIndex({
                                     </Link>
                                 );
                             }
-                            if (x.id === 'scheduled') {
+                            if (x.id === "scheduled") {
                                 return (
                                     <button
                                         key={x.id}
                                         type="button"
                                         aria-disabled="true"
-                                        title={t('sms.hub.next_phase')}
+                                        title={t("sms.hub.next_phase")}
                                         className={cn(
                                             tabClass,
                                             tabOff,
-                                            'cursor-not-allowed opacity-60',
+                                            "cursor-not-allowed opacity-60",
                                         )}
                                     >
                                         {inner}
                                         <span className="rounded bg-surface px-1 text-[9px] font-bold uppercase">
-                                            {t('sms.hub.next_phase')}
+                                            {t("sms.hub.next_phase")}
                                         </span>
                                     </button>
                                 );
@@ -509,10 +566,10 @@ export default function MessagesIndex({
 
                 {composer ? (
                     // Stays mounted so a half-written message survives a look at the log.
-                    <div className={tab === 'composer' ? 'contents' : 'hidden'}>
+                    <div className={tab === "composer" ? "contents" : "hidden"}>
                         <Composer
                             config={composer}
-                            active={tab === 'composer'}
+                            active={tab === "composer"}
                             draft={draft}
                         />
                     </div>

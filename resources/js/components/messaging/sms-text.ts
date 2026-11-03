@@ -1,18 +1,19 @@
 /**
  * Composer helpers for the WhatsApp & SMS hub: SMS segment counting (GSM-7 vs UCS-2, so Bangla text
  * costs more parts), the cost estimate in integer paisa, variable-chip insertion at the caret and the
- * phone-preview rendering. Pure functions; the server fills the real values per customer (SendAdHocSms).
+ * phone-preview rendering and the send's idempotency key. Pure functions; the server fills the real values
+ * per customer (SendSmsBroadcast / FanOutSmsBroadcast).
  */
 
 const GSM_BASIC =
-    '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?' +
-    '¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà';
-const GSM_EXTENDED = '^{}\\[~]|€\f';
+    "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?" +
+    "¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
+const GSM_EXTENDED = "^{}\\[~]|€\f";
 
 const basic = new Set(GSM_BASIC);
 const extended = new Set(GSM_EXTENDED);
 
-export type SmsEncoding = 'gsm7' | 'ucs2';
+export type SmsEncoding = "gsm7" | "ucs2";
 
 export type SegmentInfo = {
     encoding: SmsEncoding;
@@ -46,7 +47,7 @@ export function smsSegments(text: string): SegmentInfo {
         units === 0 ? 0 : units <= single ? 1 : Math.ceil(units / multi);
 
     return {
-        encoding: gsm ? 'gsm7' : 'ucs2',
+        encoding: gsm ? "gsm7" : "ucs2",
         units,
         segments,
         perSegment: segments > 1 ? multi : single,
@@ -79,7 +80,7 @@ export function insertVariable(
     const from = Math.max(0, Math.min(start, text.length));
     const to = Math.max(from, Math.min(end, text.length));
     const before = text.slice(0, from);
-    const pad = before !== '' && !/\s$/.test(before) ? ' ' : '';
+    const pad = before !== "" && !/\s$/.test(before) ? " " : "";
     const token = `${pad}{${variable}}`;
 
     return {
@@ -88,7 +89,7 @@ export function insertVariable(
     };
 }
 
-/** Replaces known `{name}` placeholders; unknown ones stay as typed (the server does the same). */
+/** Replaces known `{placeholder}`s; unknown ones stay as typed (the server does the same). */
 export function renderPreview(
     body: string,
     values: Record<string, string>,
@@ -98,4 +99,49 @@ export function renderPreview(
             ? (values[key] ?? match)
             : match,
     );
+}
+
+/** The person placeholders: templates use {customer}, the composer chips {name}; both mean the same. */
+const PERSON_ALIASES = ["name", "customer"] as const;
+
+/**
+ * The values the phone preview renders with. `live` is the server's payload for the picked customer
+ * (GET /app/messages/preview, the same BroadcastAudience::values the send path fills), so the due and
+ * the number are the customer's real ones; without a customer the samples stand in. {name} and
+ * {customer} are kept in step whichever one the source filled.
+ */
+export function previewValues(
+    sample: Record<string, string>,
+    live: Record<string, string> | null,
+): Record<string, string> {
+    const values = { ...sample, ...(live ?? {}) };
+    const person =
+        PERSON_ALIASES.map((k) => live?.[k]).find((v) => v !== undefined) ??
+        PERSON_ALIASES.map((k) => sample[k]).find((v) => v !== undefined);
+    if (person !== undefined) {
+        for (const key of PERSON_ALIASES) {
+            values[key] = person;
+        }
+    }
+
+    return values;
+}
+
+export type BroadcastKey = { key: string; fingerprint: string };
+
+/**
+ * The idempotency key for a send. The composer makes one when it opens; a send of the same payload
+ * (a double click, a retry after a timeout) reuses it so the server returns the first broadcast, and a
+ * changed payload (other text or audience) gets a fresh key.
+ */
+export function broadcastKey(
+    current: BroadcastKey,
+    fingerprint: string,
+    make: () => string = () => globalThis.crypto.randomUUID(),
+): BroadcastKey {
+    if (current.fingerprint === "" || current.fingerprint === fingerprint) {
+        return { key: current.key, fingerprint };
+    }
+
+    return { key: make(), fingerprint };
 }

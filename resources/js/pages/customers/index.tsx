@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { CreditCard, Eye, IdCard, Plus, Users } from 'lucide-react';
+import { toast } from 'sonner';
 import { useMemo, useRef, useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { CustomerDialog } from '@/components/customers/customer-dialog';
@@ -37,9 +38,13 @@ import {
 } from '@/components/ui/sheet';
 import { useDigits } from '@/hooks/use-digits';
 import { useHotkeyScope, useHotkeys } from '@/hotkeys/use-hotkeys';
+import { useCan } from '@/hooks/use-can';
 import { useT } from '@/i18n';
 import { cardPrintUrl, customersExportUrl } from '@/command/customer-actions';
+import { DownloadError, downloadFile } from '@/lib/download';
+import { exportItems, type ExportFormat } from '@/lib/export-items';
 import { displayPhone } from '@/lib/phone';
+import { geoLabel, geoName, type GeoPlace } from '@/lib/geo';
 import { cn } from '@/lib/utils';
 import type {
     CustomerRow,
@@ -53,6 +58,7 @@ type Props = {
     meta: TableMetaProp;
     totals: CustomerTotals;
     groups: GroupOption[];
+    districts: GeoPlace[];
     can: Record<string, boolean>;
     /** `create` = opened as /app/customers/create (deep link). */
     dialog: 'create' | null;
@@ -62,7 +68,7 @@ type Props = {
 const GROUP_CHIPS_MAX = 6;
 
 /** "More filters" keys (the drawer); View, Date and group chips sit in the toolbar. */
-const MORE_FILTERS = ['balance', 'card'] as const;
+const MORE_FILTERS = ['balance', 'card', 'district', 'pin'] as const;
 
 /**
  * Customers & Members (baseline mockup, render_customers_messaging.py "SCREEN 6"): the 10 mockup
@@ -74,10 +80,12 @@ export default function CustomersIndex({
     meta,
     totals,
     groups,
+    districts,
     can,
     dialog,
 }: Props) {
-    const { t } = useT();
+    const { t, locale } = useT();
+    const permitted = useCan();
     const digits = useDigits();
     const table = useServerTable({ only: ['customers', 'meta', 'totals'] });
     const searchRef = useRef<HTMLInputElement>(null);
@@ -110,10 +118,21 @@ export default function CustomersIndex({
     // The drawer is a modal surface: the list keys pause while it is open.
     useHotkeyScope('dialog', moreOpen);
 
-    const exportCsv = () =>
-        window.location.assign(
-            customersExportUrl(buildTableQuery(table.state)),
+    const canExport = permitted('customers.export');
+    const exportAs = (format: ExportFormat) => {
+        if (!canExport) {
+            return;
+        }
+        downloadFile(
+            customersExportUrl(buildTableQuery(table.state), format),
+        ).catch((error: unknown) =>
+            toast.error(
+                error instanceof DownloadError && error.status === 422
+                    ? error.message
+                    : t('table.export_failed'),
+            ),
         );
+    };
 
     useHotkeys('list', [
         {
@@ -134,8 +153,8 @@ export default function CustomersIndex({
         {
             id: 'customers.export',
             keys: 'shift+e',
-            labelKey: 'customers.export_csv',
-            handler: exportCsv,
+            labelKey: 'table.export_xlsx',
+            handler: () => exportAs('xlsx'),
         },
         {
             id: 'customers.more_filters',
@@ -197,7 +216,7 @@ export default function CustomersIndex({
                 <div className="min-w-0">
                     <Link
                         href={`/app/customers/${r.uuid}`}
-                        className="font-semibold text-foreground hover:underline"
+                        className="touch-link font-semibold text-foreground hover:underline"
                     >
                         {r.name}
                     </Link>
@@ -232,9 +251,11 @@ export default function CustomersIndex({
             headerKey: 'customers.col.location',
             sortKey: 'area',
             cell: (r) => {
-                const line = r.address_line || r.area;
+                const place = geoLabel(r.location, locale);
+                const line = place || r.address_line || r.area;
                 const sub = [
-                    r.address_line ? r.area : null,
+                    place ? r.area || r.address_line : null,
+                    !place && r.address_line ? r.area : null,
                     r.post_code ? digits.n(r.post_code) : null,
                 ]
                     .filter(Boolean)
@@ -328,8 +349,22 @@ export default function CustomersIndex({
         {
             id: 'pin',
             headerKey: 'customers.col.pin',
-            // PIN set-up comes with the register's member flow; nobody has one yet.
-            cell: () => <StatusBadge shape="tag" status="not_set" />,
+            cell: (r) => (
+                <StatusBadge
+                    shape="tag"
+                    status={
+                        r.pin_status === 'pending' ? 'not_set' : r.pin_status
+                    }
+                    tone={
+                        r.pin_status === 'set'
+                            ? 'success'
+                            : r.pin_status === 'locked'
+                              ? 'danger'
+                              : 'warning'
+                    }
+                    label={t(`customers.pin_status.${r.pin_status}`)}
+                />
+            ),
         },
         {
             id: 'last_purchase_at',
@@ -422,16 +457,9 @@ export default function CustomersIndex({
                                 visibility={columnState.visibility}
                                 onChange={columnState.setVisibility}
                             />
-                            <ExportMenu
-                                items={[
-                                    {
-                                        id: 'csv',
-                                        kind: 'csv',
-                                        label: t('customers.export_csv'),
-                                        onSelect: exportCsv,
-                                    },
-                                ]}
-                            />
+                            {canExport ? (
+                                <ExportMenu items={exportItems(t, exportAs)} />
+                            ) : null}
                             <PrintButton />
                         </>
                     }
@@ -441,6 +469,7 @@ export default function CustomersIndex({
                     search={table.searchText}
                     onSearch={table.setSearch}
                     placeholderKey="customers.search"
+                    shortPlaceholderKey="customers.search_short"
                     inputRef={searchRef}
                     view={{
                         value: view,
@@ -609,6 +638,22 @@ export default function CustomersIndex({
                             ]}
                         />
                         <MoreSelect
+                            id="more-district"
+                            label={t('customers.more.district')}
+                            value={filters['district'] ?? ''}
+                            onChange={(v) => table.setFilter('district', v)}
+                            options={[
+                                {
+                                    value: '',
+                                    label: t('customers.more.district_all'),
+                                },
+                                ...districts.map((d) => ({
+                                    value: String(d.id),
+                                    label: geoName(d, locale),
+                                })),
+                            ]}
+                        />
+                        <MoreSelect
                             id="more-card"
                             label={t('customers.more.card')}
                             value={filters['card'] ?? ''}
@@ -628,6 +673,30 @@ export default function CustomersIndex({
                                 },
                             ]}
                         />
+                        <MoreSelect
+                            id="more-pin"
+                            label={t('customers.more.pin')}
+                            value={filters['pin'] ?? ''}
+                            onChange={(v) => table.setFilter('pin', v)}
+                            options={[
+                                {
+                                    value: '',
+                                    label: t('customers.more.pin_all'),
+                                },
+                                {
+                                    value: 'set',
+                                    label: t('customers.pin_status.set'),
+                                },
+                                {
+                                    value: 'pending',
+                                    label: t('customers.pin_status.pending'),
+                                },
+                                {
+                                    value: 'locked',
+                                    label: t('customers.pin_status.locked'),
+                                },
+                            ]}
+                        />
                     </div>
                     <SheetFooter className="flex-row items-center justify-between border-t p-3">
                         <Button
@@ -643,6 +712,8 @@ export default function CustomersIndex({
                                             ...filters,
                                             balance: '',
                                             card: '',
+                                            district: '',
+                                            pin: '',
                                         },
                                     }),
                                     {

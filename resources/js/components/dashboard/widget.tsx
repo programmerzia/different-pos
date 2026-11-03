@@ -215,7 +215,7 @@ export function WidgetLink({
     return (
         <Link
             href={href}
-            className="ml-auto text-[11px] font-semibold text-primary hover:underline focus-visible:underline focus-visible:outline-none"
+            className="touch-link ml-auto text-[11px] font-semibold text-primary hover:underline focus-visible:underline focus-visible:outline-none"
         >
             {children} →
         </Link>

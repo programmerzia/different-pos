@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { ChevronRight, CircleHelp } from 'lucide-react';
+import { BookOpen, ChevronRight, CircleHelp } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Kbd } from '@/components/kbd';
 import { RowContextMenu } from '@/components/row-context-menu';
@@ -33,6 +33,7 @@ import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
+import { helpHref } from '@/manual';
 
 /** Sidebar item context menu: Open / Open in new tab (generic row actions, `href` surface). */
 function NavContext({
@@ -274,7 +275,24 @@ export function AppSidebar() {
                     </SidebarGroup>
                 ))}
             </SidebarContent>
-            <SidebarFooter className="shrink-0 border-t p-2">
+            <SidebarFooter className="shrink-0 gap-0.5 border-t p-2">
+                <Link
+                    href={helpHref(active?.groupId)}
+                    prefetch
+                    title={`${t('nav.user_manual')} (G H)`}
+                    className="flex h-7 w-full items-center justify-between gap-2 rounded-md px-2 text-xs text-muted-foreground hover:bg-surface-sunken hover:text-foreground [@media(pointer:coarse)]:min-h-11"
+                >
+                    <span className="flex items-center gap-2">
+                        <BookOpen className="size-3.5" aria-hidden="true" />
+                        <span className="group-data-[collapsible=icon]:hidden">
+                            {t('nav.user_manual')}
+                        </span>
+                    </span>
+                    <Kbd
+                        keys="g h"
+                        className="text-[10px] group-data-[collapsible=icon]:hidden"
+                    />
+                </Link>
                 <button
                     type="button"
                     onClick={() => openOverlay('shortcuts')}

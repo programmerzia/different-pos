@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Reports;
 
+use App\Support\Csv\Cell;
 use App\Support\Money\Money;
 use App\Support\Quantity\Quantity;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -58,13 +59,23 @@ final class ReportCsv
             ColumnType::Money => Money::ofPaisa((int) $value)->toDecimalString(),
             ColumnType::Qty => Quantity::ofMilli((int) $value)->toDecimalString(),
             ColumnType::Int, ColumnType::Date => (string) $value,
+            ColumnType::Percent => self::percent((int) $value),
             ColumnType::Text => self::safeText((string) $value),
         };
     }
 
-    /** Neutralises spreadsheet formulas in user-entered text. */
+    /** Basis points as a plain decimal percentage: 1234 → `12.34`. */
+    private static function percent(int $bp): string
+    {
+        $sign = $bp < 0 ? '-' : '';
+        $bp = abs($bp);
+
+        return sprintf('%s%d.%02d', $sign, intdiv($bp, 100), $bp % 100);
+    }
+
+    /** Neutralises spreadsheet formulas in user-entered text (shared rule: numbers and E.164 phones stay data). */
     private static function safeText(string $text): string
     {
-        return $text !== '' && str_contains("=+-@\t\r", $text[0]) ? "'".$text : $text;
+        return Cell::safe($text);
     }
 }

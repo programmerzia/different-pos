@@ -59,9 +59,15 @@ import {
     totalQty,
 } from '@/pos/register/cart';
 import { CustomerDialog } from '@/pos/register/components/customer-dialog';
+import {
+    memberStep,
+    payBlockedByPin,
+    type MemberStep,
+} from '@/pos/register/member-auth';
 import { DiscountDialog } from '@/pos/register/components/discount-dialog';
 import { HeldDialog } from '@/pos/register/components/held-dialog';
 import { ManagerDialog } from '@/pos/register/components/manager-dialog';
+import { MemberPinDialog } from '@/pos/register/components/member-pin-dialog';
 import { PaymentDialog } from '@/pos/register/components/payment-dialog';
 import { PriceCheckDialog } from '@/pos/register/components/price-check-dialog';
 import { QtyDialog } from '@/pos/register/components/qty-dialog';
@@ -186,6 +192,18 @@ export default function Register(props: Props) {
     const [dialog, setDialog] = useState<DialogName | null>(null);
     const [picker, setPicker] = useState<CatalogItem | null>(null);
     const [approvalFor, setApprovalFor] = useState<string | null>(null);
+    // The member PIN step (02_AppFlow §4.4) and whether the open ManagerDialog is its override.
+    const [pinStep, setPinStep] = useState<MemberStep | null>(() => {
+        // A member pre-attached by ?customer= goes through the PIN step like one attached with F4.
+        const step = memberStep(
+            props.customer,
+            props.settings.pin_policy,
+            null,
+        );
+
+        return step.kind === 'none' ? null : step;
+    });
+    const [pinOverride, setPinOverride] = useState(false);
     const [completed, setCompleted] = useState<CompletedSale | null>(null);
     const [lastSale, setLastSale] = useState<CompletedSale | null>(null);
     const [held, setHeld] = useState<HeldCart[]>(() =>
@@ -221,6 +239,22 @@ export default function Register(props: Props) {
         setDialog(null);
         focusScan();
     }, [focusScan]);
+
+    /** After a member is attached: PIN pad, offer to set one, or nothing (walk-in / policy off). */
+    const startPinStep = useCallback(
+        (c: CustomerCard | null, force = false) => {
+            const step = memberStep(
+                c,
+                settings.pin_policy,
+                force ? null : cart.member,
+            );
+            setPinStep(step.kind === 'none' ? null : step);
+            if (step.kind === 'none') {
+                focusScan();
+            }
+        },
+        [settings.pin_policy, cart.member, focusScan],
+    );
 
     // Catalogue: debounced search (dropdown, or the browse grid's filter), or the category / first
     // page while browsing with an empty field. Nothing is fetched while the cart view shows alone.
@@ -445,6 +479,12 @@ export default function Register(props: Props) {
         if (exceedsCap(totals, capBp)) {
             toast.warning(t('pos.discount.over_cap_pay'));
         }
+        if (payBlockedByPin(cart.customer, settings.pin_policy, cart.member)) {
+            toast.warning(t('pos.pin.required_to_pay'));
+            startPinStep(cart.customer, true);
+
+            return;
+        }
         setDialog('pay');
     };
 
@@ -468,6 +508,17 @@ export default function Register(props: Props) {
                 break;
             case 'customer':
                 setDialog('customer');
+                break;
+            case 'member_pin':
+                if (!cart.customer) {
+                    toast.info(t('pos.pin.no_customer'));
+                    setDialog('customer');
+                } else if (settings.pin_policy === 'off') {
+                    toast.info(t('pos.pin.policy_off'));
+                } else {
+                    setDialog(null);
+                    startPinStep(cart.customer, true);
+                }
                 break;
             case 'price_check':
                 setDialog('price');
@@ -650,9 +701,15 @@ export default function Register(props: Props) {
                 '',
                 window.location.pathname,
             );
+            if (
+                memberStep(props.customer, settings.pin_policy, null).kind !==
+                'none'
+            ) {
+                return; // the PIN dialog has the focus
+            }
         }
         focusScan();
-    }, [props.customer, focusScan]);
+    }, [props.customer, settings.pin_policy, focusScan]);
 
     useEffect(() => {
         rowRefs.current[cart.selected]?.scrollIntoView({ block: 'nearest' });
@@ -1277,6 +1334,9 @@ export default function Register(props: Props) {
                 >
                     <CustomerStrip
                         customer={customer}
+                        member={cart.member}
+                        pinPolicy={settings.pin_policy}
+                        onPin={() => run('member_pin')}
                         onOpen={() => setDialog('customer')}
                         onCollect={collectDue}
                         onDetach={() =>
@@ -1366,7 +1426,8 @@ export default function Register(props: Props) {
                 current={customer}
                 onAttach={(c) => {
                     dispatch({ type: 'customer', customer: c });
-                    closeDialog();
+                    setDialog(null);
+                    startPinStep(c);
                 }}
                 onDetach={() => {
                     dispatch({ type: 'customer', customer: null });
@@ -1387,10 +1448,11 @@ export default function Register(props: Props) {
             />
             <DiscountDialog
                 open={dialog === 'line_discount' && selectedLine !== null}
-                title={t('pos.discount.line_title', {
-                    name: selectedLine?.name ?? '',
-                })}
+                target="line"
+                subject={selectedLine?.name ?? ''}
                 base={lineDiscountBase}
+                unitPrice={selectedLine?.unitPrice}
+                qtyMilli={selectedLine?.qty}
                 current={selectedLine?.discount ?? { type: 'none', value: 0 }}
                 capBp={capBp}
                 onApply={(discount) => {
@@ -1408,7 +1470,7 @@ export default function Register(props: Props) {
             />
             <DiscountDialog
                 open={dialog === 'bill_discount'}
-                title={t('pos.discount.bill_title')}
+                target="bill"
                 base={billDiscountBase}
                 current={cart.orderDiscount}
                 capBp={capBp}
@@ -1436,11 +1498,92 @@ export default function Register(props: Props) {
                 onApproved={(a) => {
                     dispatch({ type: 'approval', approval: a });
                     setApprovalFor(null);
+                    if (pinOverride && cart.customer) {
+                        dispatch({
+                            type: 'member',
+                            member: {
+                                kind: 'override',
+                                customerId: cart.customer.id,
+                                managerName: a.managerName,
+                            },
+                        });
+                        setPinOverride(false);
+                        setPinStep(null);
+                        focusScan();
+                    }
                     toast.success(
                         t('pos.manager.approved_by', { name: a.managerName }),
                     );
                 }}
-                onClose={() => setApprovalFor(null)}
+                onClose={() => {
+                    setApprovalFor(null);
+                    setPinOverride(false);
+                }}
+            />
+            <MemberPinDialog
+                step={approvalFor === null ? pinStep : null}
+                customer={customer}
+                clientUuid={cart.clientUuid}
+                onVerified={(token, expiresIn) => {
+                    if (customer) {
+                        dispatch({
+                            type: 'member',
+                            member: {
+                                kind: 'pin_online',
+                                customerId: customer.id,
+                                token,
+                                expiresAt: Date.now() + expiresIn * 1000,
+                            },
+                        });
+                    }
+                    toast.success(t('pos.pin.verified'));
+                    setPinStep(null);
+                    focusScan();
+                }}
+                onPinSet={() => {
+                    if (customer) {
+                        dispatch({
+                            type: 'customer',
+                            customer: { ...customer, pin_status: 'set' },
+                        });
+                    }
+                }}
+                onSkip={() => {
+                    if (customer) {
+                        dispatch({
+                            type: 'member',
+                            member: {
+                                kind: 'skipped',
+                                customerId: customer.id,
+                            },
+                        });
+                    }
+                    setPinStep(null);
+                    focusScan();
+                }}
+                onWalkIn={() => {
+                    dispatch({ type: 'customer', customer: null });
+                    setPinStep(null);
+                    focusScan();
+                }}
+                onOverride={() => {
+                    setPinOverride(true);
+                    setApprovalFor('pos.customer_pin_override');
+                }}
+                onClose={() => {
+                    // Esc: optional → continue without a check; required → the bill stays blocked at Pay.
+                    if (customer && settings.pin_policy === 'optional') {
+                        dispatch({
+                            type: 'member',
+                            member: {
+                                kind: 'skipped',
+                                customerId: customer.id,
+                            },
+                        });
+                    }
+                    setPinStep(null);
+                    focusScan();
+                }}
             />
             <PriceCheckDialog
                 open={dialog === 'price'}

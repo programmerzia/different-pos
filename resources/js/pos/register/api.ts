@@ -8,6 +8,7 @@ import type {
     CustomerHit,
     TodaySummary,
 } from './types';
+import { memberTokenFor } from './member-auth';
 import type { TenderRow } from './tenders';
 
 export const POS_API = {
@@ -25,6 +26,8 @@ export type PosError = {
     detail?: string;
     code?: string;
     errors?: Record<string, string[]>;
+    /** The whole JSON body, for endpoints that answer state (verify-pin: status, attempts_left). */
+    body?: Record<string, unknown>;
 };
 
 function xsrf(): string {
@@ -77,6 +80,7 @@ export async function postJson<T>(
             ...(typeof json['errors'] === 'object' && json['errors'] !== null
                 ? { errors: json['errors'] as Record<string, string[]> }
                 : {}),
+            body: json,
         },
     };
 }
@@ -141,6 +145,30 @@ export function requestApproval(
     });
 }
 
+export type PinVerifyResponse = {
+    status: 'ok' | 'wrong' | 'locked' | 'not_set';
+    attempts_left: number;
+    locked_until: string | null;
+    token?: string;
+    expires_in?: number;
+};
+
+/** The customer's PIN goes straight to the server and nowhere else (02_AppFlow row 25). */
+export function verifyMemberPin(uuid: string, pin: string, clientUuid: string) {
+    return postJson<PinVerifyResponse>(
+        `${POS_API.customers}/${encodeURIComponent(uuid)}/verify-pin`,
+        { pin, client_uuid: clientUuid },
+    );
+}
+
+/** A member's first PIN, typed twice at the counter (02_AppFlow row 26, online only). */
+export function setMemberPin(uuid: string, pin: string, confirmation: string) {
+    return postJson<{ pin_status: 'set' | 'pending' | 'locked' }>(
+        `${POS_API.customers}/${encodeURIComponent(uuid)}/pin`,
+        { pin, pin_confirmation: confirmation },
+    );
+}
+
 const wireDiscount = (d: Discount) => ({ type: d.type, value: d.value });
 
 /** The request body for POST /app/pos/sales. */
@@ -173,6 +201,7 @@ export function saleBody(
             state.approval && state.approval.expiresAt > Date.now()
                 ? state.approval.token
                 : null,
+        member_token: memberTokenFor(state.customer, state.member),
     };
 }
 

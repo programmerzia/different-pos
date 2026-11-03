@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use App\Actions\Purchasing\ReceivePurchase;
 use App\Enums\PurchaseStatus;
+use App\Enums\StockSourceType;
 use App\Models\BranchStock;
 use App\Models\Purchase;
+use App\Models\StockBatch;
 use App\Models\Vendor;
 use App\Support\Money\Money;
 use App\Support\Permissions\SystemRoles;
@@ -101,7 +103,21 @@ it('lists and shows purchases with items, batches and payments', function (): vo
     $this->actingAs($world->user)->get("/app/purchases/{$purchase->uuid}")
         ->assertInertia(fn (Assert $page) => $page->component('purchases/show')
             ->has('items', 1)->has('batches', 1)->has('payments', 1)
+            ->where('batches.0.product', $purchase->items()->with('product')->first()?->product?->name)->where('batches.0.qty_received', 4000)
+            ->where('purchase.imported', false)->where('purchase.received_by', $world->user->name)
             ->where('purchase.paid', 30000)->where('purchase.payment_status', 'partial')->where('can.cancel', true));
+});
+
+it('shows the opening batches the legacy import booked on an imported bill', function (): void {
+    $world = CatalogWorld::make();
+    $purchase = receivedPurchase($world);
+    $world->user->refresh();
+    // The import keeps the remainder as an `opening` batch on the purchase line and tags the bill with its legacy id.
+    StockBatch::query()->update(['source_type' => StockSourceType::Opening->value]);
+    $purchase->forceFill(['legacy_id' => 42])->save();
+
+    $this->actingAs($world->user)->get("/app/purchases/{$purchase->uuid}")
+        ->assertInertia(fn (Assert $page) => $page->component('purchases/show')->has('batches', 1)->where('purchase.imported', true));
 });
 
 it('cancels an untouched purchase and refuses a paid one', function (): void {
@@ -145,7 +161,9 @@ it('looks products up by barcode, SKU or name and hides cost without products.vi
     $byBarcode = $this->actingAs($world->user)->getJson('/app/purchases/lookup?code=8800000000011')->assertOk();
     expect($byBarcode->json('exact'))->toBeTrue()
         ->and($byBarcode->json('products.0.sku'))->toBe('DJ-1')
-        ->and($byBarcode->json('products.0.cost_price'))->toBe(45000);
+        ->and($byBarcode->json('products.0.cost_price'))->toBe(45000)
+        ->and($byBarcode->json('products.0.on_hand'))->toBe(0)
+        ->and($byBarcode->json('products.0.sale_price'))->toBeInt();
 
     $byName = $this->actingAs($world->user)->getJson('/app/purchases/lookup?code=denim')->assertOk();
     expect($byName->json('exact'))->toBeFalse()->and($byName->json('products'))->toHaveCount(1);

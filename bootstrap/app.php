@@ -6,6 +6,7 @@ use App\Http\Middleware\EnsureBranchSelected;
 use App\Http\Middleware\EnsurePasswordChanged;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureTenantActive;
+use App\Http\Middleware\ExpireImpersonation;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResolveTenant;
@@ -50,6 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->encryptCookies(except: ['appearance', 'scheme', 'density', 'sidebar_state', 'pos_tenant', 'locale']);
 
         $middleware->web(append: [
+            ExpireImpersonation::class,
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

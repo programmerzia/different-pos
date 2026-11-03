@@ -3,7 +3,7 @@
  * Last Quarter · Fiscal Year). Weeks start on Saturday and the fiscal year on 1 July, as in
  * Bangladesh. Dates are local calendar days, YYYY-MM-DD.
  */
-import { isoDate, type DateRange } from '@/lib/date-range';
+import { isoDate, startOfWeek, type DateRange } from '@/lib/date-range';
 
 export const REPORT_PERIODS = [
     'today',
@@ -32,15 +32,8 @@ export function reportPeriodRange(
 
             return { from: day, to: day };
         }
-        case 'this_week': {
-            // getDay(): 0 Sun … 6 Sat; the week starts on Saturday.
-            const sinceSaturday = (today.getDay() + 1) % 7;
-
-            return {
-                from: isoDate(new Date(y, m, d - sinceSaturday)),
-                to: isoDate(today),
-            };
-        }
+        case 'this_week':
+            return { from: isoDate(startOfWeek(today)), to: isoDate(today) };
         case 'this_month':
             return { from: isoDate(new Date(y, m, 1)), to: isoDate(today) };
         case 'last_quarter': {

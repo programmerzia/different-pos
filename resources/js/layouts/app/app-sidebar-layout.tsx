@@ -3,6 +3,7 @@ import { AppShell } from '@/components/app-shell';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { AppSidebar } from '@/components/shell/app-sidebar';
 import { CommandPalette } from '@/components/shell/command-palette';
+import { ImpersonationBanner } from '@/components/shell/impersonation-banner';
 import { MobileTabs } from '@/components/shell/mobile-tabs';
 import { PreferencesSync } from '@/components/shell/preferences-sync';
 import { ShellHotkeys } from '@/components/shell/shell-hotkeys';
@@ -33,6 +34,7 @@ export default function AppSidebarLayout({
                 {t('shell.skip')}
             </a>
             <TopBar />
+            <ImpersonationBanner />
             <div className="flex min-h-0 flex-1">
                 <AppSidebar />
                 <AppContent

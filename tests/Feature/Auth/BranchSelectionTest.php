@@ -146,3 +146,18 @@ it('permissions:sync grants a new permission to Owners only and is idempotent', 
 
     $this->artisan('permissions:sync')->expectsOutput('Permissions already in sync.')->assertSuccessful();
 });
+
+it('permissions:sync repairs an Owner that lacks an existing permission (a crashed earlier run)', function (): void {
+    [, $tenant] = adminActor();
+    $owner = Role::query()->where('tenant_id', $tenant->id)->where('name', 'Owner')->firstOrFail();
+    // The permission row exists (created by a run that crashed before the grant), but the Owner never got it.
+    $owner->revokePermissionTo('branches.switch');
+    $cashier = Role::query()->where('tenant_id', $tenant->id)->where('name', 'Cashier')->firstOrFail();
+    $cashierHad = $cashier->hasPermissionTo('branches.switch');
+
+    $this->artisan('permissions:sync')->expectsOutput('Granted to Owner: branches.switch')->assertSuccessful();
+    expect($owner->refresh()->hasPermissionTo('branches.switch'))->toBeTrue()
+        ->and($cashier->refresh()->hasPermissionTo('branches.switch'))->toBe($cashierHad);
+
+    $this->artisan('permissions:sync')->expectsOutput('Permissions already in sync.')->assertSuccessful();
+});

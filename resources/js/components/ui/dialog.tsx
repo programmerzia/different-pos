@@ -142,11 +142,14 @@ function DialogBar({
               </span>
             ) : null}
           </DialogPrimitive.Title>
+          {/* Without a subtitle the description is an empty sr-only node, so aria-describedby always resolves (no Radix warning, nothing extra announced). */}
           {subtitle ? (
             <DialogPrimitive.Description className="text-muted-foreground mt-0.5 text-[11px]">
               {subtitle}
             </DialogPrimitive.Description>
-          ) : null}
+          ) : (
+            <DialogPrimitive.Description className="sr-only" />
+          )}
         </div>
       </div>
       <DialogPrimitive.Close

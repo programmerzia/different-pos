@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Settings\SaveBusinessSettings;
 use App\Actions\Settings\SaveTenantLogo;
+use App\Enums\CustomerPinPolicy;
 use App\Http\Controllers\Concerns\TranslatesDomainErrors;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveTenantLogoRequest;
@@ -54,7 +55,7 @@ final class BusinessSettingsController extends Controller implements HasMiddlewa
                 'backdate_days' => (int) $tenant->setting('backdate_days'),
                 'return_days' => $tenant->setting('return_days'),
                 'default_credit_limit' => $tenant->setting('default_credit_limit'),
-                'customer_pin_policy' => (string) $tenant->setting('customer_pin_policy'),
+                'customer_pin_policy' => CustomerPinPolicy::fromSetting($tenant->setting('customer_pin_policy'))->value,
                 'offline_credit_cap' => (int) $tenant->setting('offline_credit_cap'),
             ],
             'timezones' => DateTimeZone::listIdentifiers(),
@@ -78,7 +79,7 @@ final class BusinessSettingsController extends Controller implements HasMiddlewa
             'backdate_days' => ['required', 'integer', 'min:0', 'max:365'],
             'return_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
             'default_credit_limit' => ['nullable', 'integer', 'min:0'],
-            'customer_pin_policy' => ['required', Rule::in(['always', 'credit_only', 'off'])],
+            'customer_pin_policy' => ['required', Rule::enum(CustomerPinPolicy::class)],
             'offline_credit_cap' => ['required', 'integer', 'min:0'],
         ]);
 
