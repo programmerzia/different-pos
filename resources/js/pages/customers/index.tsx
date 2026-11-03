@@ -23,6 +23,7 @@ import {
     PageHeader,
     PrintButton,
 } from '@/components/page-header';
+import { rowOpenHandlers } from '@/components/sales/list-tools';
 import { StatusBadge } from '@/components/status-badge';
 import { TableToolbar } from '@/components/table-toolbar';
 import { Button } from '@/components/ui/button';
@@ -513,51 +514,60 @@ export default function CustomersIndex({
                     }}
                 />
 
-                <DataTable<CustomerRow>
-                    entity="customer"
-                    caption={t('customers.page_title')}
-                    rows={customers}
-                    columns={columns}
-                    meta={meta}
-                    getRowId={(r) => r.uuid}
-                    rowHref={(r) => `/app/customers/${r.uuid}`}
-                    handlers={handlers}
-                    bulkActions={bulkActions}
-                    sort={table.state.sort}
-                    onSort={table.toggleSort}
-                    onPage={table.setPage}
-                    loading={table.loading}
-                    chooser="none"
-                    visibility={columnState.visibility}
-                    onVisibilityChange={columnState.setVisibility}
-                    onPerPage={table.setPerPage}
-                    totals={{
-                        label: t('table.total', { n: digits.n(totals.count) }),
-                        cells: {
-                            balance: (
-                                <span
-                                    className={cn(
-                                        totals.balance > 0
-                                            ? 'text-destructive'
-                                            : 'text-success',
-                                    )}
-                                >
-                                    {digits.money(totals.balance)}
-                                </span>
-                            ),
-                            credit_limit: digits.money(totals.credit_limit),
-                        },
-                    }}
-                    fill
-                    empty={
-                        <EmptyState
-                            icon={Users}
-                            title={t('customers.empty')}
-                            description={t('customers.empty_hint')}
-                            action={addButton ?? undefined}
-                        />
-                    }
-                />
+                <div
+                    className="flex min-h-0 flex-1 flex-col"
+                    {...rowOpenHandlers(customers, (r) =>
+                        router.visit(`/app/customers/${r.uuid}`),
+                    )}
+                >
+                    <DataTable<CustomerRow>
+                        entity="customer"
+                        caption={t('customers.page_title')}
+                        rows={customers}
+                        columns={columns}
+                        meta={meta}
+                        getRowId={(r) => r.uuid}
+                        rowHref={(r) => `/app/customers/${r.uuid}`}
+                        handlers={handlers}
+                        bulkActions={bulkActions}
+                        sort={table.state.sort}
+                        onSort={table.toggleSort}
+                        onPage={table.setPage}
+                        loading={table.loading}
+                        chooser="none"
+                        visibility={columnState.visibility}
+                        onVisibilityChange={columnState.setVisibility}
+                        onPerPage={table.setPerPage}
+                        totals={{
+                            label: t('table.total', {
+                                n: digits.n(totals.count),
+                            }),
+                            cells: {
+                                balance: (
+                                    <span
+                                        className={cn(
+                                            totals.balance > 0
+                                                ? 'text-destructive'
+                                                : 'text-success',
+                                        )}
+                                    >
+                                        {digits.money(totals.balance)}
+                                    </span>
+                                ),
+                                credit_limit: digits.money(totals.credit_limit),
+                            },
+                        }}
+                        fill
+                        empty={
+                            <EmptyState
+                                icon={Users}
+                                title={t('customers.empty')}
+                                description={t('customers.empty_hint')}
+                                action={addButton ?? undefined}
+                            />
+                        }
+                    />
+                </div>
             </Page>
 
             <Sheet open={moreOpen} onOpenChange={setMoreOpen}>

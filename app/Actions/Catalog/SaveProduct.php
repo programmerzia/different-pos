@@ -29,7 +29,8 @@ use App\Support\Quantity\Quantity;
  *     name?: string, name_bn?: string|null, sku?: string, barcode?: string|null, hs_code?: string|null,
  *     type?: ProductType|string, category_id?: int|null, brand_id?: int|null, unit_id?: int,
  *     tax_rate_id?: int|null, default_vendor_id?: int|null, sale_price?: Money|string,
- *     cost_price?: Money|string, min_sale_price?: Money|string|null, min_sale_qty?: Quantity|string,
+ *     cost_price?: Money|string, min_sale_price?: Money|string|null,
+ *     wholesale_price?: Money|string|null, min_sale_qty?: Quantity|string,
  *     reorder_level?: Quantity|string, track_stock?: bool, image_path?: string|null,
  *     description?: string|null, is_active?: bool
  * }
@@ -69,8 +70,10 @@ final readonly class SaveProduct
             if (array_key_exists('cost_price', $data)) {
                 $attributes['cost_price'] = Values::money($data['cost_price']);
             }
-            if (array_key_exists('min_sale_price', $data)) {
-                $attributes['min_sale_price'] = Values::moneyOrNull($data['min_sale_price']);
+            foreach (['min_sale_price', 'wholesale_price'] as $key) {
+                if (array_key_exists($key, $data)) {
+                    $attributes[$key] = Values::moneyOrNull($data[$key]);
+                }
             }
             foreach (['min_sale_qty', 'reorder_level'] as $key) {
                 if (array_key_exists($key, $data)) {
@@ -126,7 +129,7 @@ final readonly class SaveProduct
     /** @param array<string, mixed> $attributes */
     private function assertNonNegative(array $attributes): void
     {
-        foreach (['sale_price', 'cost_price', 'min_sale_price'] as $key) {
+        foreach (['sale_price', 'cost_price', 'min_sale_price', 'wholesale_price'] as $key) {
             if (($attributes[$key] ?? null) instanceof Money && $attributes[$key]->isNegative()) {
                 throw InvalidCatalogData::invalid('Prices must not be negative.');
             }

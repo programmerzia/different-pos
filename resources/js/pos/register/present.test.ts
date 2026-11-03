@@ -63,7 +63,7 @@ const variant = (
 const settings = { tax_inclusive: false, rounding_step: 0 };
 
 describe('breakdownRows', () => {
-    it('lists subtotal, the order discount box and the total for a plain bill', () => {
+    it('lists subtotal, line discounts, the order discount box, VAT and the total for a plain bill (zero rows included)', () => {
         const cart = cartReducer(emptyCart('u1'), {
             type: 'add',
             items: [{ variant: variant(1, 100_000), qty: 2000 }],
@@ -71,7 +71,9 @@ describe('breakdownRows', () => {
         const rows = breakdownRows(cartTotals(cart, settings));
         expect(rows.map((r) => [r.id, r.amount])).toEqual([
             ['subtotal', 200_000],
+            ['line_discount', 0],
             ['order_discount', 0],
+            ['vat', 0],
             ['total', 200_000],
         ]);
     });

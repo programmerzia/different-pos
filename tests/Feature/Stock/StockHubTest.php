@@ -106,3 +106,24 @@ it('prefills a stock adjustment from the stock row, but never with another tenan
     $this->actingAs($world->user)->get('/app/adjustments/create')
         ->assertInertia(fn (Assert $page) => $page->where('prefill', null));
 });
+
+it('filters by the date of the last stock movement at the current branch', function (): void {
+    $world = CatalogWorld::make();
+    $second = stockBranch($world);
+    $moved = $world->product(['name' => 'Moved', 'sku' => 'MV-1']);
+    $elsewhere = $world->product(['name' => 'Elsewhere', 'sku' => 'EW-1']);
+    $world->product(['name' => 'Still', 'sku' => 'ST-1']);
+    receiveInto($world, $world->branch, $moved, 2);
+    receiveInto($world, $second, $elsewhere, 3);
+    $other = CatalogWorld::make();
+    receiveInto($other, $other->branch, $other->product(['name' => 'Foreign', 'sku' => 'FX-1']), 1);
+
+    $names = fn (string $filter): array => array_column($this->actingAs($world->user)->withSession(['branch_id' => $world->branch->id])
+        ->get('/app/stock?filter[moved]='.$filter)->viewData('page')['props']['rows'], 'name');
+
+    expect($names('today'))->toBe(['Moved'])
+        ->and($names('30d'))->toBe(['Moved'])
+        // Movement at another branch does not count for this one.
+        ->and($names('idle_90d'))->toBe(['Elsewhere', 'Still'])
+        ->and($names(''))->toBe(['Elsewhere', 'Moved', 'Still']);
+});

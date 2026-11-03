@@ -356,14 +356,13 @@ export default function PurchasesIndex({
         }
     };
 
-    const branchValue = filters['branch'] ?? '';
+    // All-branches users start on "All Branches" (the server default when no branch filter is given).
+    const branchValue = filters['branch'] ?? 'all';
     const branchChips = branches.map((b) => ({
-        value: b.current ? '' : String(b.id),
+        value: String(b.id),
         label: `${b.name} [${b.code}]`,
     }));
     const moreCount = MORE_FILTERS.filter((k) => filters[k]).length;
-    // Other branches' bills are read-only here: their detail page belongs to that branch.
-    const otherBranch = branchValue !== '';
 
     return (
         <>
@@ -546,9 +545,12 @@ export default function PurchasesIndex({
                     columns={columns}
                     meta={meta}
                     getRowId={(r) => r.uuid}
-                    {...(otherBranch
-                        ? {}
-                        : { rowHref: (r: Row) => `/app/purchases/${r.uuid}` })}
+                    // Other branches' bills are read-only here: their detail page belongs to that branch.
+                    rowHref={(r: Row) =>
+                        r.current_branch
+                            ? `/app/purchases/${r.uuid}`
+                            : undefined
+                    }
                     sort={table.state.sort}
                     onSort={table.toggleSort}
                     onPage={table.setPage}

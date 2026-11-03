@@ -292,6 +292,7 @@ final class ProductController extends Controller
             'default_vendor_id' => $v['default_vendor_id'] ?? null,
             'sale_price' => Money::ofPaisa((int) $v['sale_price']),
             'min_sale_price' => isset($v['min_sale_price']) ? Money::ofPaisa((int) $v['min_sale_price']) : null,
+            'wholesale_price' => isset($v['wholesale_price']) ? Money::ofPaisa((int) $v['wholesale_price']) : null,
             'min_sale_qty' => Quantity::ofMilli((int) ($v['min_sale_qty'] ?? 0)),
             'reorder_level' => Quantity::ofMilli((int) ($v['reorder_level'] ?? 0)),
             'track_stock' => (bool) $v['track_stock'],

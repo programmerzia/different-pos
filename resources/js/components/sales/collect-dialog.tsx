@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Banknote, Check } from 'lucide-react';
+import { Banknote, Check, ChevronRight } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
 import { MoneyInput } from '@/components/money-input';
@@ -25,7 +25,7 @@ import {
     allocateOldestFirst,
     allocateSelected,
 } from '@/lib/dues';
-import type { MoneyMethod } from '@/lib/sales';
+import { openPrint, salesUrl, type MoneyMethod } from '@/lib/sales';
 
 export type CollectInvoice = {
     id: number;
@@ -75,12 +75,18 @@ export function CollectDialog({
     const [reference, setReference] = useState('');
     const [note, setNote] = useState('');
     const [manual, setManual] = useState(false);
+    const [moreOpen, setMoreOpen] = useState(false);
     const [selected, setSelected] = useState<Set<number>>(() => new Set());
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [busy, setBusy] = useState(false);
     useHotkeyScope('dialog', open);
 
     const method = methods.find((m) => m.id === methodId);
+    // Reference and note sit under "More" (mockup default view) unless the method needs a reference.
+    const showMore =
+        moreOpen ||
+        method?.requires_reference === true ||
+        errors['reference'] !== undefined;
     const preview = useMemo(
         () =>
             manual
@@ -126,10 +132,18 @@ export function CollectDialog({
                 onStart: () => setBusy(true),
                 onFinish: () => setBusy(false),
                 onError: (e) => setErrors(e),
-                onSuccess: () => {
+                onSuccess: (page) => {
                     setErrors({});
                     onOpenChange(false);
                     onCollected?.();
+                    // "Print Money Receipt & Settle": the redirect names the new payment (?receipt=).
+                    const receipt = new URL(
+                        page.url,
+                        window.location.origin,
+                    ).searchParams.get('receipt');
+                    if (receipt && /^\d+$/.test(receipt)) {
+                        openPrint(salesUrl.paymentReceipt(Number(receipt)));
+                    }
                 },
             },
         );
@@ -336,38 +350,61 @@ export function CollectDialog({
                                     message={errors['payment_method_id']}
                                 />
                             </div>
-                            <div className="grid gap-1">
-                                <Label
-                                    htmlFor="collect-reference"
-                                    className="text-xs font-semibold text-muted-foreground"
+                            {showMore ? (
+                                <>
+                                    <div className="grid gap-1">
+                                        <Label
+                                            htmlFor="collect-reference"
+                                            className="text-xs font-semibold text-muted-foreground"
+                                        >
+                                            {t('dues.reference')}
+                                            {method?.requires_reference
+                                                ? ' *'
+                                                : ''}
+                                        </Label>
+                                        <Input
+                                            id="collect-reference"
+                                            value={reference}
+                                            maxLength={100}
+                                            onChange={(e) =>
+                                                setReference(e.target.value)
+                                            }
+                                        />
+                                        <InputError
+                                            message={errors['reference']}
+                                        />
+                                    </div>
+                                    <div className="grid gap-1">
+                                        <Label
+                                            htmlFor="collect-note"
+                                            className="text-xs font-semibold text-muted-foreground"
+                                        >
+                                            {t('dues.note')}
+                                        </Label>
+                                        <Input
+                                            id="collect-note"
+                                            value={note}
+                                            maxLength={255}
+                                            onChange={(e) =>
+                                                setNote(e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <button
+                                    type="button"
+                                    className="flex items-center gap-1 justify-self-start text-xs font-semibold text-primary hover:underline sm:col-span-2"
+                                    aria-expanded={false}
+                                    onClick={() => setMoreOpen(true)}
                                 >
-                                    {t('dues.reference')}
-                                    {method?.requires_reference ? ' *' : ''}
-                                </Label>
-                                <Input
-                                    id="collect-reference"
-                                    value={reference}
-                                    maxLength={100}
-                                    onChange={(e) =>
-                                        setReference(e.target.value)
-                                    }
-                                />
-                                <InputError message={errors['reference']} />
-                            </div>
-                            <div className="grid gap-1">
-                                <Label
-                                    htmlFor="collect-note"
-                                    className="text-xs font-semibold text-muted-foreground"
-                                >
-                                    {t('dues.note')}
-                                </Label>
-                                <Input
-                                    id="collect-note"
-                                    value={note}
-                                    maxLength={255}
-                                    onChange={(e) => setNote(e.target.value)}
-                                />
-                            </div>
+                                    <ChevronRight
+                                        className="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    {t('dues.more_fields')}
+                                </button>
+                            )}
                         </div>
 
                         <div className="flex items-center justify-between rounded-xl bg-surface-sunken p-2.5">
@@ -403,9 +440,7 @@ export function CollectDialog({
                             disabled={busy || invalid}
                         >
                             <Check aria-hidden="true" />
-                            {t('dues.collect_confirm', {
-                                amount: digits.money(amount ?? 0),
-                            })}
+                            {t('dues.collect_confirm')}
                         </Button>
                     </DialogActions>
                 </form>

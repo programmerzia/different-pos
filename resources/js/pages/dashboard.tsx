@@ -39,13 +39,16 @@ function shortDate(date: string): string {
     });
 }
 
+/** Delta row when there is nothing to compare with (no previous data, or a point-in-time figure). */
+const NO_DELTA = { delta: '—', deltaTone: 'muted' as const };
+
 /** Free-form delta for KPIs where a rise is bad (returns): ▲ red, ▼ green. */
 function inverseDelta(
     pct: number | undefined,
     n: (v: number | string) => string,
 ) {
     if (pct === undefined) {
-        return {};
+        return NO_DELTA;
     }
 
     return {
@@ -109,7 +112,7 @@ export default function Dashboard({
     const kpiDelta = (k: { value: number; previous: number }) => {
         const pct = deltaPercent(k.value, k.previous);
 
-        return pct === undefined ? {} : { deltaPercent: pct };
+        return pct === undefined ? NO_DELTA : { deltaPercent: pct };
     };
     const margin = kpis.profit
         ? sharePercent(kpis.profit.value, kpis.profit.revenue)
@@ -310,8 +313,7 @@ export default function Dashboard({
                     <KpiTile
                         label={t('dashboard.kpi.dues')}
                         value={money(kpis.dues.value)}
-                        delta={t('dashboard.kpi.now')}
-                        deltaTone="muted"
+                        {...NO_DELTA}
                         footnote={t('dashboard.kpi.dues_note', {
                             n: n(kpis.dues.debtors),
                         })}
@@ -340,8 +342,7 @@ export default function Dashboard({
                         <KpiTile
                             label={t('dashboard.kpi.stock_value')}
                             value={money(kpis.stock_value.value)}
-                            delta={t('dashboard.kpi.now')}
-                            deltaTone="muted"
+                            {...NO_DELTA}
                             footnote={t('dashboard.kpi.stock_value_note', {
                                 n: n(kpis.stock_value.skus),
                             })}
@@ -352,10 +353,7 @@ export default function Dashboard({
                         value={t('dashboard.kpi.skus', {
                             n: n(kpis.low_stock.value),
                         })}
-                        delta={t('dashboard.kpi.now')}
-                        deltaTone={
-                            kpis.low_stock.value > 0 ? 'danger' : 'muted'
-                        }
+                        {...NO_DELTA}
                         footnote={t('dashboard.kpi.low_stock_note')}
                     />
                 </div>

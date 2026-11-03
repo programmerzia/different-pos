@@ -158,6 +158,7 @@ products [tenant] SD
   sale_price BIGINT                        -- legacy "mrp"
   cost_price BIGINT DEFAULT 0              -- last purchase cost (display/fallback; COGS uses batches)
   min_sale_price BIGINT NULL               -- below → needs pos.sell_below_cost / override
+  wholesale_price BIGINT NULL              -- reference wholesale price (product form); pricing does not read it
   min_sale_qty DECIMAL(14,3) DEFAULT 1
   reorder_level DECIMAL(14,3) DEFAULT 0    -- legacy "stock_out_alert"
   track_stock BOOL DEFAULT 1

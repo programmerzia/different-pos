@@ -46,3 +46,32 @@ it('adds hub, open bills, last order, payable totals and the hub chips to the ve
     $this->actingAs($world->user)->get('/app/vendors?filter[status]=cleared')->assertInertia(fn (Assert $page) => $page
         ->has('rows', 1)->where('rows.0.name', 'Beta'));
 });
+
+it('filters the directory by the date of the last received order', function (): void {
+    $world = CatalogWorld::make();
+    $other = CatalogWorld::make();
+    app(TenantContext::class)->withoutTenancy(function () use ($world, $other): void {
+        $recent = Vendor::factory()->create(['tenant_id' => $world->tenant->id, 'name' => 'Recent']);
+        $old = Vendor::factory()->create(['tenant_id' => $world->tenant->id, 'name' => 'Old']);
+        Vendor::factory()->create(['tenant_id' => $world->tenant->id, 'name' => 'Never']);
+        $foreign = Vendor::factory()->create(['tenant_id' => $other->tenant->id, 'name' => 'Foreign']);
+        foreach ([[$world, $recent, now()->subDays(2)], [$world, $old, now()->subDays(120)], [$other, $foreign, now()]] as [$w, $vendor, $at]) {
+            Purchase::factory()->create([
+                'tenant_id' => $w->tenant->id, 'branch_id' => $w->branch->id, 'vendor_id' => $vendor->id,
+                'status' => PurchaseStatus::Received, 'purchased_at' => $at,
+            ]);
+        }
+        // A draft order never counts as an order.
+        Purchase::factory()->create([
+            'tenant_id' => $world->tenant->id, 'branch_id' => $world->branch->id, 'vendor_id' => $old->id,
+            'status' => PurchaseStatus::Draft, 'purchased_at' => now(),
+        ]);
+    });
+    $names = fn (string $filter): array => $this->actingAs($world->user)->get('/app/vendors?filter[ordered]='.$filter)
+        ->viewData('page')['props']['rows'];
+
+    expect(array_column($names('7d'), 'name'))->toBe(['Recent'])
+        ->and(array_column($names('today'), 'name'))->toBe([])
+        ->and(array_column($names('idle_90d'), 'name'))->toBe(['Never', 'Old'])
+        ->and(array_column($names('bogus'), 'name'))->toBe(['Never', 'Old', 'Recent']);
+});

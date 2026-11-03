@@ -46,6 +46,7 @@ use Illuminate\Support\Carbon;
  * @property Money $sale_price
  * @property Money $cost_price
  * @property Money|null $min_sale_price
+ * @property Money|null $wholesale_price
  * @property Quantity $min_sale_qty
  * @property Quantity $reorder_level
  * @property bool $track_stock
@@ -70,7 +71,7 @@ final class Product extends Model
     protected $fillable = [
         'family_id', 'option1_value_id', 'option2_value_id', 'variant_label', 'type', 'name', 'name_bn', 'sku',
         'barcode', 'hs_code', 'category_id', 'brand_id', 'unit_id', 'tax_rate_id', 'default_vendor_id', 'sale_price',
-        'cost_price', 'min_sale_price', 'min_sale_qty', 'reorder_level', 'track_stock', 'image_path', 'description',
+        'cost_price', 'min_sale_price', 'wholesale_price', 'min_sale_qty', 'reorder_level', 'track_stock', 'image_path', 'description',
         'is_active', 'legacy_id', 'created_by', 'updated_by',
     ];
 
@@ -135,6 +136,7 @@ final class Product extends Model
             'sale_price' => MoneyCast::class,
             'cost_price' => MoneyCast::class,
             'min_sale_price' => MoneyCast::class,
+            'wholesale_price' => MoneyCast::class,
             'min_sale_qty' => QuantityCast::class,
             'reorder_level' => QuantityCast::class,
             'track_stock' => 'boolean',

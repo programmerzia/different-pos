@@ -1,6 +1,10 @@
 {
     "shell": {
-        "skip": "Skip to content"
+        "skip": "Skip to content",
+        "today": "Today {{amount}}",
+        "today_title": "Today's sales at this branch (opens the dashboard)",
+        "today_one_sale": "· {{n}} sale",
+        "today_sales": "· {{n}} sales"
     },
     "nav": {
         "label": "Main navigation",
@@ -1296,7 +1300,7 @@
         "remove_image": "Remove image",
         "variants": "Sizes and colours",
         "variants_hint": "Pick an option and tick its values. A product is created for every combination.",
-        "has_variants": "This product comes in sizes or colours",
+        "has_variants": "Has variants",
         "family_code": "Style code",
         "family_code_hint": "Variant SKUs are built from this code.",
         "option_first": "First option",
@@ -1378,7 +1382,12 @@
         "err_name": "Product name is required",
         "err_sku": "SKU identifier is required",
         "err_unit": "Choose a unit of measure",
-        "err_price": "Retail price is required"
+        "err_price": "Retail price is required",
+        "wholesale_label": "Wholesale Price (BDT)",
+        "has_variants_hint": "On when sizes or colours are ticked: a product is created for every combination",
+        "applicable": "Applicable {{name}}",
+        "option_size": "Size",
+        "option_colour": "Colour"
     },
     "categories": {
         "title": "Categories",
@@ -1448,7 +1457,14 @@
         "f_phone": "Mobile / Phone Number",
         "f_address": "Supplier Hub Location / Address",
         "f_address_ph": "e.g. House 4, Road 2, Narayanganj",
-        "create_profile": "Create Vendor Profile"
+        "create_profile": "Create Vendor Profile",
+        "nothing_payable": "Nothing payable",
+        "ordered_all": "All",
+        "ordered_today": "Ordered today",
+        "ordered_7d": "Ordered in 7 days",
+        "ordered_30d": "Ordered in 30 days",
+        "ordered_90d": "Ordered in 90 days",
+        "ordered_idle_90d": "No order in 90 days"
     },
     "purchases": {
         "title": "Purchases",
@@ -1562,7 +1578,13 @@
         "adjust_row": "Stock adjustment",
         "stocktake": "Stocktake Count",
         "next_phase": "Coming in the next phase.",
-        "bulk_export": "Export Valuation"
+        "bulk_export": "Export Valuation",
+        "moved_all": "All",
+        "moved_today": "Moved today",
+        "moved_7d": "Moved in 7 days",
+        "moved_30d": "Moved in 30 days",
+        "moved_90d": "Moved in 90 days",
+        "moved_idle_90d": "No movement in 90 days"
     },
     "adjustments": {
         "title": "Stock adjustments",
@@ -1921,7 +1943,8 @@
             "cancel": "Clear search / clear bill",
             "remove": "Remove selected line",
             "up": "Previous bill line",
-            "down": "Next bill line"
+            "down": "Next bill line",
+            "collect_due": "Collect due of the attached customer"
         },
         "scan": {
             "placeholder": "Scan barcode, SKU or type a product name (F2)",
@@ -2051,7 +2074,8 @@
             "full_credit": "Full credit sale (nothing paid)",
             "attach_for_due": "Attach a customer to sell on due (F4)",
             "attach": "Attach (F4)",
-            "complete_due": "Confirm Partial / Due Sale"
+            "complete_due": "Confirm Partial / Due Sale",
+            "complete_print": "Complete Sale & Print Receipt"
         },
         "manager": {
             "title": "Manager approval",
@@ -2118,7 +2142,8 @@
             "order_discount": "Order Disc",
             "collect_due": "Collect Due",
             "return": "Return / Exch",
-            "clear": "Clear"
+            "clear": "Clear",
+            "no_due": "No due to collect"
         },
         "paybar": {
             "pay": "PAY",
@@ -2440,7 +2465,7 @@
         "collect": "Collect payment",
         "collect_from": "Collect from {{name}}",
         "collect_hint": "Open due: {{due}}. Overpayment stays as an advance.",
-        "collect_confirm": "Collect {{amount}}",
+        "collect_confirm": "Print Money Receipt & Settle",
         "collected_banner": "Payment received.",
         "print_receipt": "Print money receipt",
         "amount": "Amount",
@@ -2474,7 +2499,7 @@
         "col_name": "Name",
         "collect_customer": "Customer: {{name}}{{no}}",
         "collect_due": "Collect due",
-        "collect_title": "Collect customer due",
+        "collect_title": "Collect Due (Ctrl+D)",
         "credit_all": "All levels",
         "credit_limit_is": "Credit limit: {{limit}}",
         "credit_near": "Near limit (over 75%)",
@@ -2501,7 +2526,8 @@
         "tile_debtors": "{{n}} debtors",
         "ledger_title": "Due collection ledger",
         "ledger_subtitle": "Active debtors with the credit limit meter, overdue aging and settlement",
-        "collect_row": "Collect (Ctrl+D)"
+        "collect_row": "Collect (Ctrl+D)",
+        "more_fields": "More (reference, note)"
     },
     "auth": {
         "tagline": "Point of sale",

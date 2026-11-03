@@ -17,8 +17,12 @@ use App\Models\PaymentMethod;
 use App\Models\Purchase;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Support\Http\RecencyFilter;
 use App\Support\Http\TableQuery;
 use App\Support\Money\Money;
+use App\Support\Sales\BusinessDay;
+use App\Support\Tenancy\TenantContext;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,10 +35,10 @@ final class VendorController extends Controller
     use AuthorizesRequests;
     use TranslatesDomainErrors;
 
-    public function index(Request $request): Response
+    public function index(Request $request, TenantContext $context): Response
     {
         $this->authorize('viewAny', Vendor::class);
-        $table = TableQuery::fromRequest($request, sortable: ['name', 'balance', 'company'], filterable: ['status', 'hub'], defaultSort: 'name');
+        $table = TableQuery::fromRequest($request, sortable: ['name', 'balance', 'company'], filterable: ['status', 'hub', 'ordered'], defaultSort: 'name');
 
         $query = Vendor::query();
         if ($table->search !== '') {
@@ -50,6 +54,21 @@ final class VendorController extends Controller
         };
         if (isset($table->filters['hub'])) {
             $query->where('address', 'like', '%'.addcslashes($table->filters['hub'], '\\%_').'%');
+        }
+        // "Date:" = last received purchase from the vendor, across the tenant's branches.
+        $recency = RecencyFilter::resolve($table->filters['ordered'] ?? null, BusinessDay::timezone($context->tenant()));
+        if ($recency !== null) {
+            [$cut, $active] = $recency;
+            $ordered = static fn (Builder $q): Builder => $q->selectRaw('1')->from('purchases')
+                ->whereColumn('purchases.vendor_id', 'vendors.id')
+                ->whereColumn('purchases.tenant_id', 'vendors.tenant_id')
+                ->where('purchases.status', PurchaseStatus::Received->value)
+                ->where('purchases.purchased_at', '>=', $cut);
+            if ($active) {
+                $query->whereExists($ordered);
+            } else {
+                $query->whereNotExists($ordered);
+            }
         }
         $totals = (clone $query)->toBase()->reorder()->selectRaw('coalesce(sum(case when balance > 0 then balance else 0 end), 0) as payable')->first();
         $openBills = Purchase::query()->withoutBranchScope()->where('status', PurchaseStatus::Received->value)->where('due', '>', 0)

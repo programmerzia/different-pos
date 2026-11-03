@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 use App\Actions\Tenancy\SeedTenantRoles;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Models\Branch;
+use App\Models\Sale;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Money\Money;
 use App\Support\Permissions\SystemRoles;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Fixtures\CatalogWorld;
 
 it('shares the user\'s permissions, own branches and preferences with every page', function (): void {
     $this->withoutVite();
@@ -72,4 +77,30 @@ it('shares the role names inside the tenant and none for a platform admin', func
     $roles = app(HandleInertiaRequests::class)->share($request)['auth']['roles'];
 
     expect($roles())->toBe([]);
+});
+
+it('shares today\'s net sales and invoice count for the current branch, only with dashboard.view', function (): void {
+    $this->withoutVite();
+    Cache::flush();
+    $world = CatalogWorld::make();
+    $second = app(TenantContext::class)->withoutTenancy(fn () => Branch::factory()->for($world->tenant)->create());
+    $other = CatalogWorld::make();
+    app(TenantContext::class)->withoutTenancy(function () use ($world, $second, $other): void {
+        $sale = static fn (CatalogWorld $w, Branch $branch, int $total, array $extra = []): Sale => Sale::factory()->create([
+            'tenant_id' => $w->tenant->id, 'branch_id' => $branch->id, 'sold_at' => now(), 'total' => Money::ofPaisa($total), ...$extra,
+        ]);
+        $sale($world, $world->branch, 120000, ['returned_total' => Money::ofPaisa(20000)]);
+        $sale($world, $world->branch, 50000);
+        $sale($world, $world->branch, 99000, ['status' => 'voided']);
+        $sale($world, $world->branch, 77000, ['sold_at' => now()->subDays(2)]);
+        $sale($world, $second, 33000);
+        $sale($other, $other->branch, 88000);
+    });
+
+    $this->actingAs($world->user)->withSession(['branch_id' => $world->branch->id])->get(route('dashboard'))
+        ->assertInertia(fn (Assert $page) => $page->where('today', ['total_paisa' => 150000, 'sales' => 2]));
+
+    $keeper = CatalogWorld::make(SystemRoles::STOCK_KEEPER);
+    $this->actingAs($keeper->user)->withSession(['branch_id' => $keeper->branch->id])->get('/app/stock')
+        ->assertInertia(fn (Assert $page) => $page->where('today', null));
 });

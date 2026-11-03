@@ -54,6 +54,7 @@ const product: ProductDetail = {
     sale_price: 145000,
     cost_price: 95000,
     min_sale_price: null,
+    wholesale_price: null,
     min_sale_qty: 0,
     reorder_level: 5000,
     track_stock: true,
@@ -234,5 +235,75 @@ describe('ProductDialog', () => {
             name: 'Cotton Panjabi',
             sale_price: 145000,
         });
+    });
+
+    it('shows size and colour chips directly; ticking one turns "Has variants" on and sends the grid', () => {
+        open({
+            options: {
+                ...options,
+                variantOptions: [
+                    {
+                        id: 7,
+                        name: 'Size',
+                        values: [
+                            { id: 71, value: 'M', code: 'M' },
+                            { id: 72, value: 'L', code: 'L' },
+                        ],
+                    },
+                    {
+                        id: 8,
+                        name: 'Colour',
+                        values: [{ id: 81, value: 'Black', code: 'BLK' }],
+                    },
+                ],
+            },
+        });
+        const toggle = screen.getByRole('switch', {
+            name: t('products.has_variants'),
+        });
+        expect(toggle.getAttribute('aria-checked')).toBe('false');
+        expect(
+            screen.getByText(t('products.applicable', { name: 'Size' })),
+        ).toBeTruthy();
+
+        fireEvent.click(screen.getByRole('button', { name: 'M' }));
+        expect(toggle.getAttribute('aria-checked')).toBe('true');
+
+        fireEvent.change(screen.getByLabelText(`${t('products.name_en')} *`), {
+            target: { value: 'Polo' },
+        });
+        fireEvent.change(
+            screen.getByLabelText(`${t('products.family_code')} *`),
+            {
+                target: { value: 'POLO' },
+            },
+        );
+        fireEvent.change(
+            screen.getByLabelText(`${t('products.mrp_label')} *`),
+            {
+                target: { value: '500' },
+            },
+        );
+        fireEvent.click(
+            screen.getByRole('button', { name: t('products.save_product') }),
+        );
+        const [, opts] = visit.mock.calls[0] as [
+            string,
+            { data: Record<string, unknown> },
+        ];
+        expect(opts.data['variants']).toMatchObject({
+            option1_id: 7,
+            option2_id: 8,
+            rows: [{ option1_value_id: 71 }],
+        });
+
+        // Turning the toggle off clears the chips.
+        fireEvent.click(toggle);
+        expect(toggle.getAttribute('aria-checked')).toBe('false');
+    });
+
+    it('shows the margin from cost and sale price with integer maths', () => {
+        open({ product: { ...product, cost_price: 300, sale_price: 1000 } });
+        expect(screen.getByText(t('products.margin', { n: 233 }))).toBeTruthy();
     });
 });

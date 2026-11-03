@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronRight, CircleHelp } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { Kbd } from '@/components/kbd';
 import { RowContextMenu } from '@/components/row-context-menu';
 import {
@@ -21,7 +22,12 @@ import {
     SidebarMenuSubItem,
     useSidebar,
 } from '@/components/ui/sidebar';
-import { activeNav, SIDEBAR_SECTIONS, type ActiveNav, type NavGroup } from '@/command/nav';
+import {
+    activeNav,
+    SIDEBAR_SECTIONS,
+    type ActiveNav,
+    type NavGroup,
+} from '@/command/nav';
 import { useUiStore } from '@/command/ui-store';
 import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
@@ -88,7 +94,10 @@ function GroupItem({ group, active }: { group: NavGroup; active: ActiveNav }) {
             className={ITEM}
         >
             {group.external ? (
-                <a href={group.href} aria-current={isActive ? 'page' : undefined}>
+                <a
+                    href={group.href}
+                    aria-current={isActive ? 'page' : undefined}
+                >
                     {body}
                 </a>
             ) : (
@@ -115,7 +124,11 @@ function GroupItem({ group, active }: { group: NavGroup; active: ActiveNav }) {
     }
 
     return (
-        <Collapsible asChild defaultOpen={isActive} className="group/collapsible">
+        <Collapsible
+            asChild
+            defaultOpen={isActive}
+            className="group/collapsible"
+        >
             <SidebarMenuItem>
                 <div className="flex items-center gap-0.5">
                     <div className="min-w-0 flex-1">
@@ -230,10 +243,19 @@ export function AppSidebar() {
         items: section.items.filter((g) => can(g.permission)),
     })).filter((section) => section.items.length > 0);
     const active = activeNav(currentUrl, sections);
+    const navRef = useRef<HTMLDivElement>(null);
+
+    // Only the nav area scrolls (the footer stays); keep the active item in view after each navigation.
+    useEffect(() => {
+        const item = navRef.current?.querySelector<HTMLElement>(
+            '[aria-current="page"]',
+        );
+        item?.scrollIntoView?.({ block: 'nearest' });
+    }, [currentUrl]);
 
     return (
         <Sidebar collapsible="icon" aria-label={t('nav.label')}>
-            <SidebarContent className="gap-3 py-2">
+            <SidebarContent ref={navRef} className="gap-3 py-2">
                 <ActiveRoleCard />
                 {sections.map((section) => (
                     <SidebarGroup key={section.id} className="px-2 py-0">
@@ -252,7 +274,7 @@ export function AppSidebar() {
                     </SidebarGroup>
                 ))}
             </SidebarContent>
-            <SidebarFooter className="border-t p-2">
+            <SidebarFooter className="shrink-0 border-t p-2">
                 <button
                     type="button"
                     onClick={() => openOverlay('shortcuts')}

@@ -93,4 +93,26 @@ describe('CollectDialog', () => {
             data: { amount: 90_000, payment_method_id: 4, reference: 'TX1' },
         });
     });
+
+    it('keeps reference and note under "More" until asked (or a method needs a reference)', () => {
+        render(
+            <CollectDialog
+                open
+                onOpenChange={vi.fn()}
+                action="/app/dues/c-1/payments"
+                title={t('dues.collect_title')}
+                invoices={invoices}
+                methods={methods}
+            />,
+        );
+        expect(screen.queryByLabelText(/Reference/)).toBeNull();
+        expect(
+            screen.getByRole('button', { name: t('dues.collect_confirm') }),
+        ).toBeTruthy();
+        fireEvent.click(
+            screen.getByRole('button', { name: t('dues.more_fields') }),
+        );
+        expect(screen.getByLabelText(/Reference/)).toBeTruthy();
+        expect(screen.getByLabelText(t('dues.note'))).toBeTruthy();
+    });
 });

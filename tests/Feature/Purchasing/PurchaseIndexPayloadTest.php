@@ -49,8 +49,11 @@ it('lets an all-branches user view every branch, and nobody else', function (): 
     purchaseIn($world, $world->branch, 100000, 0);
     purchaseIn($world, $second, 70000, 0);
 
+    // "All Branches" is the default for an all-branches user; the current branch is one chip away.
     $this->actingAs($world->user)->get('/app/purchases')->assertInertia(fn (Assert $page) => $page
-        ->has('rows', 1)->has('branches', 2));
+        ->has('rows', 2)->has('branches', 2));
+    $this->actingAs($world->user)->get('/app/purchases?filter[branch]='.$world->branch->id)->assertInertia(fn (Assert $page) => $page
+        ->has('rows', 1)->where('rows.0.current_branch', true));
     $this->actingAs($world->user)->get('/app/purchases?filter[branch]=all')->assertInertia(fn (Assert $page) => $page
         ->has('rows', 2)->where('totals.total', 170000));
     $this->actingAs($world->user)->get('/app/purchases?filter[branch]='.$second->id)->assertInertia(fn (Assert $page) => $page
@@ -60,6 +63,8 @@ it('lets an all-branches user view every branch, and nobody else', function (): 
     $keeperSecond = app(TenantContext::class)->withoutTenancy(fn () => Branch::factory()->for($keeper->tenant)->create());
     purchaseIn($keeper, $keeper->branch, 1000, 0);
     purchaseIn($keeper, $keeperSecond, 2000, 0);
+    $this->actingAs($keeper->user)->get('/app/purchases')->assertInertia(fn (Assert $page) => $page
+        ->has('rows', 1)->where('branches', []));
     $this->actingAs($keeper->user)->get('/app/purchases?filter[branch]=all')->assertInertia(fn (Assert $page) => $page
         ->has('rows', 1)->where('branches', []));
 });

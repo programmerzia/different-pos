@@ -60,6 +60,7 @@ final class ProductPresenter
             'sale_price' => $product->sale_price->paisa,
             'cost_price' => $withCost ? $product->cost_price->paisa : null,
             'min_sale_price' => $product->min_sale_price?->paisa,
+            'wholesale_price' => $product->wholesale_price?->paisa,
             'min_sale_qty' => $product->min_sale_qty->milli,
             'reorder_level' => $product->reorder_level->milli,
             'track_stock' => $product->track_stock,

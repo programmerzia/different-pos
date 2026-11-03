@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Models\User;
+use App\Reports\Dashboard\TodayTicker;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -57,6 +58,8 @@ final class HandleInertiaRequests extends Middleware
             'tenant' => fn (): ?array => $context->hasTenant()
                 ? ['name' => $context->tenant()->name, 'logo_url' => $context->tenant()->logoUrl()]
                 : null,
+            // The top bar's today ticker (current branch, 60 s cache); null without dashboard.view.
+            'today' => fn (): ?array => $this->today($request, $context),
             'preferences' => fn (): array => $this->preferences($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
@@ -71,6 +74,18 @@ final class HandleInertiaRequests extends Middleware
         }
 
         return array_values($user->getAllPermissions()->map(static fn ($permission): string => (string) $permission->name)->values()->all());
+    }
+
+    /** @return array{total_paisa: int, sales: int}|null */
+    private function today(Request $request, TenantContext $context): ?array
+    {
+        $user = $request->user();
+        if (! $user instanceof User || ! $context->hasTenant() || ! $context->hasBranch()
+            || $user->tenant_id !== $context->tenantId() || ! $user->can('dashboard.view')) {
+            return null;
+        }
+
+        return app(TodayTicker::class)->get();
     }
 
     /** @return list<string> */

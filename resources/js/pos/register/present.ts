@@ -24,19 +24,18 @@ export type BreakdownRow = {
 
 /**
  * Subtotal → line discounts → group discount → order discount → VAT → rounding → total, as the mockup
- * lists them. Zero discount rows and zero rounding are left out; the order discount row is always
- * there (it carries the "add order discount" button), VAT only when a rate applies.
+ * lists them. Line discounts, the order discount row (it carries the "add order discount" button) and
+ * VAT are always there (৳0.00 when zero); a zero group discount and zero rounding are left out.
  */
 export function breakdownRows(totals: CartTotals): BreakdownRow[] {
     const o = totals.order;
     const rows: BreakdownRow[] = [{ id: 'subtotal', amount: o.subtotal }];
-    if (o.line_discount_total > 0) {
-        rows.push({
-            id: 'line_discount',
-            amount: o.line_discount_total,
-            negative: true,
-        });
-    }
+    // Mockup totals panel: line item discounts and VAT always show (৳0.00 when zero).
+    rows.push({
+        id: 'line_discount',
+        amount: o.line_discount_total,
+        negative: true,
+    });
     if (o.group_discount > 0) {
         rows.push({
             id: 'group_discount',
@@ -49,9 +48,7 @@ export function breakdownRows(totals: CartTotals): BreakdownRow[] {
         amount: o.order_discount,
         negative: true,
     });
-    if (o.tax > 0) {
-        rows.push({ id: 'vat', amount: o.tax });
-    }
+    rows.push({ id: 'vat', amount: o.tax });
     if (o.rounding !== 0) {
         rows.push({ id: 'rounding', amount: o.rounding });
     }

@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Languages, Search } from 'lucide-react';
+import { ChevronDown, Languages, Search } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { Kbd } from '@/components/kbd';
 import { BranchSwitcher } from '@/components/shell/branch-switcher';
@@ -14,9 +14,10 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { UserInfo } from '@/components/user-info';
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useUiStore } from '@/command/ui-store';
+import { useDigits } from '@/hooks/use-digits';
+import { useInitials } from '@/hooks/use-initials';
 import { useT } from '@/i18n';
 import { usePreferences } from '@/lib/preferences';
 import { dashboard } from '@/routes';
@@ -73,6 +74,7 @@ export function TopBar() {
                 >
                     <Search aria-hidden="true" />
                 </Button>
+                <TodayTicker />
                 <SyncPill />
                 <NotificationsBell />
                 <LiveClock />
@@ -98,11 +100,11 @@ export function TopBar() {
                         <Button
                             type="button"
                             variant="ghost"
-                            className="size-11 rounded-full p-0 md:size-9"
+                            className="h-11 gap-1.5 rounded-lg p-1 md:h-9"
                             aria-label={t('user.menu')}
                             data-test="sidebar-menu-button"
                         >
-                            <UserInfoAvatar />
+                            <UserChip />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
@@ -117,12 +119,73 @@ export function TopBar() {
     );
 }
 
-function UserInfoAvatar() {
-    const user = usePage().props.auth.user;
+/** Mockup user chip: initials avatar, then name over role (name and role hidden on phones). */
+function UserChip() {
+    const { auth } = usePage().props;
+    const getInitials = useInitials();
+    const user = auth.user;
 
-    return user ? (
-        <span className="[&>div]:hidden">
-            <UserInfo user={user} />
-        </span>
-    ) : null;
+    if (!user) {
+        return null;
+    }
+    const role = auth.roles?.[0] ?? null;
+
+    return (
+        <>
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full border bg-surface-sunken text-xs font-bold text-foreground">
+                {getInitials(user.name)}
+            </span>
+            <span className="hidden max-w-32 text-left text-xs leading-tight sm:block">
+                <span className="block truncate font-semibold">
+                    {user.name}
+                </span>
+                {role ? (
+                    <span className="block truncate text-[10px] font-normal text-muted-foreground">
+                        {role}
+                    </span>
+                ) : null}
+            </span>
+            <ChevronDown
+                className="size-3 text-muted-foreground max-sm:hidden"
+                aria-hidden="true"
+            />
+        </>
+    );
+}
+
+/** Mockup "Today ৳… · N sales" pill for the current branch (shared `today`, dashboard.view only). */
+function TodayTicker() {
+    const { t } = useT();
+    const digits = useDigits();
+    const today = usePage().props.today;
+
+    if (!today) {
+        return null;
+    }
+
+    return (
+        <Link
+            href={dashboard()}
+            prefetch
+            title={t('shell.today_title')}
+            data-test="today-ticker"
+            className="hidden h-7 items-center gap-1.5 rounded-full border bg-surface-sunken px-2.5 text-[11px] text-foreground hover:border-primary lg:flex"
+        >
+            <span
+                className="size-2 rounded-full bg-success"
+                aria-hidden="true"
+            />
+            <span className="font-bold whitespace-nowrap">
+                {t('shell.today', { amount: digits.money(today.total_paisa) })}
+            </span>
+            <span className="font-medium whitespace-nowrap text-muted-foreground">
+                {t(
+                    today.sales === 1
+                        ? 'shell.today_one_sale'
+                        : 'shell.today_sales',
+                    { n: digits.n(today.sales) },
+                )}
+            </span>
+        </Link>
+    );
 }

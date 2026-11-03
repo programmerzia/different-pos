@@ -71,7 +71,8 @@ type Props<Row> = {
     columns: DataColumn<Row>[];
     meta: TableMeta;
     getRowId: (row: Row) => string;
-    rowHref?: (row: Row) => string;
+    /** Where a row opens; `undefined` for a row that cannot be opened here. */
+    rowHref?: (row: Row) => string | undefined;
     handlers?: Handlers<Row>;
     bulkActions?: BulkAction<Row>[];
     sort: string | null;
@@ -330,10 +331,13 @@ export function DataTable<Row extends Record<string, unknown>>({
         switch (result.effect) {
             case 'open':
             case 'open_new_tab':
-                if (activeRow && rowHref) {
-                    navigateTo(rowHref(activeRow), {
-                        newTab: result.effect === 'open_new_tab',
-                    });
+                {
+                    const href = activeRow ? rowHref?.(activeRow) : undefined;
+                    if (href) {
+                        navigateTo(href, {
+                            newTab: result.effect === 'open_new_tab',
+                        });
+                    }
                 }
                 break;
             case 'prev_page':
@@ -375,7 +379,12 @@ export function DataTable<Row extends Record<string, unknown>>({
         'data-selected': selection[getRowId(row)] === true ? '' : undefined,
         onFocus: () =>
             setNav((s) => (s.active === index ? s : { ...s, active: index })),
-        onDoubleClick: () => rowHref && navigateTo(rowHref(row)),
+        onDoubleClick: () => {
+            const href = rowHref?.(row);
+            if (href) {
+                navigateTo(href);
+            }
+        },
     });
 
     const clearSelection = () => {

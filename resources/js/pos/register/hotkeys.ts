@@ -18,6 +18,7 @@ export type PosCommand =
     | 'held'
     | 'pay'
     | 'returns'
+    | 'collect_due'
     | 'reprint'
     | 'cancel'
     | 'remove'
@@ -52,6 +53,11 @@ export const POS_KEYS: readonly Def[] = [
     { command: 'held', keys: 'shift+f8', labelKey: 'pos.keys.held' },
     { command: 'pay', keys: 'f9', labelKey: 'pos.keys.pay' },
     { command: 'returns', keys: 'f11', labelKey: 'pos.keys.returns' },
+    {
+        command: 'collect_due',
+        keys: 'mod+d',
+        labelKey: 'pos.keys.collect_due',
+    },
     { command: 'reprint', keys: 'mod+p', labelKey: 'pos.keys.reprint' },
     { command: 'cancel', keys: 'escape', labelKey: 'pos.keys.cancel' },
     { command: 'remove', keys: 'delete', labelKey: 'pos.keys.remove' },

@@ -449,6 +449,15 @@ export default function Register(props: Props) {
             case 'returns':
                 router.visit('/app/returns');
                 break;
+            case 'collect_due':
+                if (
+                    cart.customer &&
+                    cart.customer.balance > 0 &&
+                    can('customers.view')
+                ) {
+                    router.visit(`/app/dues/${cart.customer.uuid}`);
+                }
+                break;
             case 'reprint':
                 printReceipt(lastSale);
                 break;
@@ -857,7 +866,7 @@ export default function Register(props: Props) {
 
                     {/* Function bar (mockup "POS Function Bar"). */}
                     <div
-                        className="flex shrink-0 items-center justify-between gap-1 overflow-x-auto border-t bg-surface-sunken p-1.5 text-[11px]"
+                        className="flex shrink-0 items-center justify-between gap-0.5 overflow-x-auto border-t bg-surface-sunken p-1.5 text-[11px]"
                         role="toolbar"
                         aria-label={t('pos.fn.label')}
                     >
@@ -900,14 +909,23 @@ export default function Register(props: Props) {
                             disabled={!hasLines}
                             onClick={() => run('bill_discount')}
                         />
-                        {collectDue && customer && customer.balance > 0 && (
-                            <FnButton
-                                icon={Banknote}
-                                label={t('pos.fn.collect_due')}
-                                tone="warning"
-                                onClick={collectDue}
-                            />
-                        )}
+                        <FnButton
+                            icon={Banknote}
+                            label={t('pos.fn.collect_due')}
+                            keys="mod+d"
+                            tone="warning"
+                            disabled={
+                                !collectDue ||
+                                !customer ||
+                                customer.balance <= 0
+                            }
+                            title={
+                                collectDue && customer && customer.balance > 0
+                                    ? undefined
+                                    : t('pos.fn.no_due')
+                            }
+                            onClick={() => run('collect_due')}
+                        />
                         {canReturn && (
                             <FnButton
                                 icon={RotateCcw}
@@ -920,6 +938,7 @@ export default function Register(props: Props) {
                         <FnButton
                             icon={Trash2}
                             label={t('pos.fn.clear')}
+                            iconOnly
                             tone="danger"
                             disabled={!hasLines}
                             onClick={() => setDialog('clear')}
@@ -1104,6 +1123,7 @@ export default function Register(props: Props) {
                 methods={paymentMethods}
                 customer={customer}
                 approval={approval}
+                autoPrint={settings.auto_print}
                 onSubmit={pay}
                 onNeedApproval={setApprovalFor}
                 onAttachCustomer={() => setDialog('customer')}

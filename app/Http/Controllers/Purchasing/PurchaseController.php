@@ -50,9 +50,10 @@ final class PurchaseController extends Controller
         $user = $this->actor($request);
         $currentBranchId = app(TenantContext::class)->branchId();
 
-        // Branch chips exist only for users with reports.all_branches; everyone else stays on the current branch.
+        // Branch chips exist only for users with reports.all_branches (default "All Branches", as the mockup);
+        // everyone else stays on the current branch.
         $branchList = $user->can('reports.all_branches') ? $branches->present($branches->branchesFor($user)) : [];
-        $branchFilter = $branchList === [] ? '' : ($table->filters['branch'] ?? '');
+        $branchFilter = $branchList === [] ? '' : ($table->filters['branch'] ?? 'all');
         $filtered = static function () use ($table, $branchFilter, $branchList, $currentBranchId): Builder {
             $query = Purchase::query();
             if ($branchFilter === 'all') {

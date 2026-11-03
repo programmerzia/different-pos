@@ -16,6 +16,7 @@ import { MoneyInput } from '@/components/money-input';
 import { QtyStepper } from '@/components/qty-stepper';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { mulDivHalfUp } from '@/engine/money';
 import {
     Dialog,
     DialogActions,
@@ -28,7 +29,7 @@ import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { GroupDialog, type Family } from './group-dialog';
 import {
-    EMPTY_VARIANTS,
+    defaultVariantDraft,
     gridFor,
     VariantBuilder,
     type VariantDraft,
@@ -54,6 +55,7 @@ export type ProductDetail = {
     sale_price: number;
     cost_price: number | null;
     min_sale_price: number | null;
+    wholesale_price: number | null;
     min_sale_qty: number;
     reorder_level: number;
     track_stock: boolean;
@@ -110,6 +112,7 @@ function initialState(
         sale_price: product?.sale_price ?? (null as number | null),
         cost_price: product?.cost_price ?? (null as number | null),
         min_sale_price: product?.min_sale_price ?? (null as number | null),
+        wholesale_price: product?.wholesale_price ?? (null as number | null),
         min_sale_qty: product?.min_sale_qty ?? 0,
         reorder_level: product?.reorder_level ?? 0,
         track_stock: product?.track_stock ?? true,
@@ -147,11 +150,20 @@ export function ProductDialog({
     const [processing, setProcessing] = useState(false);
     const [image, setImage] = useState<File | null>(null);
     const [removeImage, setRemoveImage] = useState(false);
-    const [withVariants, setWithVariants] = useState(false);
     const [variantOptions, setVariantOptions] = useState(
         options.variantOptions,
     );
-    const [draft, setDraft] = useState<VariantDraft>(EMPTY_VARIANTS);
+    const [draft, setDraft] = useState<VariantDraft>(() =>
+        defaultVariantDraft(options.variantOptions),
+    );
+    // "Has variants" is on exactly when size/colour chips are ticked (creating only).
+    const variantRows = useMemo(
+        () => gridFor(variantOptions, draft, f.sku),
+        [variantOptions, draft, f.sku],
+    );
+    const withVariants = !editing && variantRows.length > 0;
+    const clearVariants = () =>
+        setDraft((d) => ({ ...d, values1: [], values2: [], rows: [] }));
     const [groupOpen, setGroupOpen] = useState(false);
     const [confirmClose, setConfirmClose] = useState(false);
 
@@ -223,11 +235,11 @@ export function ProductDialog({
         if (editing && removeImage) {
             payload['remove_image'] = true;
         }
-        if (!editing && withVariants && draft.option1_id !== null) {
+        if (withVariants && draft.option1_id !== null) {
             payload['variants'] = {
                 option1_id: draft.option1_id,
                 option2_id: draft.option2_id,
-                rows: gridFor(variantOptions, draft, f.sku).map((r) => ({
+                rows: variantRows.map((r) => ({
                     option1_value_id: r.option1_value_id,
                     option2_value_id: r.option2_value_id,
                     sale_price: r.sale_price,
@@ -293,7 +305,7 @@ export function ProductDialog({
         f.cost_price > 0 &&
         f.sale_price !== null &&
         f.sale_price > 0
-            ? Math.round(((f.sale_price - f.cost_price) * 100) / f.cost_price)
+            ? mulDivHalfUp(f.sale_price - f.cost_price, 100, f.cost_price)
             : null;
 
     return (
@@ -792,23 +804,25 @@ export function ProductDialog({
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         <Field
-                                            id="product-min_sale_price"
-                                            label={t('products.min_sale_price')}
-                                            error={err('min_sale_price')}
-                                            hint={t(
-                                                'products.min_sale_price_hint',
+                                            id="product-wholesale_price"
+                                            label={t(
+                                                'products.wholesale_label',
                                             )}
+                                            error={err('wholesale_price')}
                                         >
                                             <div className="mt-1">
                                                 <MoneyInput
-                                                    id="product-min_sale_price"
+                                                    id="product-wholesale_price"
                                                     className={cn(
                                                         box,
-                                                        'pl-8 text-right',
+                                                        'pl-8 text-right font-bold',
                                                     )}
-                                                    value={f.min_sale_price}
+                                                    value={f.wholesale_price}
                                                     onChange={(v) =>
-                                                        set('min_sale_price', v)
+                                                        set(
+                                                            'wholesale_price',
+                                                            v,
+                                                        )
                                                     }
                                                 />
                                             </div>
@@ -847,11 +861,81 @@ export function ProductDialog({
                                         </Field>
                                     </div>
 
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Field
+                                            id="product-min_sale_price"
+                                            label={t('products.min_sale_price')}
+                                            error={err('min_sale_price')}
+                                            hint={t(
+                                                'products.min_sale_price_hint',
+                                            )}
+                                        >
+                                            <div className="mt-1">
+                                                <MoneyInput
+                                                    id="product-min_sale_price"
+                                                    className={cn(
+                                                        box,
+                                                        'pl-8 text-right',
+                                                    )}
+                                                    value={f.min_sale_price}
+                                                    onChange={(v) =>
+                                                        set('min_sale_price', v)
+                                                    }
+                                                />
+                                            </div>
+                                        </Field>
+                                    </div>
+
                                     {/* Where the mockup has "Applicable Sizes / Colors". */}
                                     <div>
-                                        <span className={labelClass}>
-                                            {t('products.variants')}
-                                        </span>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className={labelClass}>
+                                                {t('products.variants')}
+                                            </span>
+                                            {!editing ? (
+                                                <button
+                                                    type="button"
+                                                    role="switch"
+                                                    id="product-with_variants"
+                                                    aria-checked={withVariants}
+                                                    title={t(
+                                                        'products.has_variants_hint',
+                                                    )}
+                                                    onClick={() => {
+                                                        if (withVariants) {
+                                                            clearVariants();
+                                                        } else {
+                                                            document
+                                                                .querySelector<HTMLElement>(
+                                                                    '#product-variant-chips fieldset button',
+                                                                )
+                                                                ?.focus();
+                                                        }
+                                                    }}
+                                                    className="flex items-center gap-1.5 rounded-md text-[11px] font-semibold text-muted-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [@media(pointer:coarse)]:min-h-11"
+                                                >
+                                                    {t('products.has_variants')}
+                                                    <span
+                                                        aria-hidden="true"
+                                                        className={cn(
+                                                            'relative inline-flex h-4 w-7 items-center rounded-full transition-colors',
+                                                            withVariants
+                                                                ? 'bg-primary'
+                                                                : 'bg-border',
+                                                        )}
+                                                    >
+                                                        <span
+                                                            className={cn(
+                                                                'size-3 rounded-full bg-surface shadow-xs transition-transform',
+                                                                withVariants
+                                                                    ? 'translate-x-3.5'
+                                                                    : 'translate-x-0.5',
+                                                            )}
+                                                        />
+                                                    </span>
+                                                </button>
+                                            ) : null}
+                                        </div>
                                         {editing ? (
                                             <div className="mt-1 flex flex-wrap items-center gap-2 rounded-lg border bg-surface-sunken p-2 text-[11px]">
                                                 {product.variant_label ? (
@@ -902,21 +986,22 @@ export function ProductDialog({
                                                 ) : null}
                                             </div>
                                         ) : (
-                                            <label
-                                                htmlFor="product-with_variants"
-                                                className="mt-1 flex items-center gap-2 rounded-lg border bg-surface-sunken p-2 text-xs font-medium [@media(pointer:coarse)]:min-h-11"
+                                            <div
+                                                id="product-variant-chips"
+                                                className="mt-1"
                                             >
-                                                <Checkbox
-                                                    id="product-with_variants"
-                                                    checked={withVariants}
-                                                    onCheckedChange={(v) =>
-                                                        setWithVariants(
-                                                            v === true,
-                                                        )
+                                                <VariantBuilder
+                                                    layout="chips"
+                                                    options={variantOptions}
+                                                    onOptionsChange={
+                                                        setVariantOptions
                                                     }
+                                                    draft={draft}
+                                                    onChange={setDraft}
+                                                    familyCode={f.sku}
+                                                    canViewCost={canViewCost}
                                                 />
-                                                {t('products.has_variants')}
-                                            </label>
+                                            </div>
                                         )}
                                     </div>
 
@@ -1006,9 +1091,13 @@ export function ProductDialog({
                                 </Panel>
                             </div>
 
-                            {!editing && withVariants ? (
+                            {withVariants ? (
                                 <div className="space-y-3 rounded-xl border bg-surface p-4 shadow-xs">
+                                    <h3 className="text-xs font-bold text-foreground">
+                                        {t('products.variant_grid')}
+                                    </h3>
                                     <VariantBuilder
+                                        layout="grid"
                                         options={variantOptions}
                                         onOptionsChange={setVariantOptions}
                                         draft={draft}

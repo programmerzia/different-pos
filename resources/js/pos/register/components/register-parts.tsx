@@ -167,6 +167,8 @@ export function FnButton({
     keys,
     tone = 'default',
     disabled,
+    title,
+    iconOnly = false,
     onClick,
 }: {
     icon: LucideIcon;
@@ -174,15 +176,19 @@ export function FnButton({
     keys?: string;
     tone?: 'default' | 'warning' | 'danger';
     disabled?: boolean;
+    title?: string | undefined;
+    /** Mockup trash button: the icon alone (the label stays as the accessible name and tooltip). */
+    iconOnly?: boolean;
     onClick: () => void;
 }) {
     return (
         <button
             type="button"
             disabled={disabled}
+            title={title ?? (iconOnly ? label : undefined)}
             onClick={onClick}
             className={cn(
-                'touch-target flex items-center gap-1 rounded px-2 py-1 text-left leading-tight font-medium disabled:opacity-40',
+                'touch-target flex items-center gap-1 rounded px-1.5 py-1 text-left leading-tight font-medium disabled:opacity-40',
                 tone === 'default' && 'border bg-surface hover:border-primary',
                 tone === 'warning' &&
                     'border border-warning/30 bg-warning-soft text-warning',
@@ -191,7 +197,7 @@ export function FnButton({
             )}
         >
             <Icon className="size-3 shrink-0" aria-hidden="true" />
-            <span>{label}</span>
+            <span className={iconOnly ? 'sr-only' : undefined}>{label}</span>
             {keys &&
                 (keys.startsWith('shift+') ? (
                     // Mockup keycap "⇧F8": the long "Shift+F8" would push the bar off screen.
@@ -587,11 +593,16 @@ export function Breakdown({
                         return (
                             <div
                                 key={row.id}
-                                className="flex justify-between text-danger"
+                                className={cn(
+                                    'flex justify-between',
+                                    row.amount > 0
+                                        ? 'text-danger'
+                                        : 'text-muted-foreground',
+                                )}
                             >
                                 <span>{t('pos.totals.line_discounts')}</span>
                                 <span className="num">
-                                    {money(row.amount, true)}
+                                    {money(row.amount, row.amount > 0)}
                                 </span>
                             </div>
                         );

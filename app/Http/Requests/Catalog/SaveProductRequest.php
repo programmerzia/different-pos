@@ -52,6 +52,7 @@ final class SaveProductRequest extends FormRequest
             'sale_price' => ['required', 'integer', 'min:0'],
             'cost_price' => ['nullable', 'integer', 'min:0'],
             'min_sale_price' => ['nullable', 'integer', 'min:0'],
+            'wholesale_price' => ['nullable', 'integer', 'min:0'],
             'min_sale_qty' => ['nullable', 'integer', 'min:0'],
             'reorder_level' => ['nullable', 'integer', 'min:0'],
             'track_stock' => ['boolean'],

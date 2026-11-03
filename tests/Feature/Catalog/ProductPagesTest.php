@@ -88,6 +88,32 @@ it('creates a product with money in paisa and an auto barcode', function (): voi
         ->and($product->tenant_id)->toBe($world->tenant->id);
 });
 
+it('stores an optional wholesale price and shows it in the edit payload', function (): void {
+    $world = CatalogWorld::make();
+    $unit = $world->unit();
+
+    $this->actingAs($world->user)->post('/app/products', [
+        'name' => 'Wholesale Polo', 'sku' => 'WP-1', 'type' => 'standard', 'unit_id' => $unit->id,
+        'sale_price' => 145000, 'cost_price' => 95000, 'wholesale_price' => 115000, 'track_stock' => true, 'is_active' => true,
+    ])->assertRedirect('/app/products');
+    $product = app(TenantContext::class)->withoutTenancy(fn () => Product::query()->where('sku', 'WP-1')->firstOrFail());
+    expect($product->wholesale_price?->paisa)->toBe(115000);
+
+    $this->actingAs($world->user)->get("/app/products/{$product->uuid}/edit")
+        ->assertInertia(fn (Assert $page) => $page->where('editor.product.wholesale_price', 115000));
+
+    // Blank clears it; a negative one is refused.
+    $this->actingAs($world->user)->put("/app/products/{$product->uuid}", [
+        'name' => 'Wholesale Polo', 'sku' => 'WP-1', 'type' => 'standard', 'unit_id' => $unit->id,
+        'sale_price' => 145000, 'wholesale_price' => null, 'track_stock' => true, 'is_active' => true,
+    ])->assertRedirect();
+    expect(app(TenantContext::class)->withoutTenancy(fn () => $product->fresh()?->wholesale_price))->toBeNull();
+    $this->actingAs($world->user)->put("/app/products/{$product->uuid}", [
+        'name' => 'Wholesale Polo', 'sku' => 'WP-1', 'type' => 'standard', 'unit_id' => $unit->id,
+        'sale_price' => 145000, 'wholesale_price' => -1,
+    ])->assertSessionHasErrors('wholesale_price');
+});
+
 it('ignores a submitted cost price without products.view_cost', function (): void {
     $world = CatalogWorld::make(SystemRoles::STOCK_KEEPER);
     $world->user->revokePermissionTo('products.view_cost');

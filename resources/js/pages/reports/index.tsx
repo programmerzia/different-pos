@@ -35,7 +35,7 @@ const POINT_IN_TIME = new Set([
 export default function ReportsIndex({ groups, canExport }: Props) {
     const { t } = useT();
     const digits = useDigits();
-    const [period, setPeriod] = useState<ReportPeriod>('this_month');
+    const [period, setPeriod] = useState<ReportPeriod>('today');
     const [today] = useState(() => new Date());
     const range = reportPeriodRange(period, today);
     const available = Object.values(groups).flatMap((reports) =>

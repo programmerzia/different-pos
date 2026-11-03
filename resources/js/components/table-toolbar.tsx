@@ -21,6 +21,8 @@ export type ToolbarChips = {
     value: string;
     options: { value: string; label: string }[];
     onChange: (value: string) => void;
+    /** Keep the chips on one line: the row scrolls sideways and long labels are truncated. */
+    scroll?: boolean;
 };
 
 /** A labelled select ("View:", "Date:"). */
@@ -100,7 +102,7 @@ export function TableToolbar({
                                 e.currentTarget.blur();
                             }
                         }}
-                        className="h-8 w-full rounded-lg border bg-surface-sunken pr-7 pl-8 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-xs [@media(pointer:coarse)]:min-h-11 [&::-webkit-search-cancel-button]:appearance-none"
+                        className="h-8 w-full rounded-lg border bg-surface-sunken pr-7 pl-8 text-base text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-xs [&::-webkit-search-cancel-button]:appearance-none [@media(pointer:coarse)]:min-h-11"
                     />
                     {search ? (
                         <button
@@ -229,7 +231,14 @@ function LabelledSelect({
 /** Mockup filter chips: h-7, rounded-lg, 12 px; the active chip is solid primary and bold. */
 export function ChipRow({ group }: { group: ToolbarChips }) {
     return (
-        <fieldset className="m-0 flex min-w-0 flex-wrap items-center gap-1 border-0 p-0">
+        <fieldset
+            className={cn(
+                'm-0 flex min-w-0 items-center gap-1 border-0 p-0',
+                group.scroll
+                    ? 'flex-1 basis-48 [scrollbar-width:none] flex-nowrap overflow-x-auto'
+                    : 'flex-wrap',
+            )}
+        >
             <legend className="sr-only">{group.label}</legend>
             {group.options.map((opt) => {
                 const on = group.value === opt.value;
@@ -240,8 +249,11 @@ export function ChipRow({ group }: { group: ToolbarChips }) {
                         type="button"
                         aria-pressed={on}
                         onClick={() => group.onChange(opt.value)}
+                        title={group.scroll ? opt.label : undefined}
                         className={cn(
                             'h-7 rounded-lg px-2.5 text-xs font-medium transition-colors [@media(pointer:coarse)]:min-h-11',
+                            group.scroll &&
+                                'max-w-32 shrink-0 truncate whitespace-nowrap',
                             on
                                 ? 'bg-primary font-bold text-primary-foreground shadow-xs'
                                 : 'bg-surface-sunken text-muted-foreground hover:text-foreground',

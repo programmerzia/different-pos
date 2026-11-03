@@ -67,6 +67,9 @@ const adjustUrl = (uuid?: string) =>
         ? `/app/adjustments/create?product=${uuid}`
         : '/app/adjustments/create';
 
+/** "Date:" presets, the last stock movement at this branch (server filter `moved`). */
+const RECENCY = ['', 'today', '7d', '30d', '90d', 'idle_90d'] as const;
+
 export default function StockIndex({
     rows,
     meta,
@@ -419,9 +422,18 @@ export default function StockIndex({
                             option('out', 'status.out_of_stock'),
                         ],
                     }}
+                    date={{
+                        value: filters['moved'] ?? '',
+                        onChange: (v) => table.setFilter('moved', v),
+                        options: RECENCY.map((key) => ({
+                            value: key,
+                            label: t(`stock.moved_${key || 'all'}`),
+                        })),
+                    }}
                     chips={[
                         {
                             key: 'category',
+                            scroll: true,
                             label: t('products.col_category'),
                             value: filters['category'] ?? '',
                             options: [

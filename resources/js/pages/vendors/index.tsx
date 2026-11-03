@@ -50,6 +50,9 @@ type Row = {
     last_order: string | null;
 };
 
+/** "Date:" presets, the last received order (server filter `ordered`). */
+const RECENCY = ['', 'today', '7d', '30d', '90d', 'idle_90d'] as const;
+
 export default function VendorsIndex({
     rows,
     meta,
@@ -218,15 +221,27 @@ export default function VendorsIndex({
                 required: true,
                 mobile: 'hidden',
                 cell: (r) =>
-                    canPay && r.balance > 0 ? (
+                    canPay ? (
                         <span className="flex justify-end">
-                            <button
-                                type="button"
-                                className="rounded-sm bg-primary-soft px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap text-primary transition-colors hover:bg-primary hover:text-primary-foreground [@media(pointer:coarse)]:min-h-11"
-                                onClick={() => setPaying(r)}
-                            >
-                                {t('vendors.pay')}
-                            </button>
+                            {r.balance > 0 ? (
+                                <button
+                                    type="button"
+                                    className="rounded-sm bg-primary-soft px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap text-primary transition-colors hover:bg-primary hover:text-primary-foreground [@media(pointer:coarse)]:min-h-11"
+                                    onClick={() => setPaying(r)}
+                                >
+                                    {t('vendors.pay')}
+                                </button>
+                            ) : (
+                                // aria-disabled (not disabled) keeps the tooltip and stops the row click.
+                                <button
+                                    type="button"
+                                    aria-disabled="true"
+                                    title={t('vendors.nothing_payable')}
+                                    className="cursor-not-allowed rounded-sm bg-surface-sunken px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap text-muted-foreground opacity-60 [@media(pointer:coarse)]:min-h-11"
+                                >
+                                    {t('vendors.pay')}
+                                </button>
+                            )}
                         </span>
                     ) : null,
             },
@@ -303,6 +318,14 @@ export default function VendorsIndex({
                             setFilters({
                                 status: v === 'owing' ? 'owing' : '',
                             }),
+                    }}
+                    date={{
+                        value: filters['ordered'] ?? '',
+                        onChange: (v) => table.setFilter('ordered', v),
+                        options: RECENCY.map((key) => ({
+                            value: key,
+                            label: t(`vendors.ordered_${key || 'all'}`),
+                        })),
                     }}
                     chips={
                         hubs.length > 0

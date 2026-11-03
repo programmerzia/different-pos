@@ -66,6 +66,8 @@ type Props = {
     methods: readonly PaymentMethod[];
     customer: CustomerCard | null;
     approval: Approval | null;
+    /** The register prints the receipt on completion (labels the button "Complete Sale & Print Receipt"). */
+    autoPrint?: boolean;
     onSubmit: (tenders: TenderRow[]) => Promise<PosError | null>;
     onNeedApproval: (permission: string) => void;
     onAttachCustomer: () => void;
@@ -95,6 +97,7 @@ function PaymentBody({
     methods,
     customer,
     approval,
+    autoPrint = false,
     onSubmit,
     onNeedApproval,
     onAttachCustomer,
@@ -566,7 +569,9 @@ function PaymentBody({
                         ? t('pos.pay.saving')
                         : s.due > 0
                           ? t('pos.pay.complete_due')
-                          : t('pos.pay.complete')}
+                          : autoPrint
+                            ? t('pos.pay.complete_print')
+                            : t('pos.pay.complete')}
                     <Kbd keys="f10" tone="on-primary" />
                 </button>
             </div>

@@ -10,11 +10,14 @@ use App\Models\Product;
 use App\Models\StockAdjustment;
 use App\Models\User;
 use App\Support\Catalog\ProductPresenter;
+use App\Support\Http\RecencyFilter;
 use App\Support\Http\TableQuery;
 use App\Support\Quantity\Quantity;
+use App\Support\Sales\BusinessDay;
 use App\Support\Stock\BranchStockColumns;
 use App\Support\Stock\StockQueries;
 use App\Support\Tenancy\TenantContext;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -40,7 +43,7 @@ final class StockController extends Controller
         $canCost = $user->checkPermissionTo('products.view_cost');
         $branch = $this->context->branch();
 
-        $table = TableQuery::fromRequest($request, sortable: ['name', 'sku', 'on_hand'], filterable: ['status', 'category'], defaultSort: 'name');
+        $table = TableQuery::fromRequest($request, sortable: ['name', 'sku', 'on_hand'], filterable: ['status', 'category', 'moved'], defaultSort: 'name');
 
         $filtered = Product::query()
             ->leftJoin('branch_stocks', static function ($join) use ($branch): void {
@@ -54,6 +57,21 @@ final class StockController extends Controller
         }
         if (isset($table->filters['category'])) {
             $filtered->where('products.category_id', (int) $table->filters['category']);
+        }
+        // "Date:" = last stock movement of the product at this branch.
+        $recency = RecencyFilter::resolve($table->filters['moved'] ?? null, BusinessDay::timezone($this->context->tenant()));
+        if ($recency !== null) {
+            [$cut, $active] = $recency;
+            $moved = static fn (Builder $q): Builder => $q->selectRaw('1')->from('stock_movements')
+                ->whereColumn('stock_movements.product_id', 'products.id')
+                ->where('stock_movements.tenant_id', $branch->tenant_id)
+                ->where('stock_movements.branch_id', $branch->id)
+                ->where('stock_movements.created_at', '>=', $cut);
+            if ($active) {
+                $filtered->whereExists($moved);
+            } else {
+                $filtered->whereNotExists($moved);
+            }
         }
         $onHand = 'COALESCE(branch_stocks.qty_on_hand, 0)';
         match ($table->filters['status'] ?? null) {
