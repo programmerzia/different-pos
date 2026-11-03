@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use App\Models\Branch;
 use App\Models\User;
+use App\Reports\Dashboard\DashboardPeriod;
 use App\Reports\DashboardQuery;
 use App\Support\Quantity\Quantity;
 use App\Support\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
@@ -85,16 +87,17 @@ it('caches the dashboard per tenant and branch for 60 seconds', function (): voi
 
     $this->actingAs($user)->get(route('dashboard'))->assertOk()
         ->assertInertia(fn ($page) => $page->component('dashboard')
-            ->where('dashboard.kpis.sales.today', 200_000)
-            ->where('dashboard.kpis.invoices.today', 1)
-            ->where('dashboard.kpis.low_stock', 1)
+            ->where('dashboard.kpis.sales.value', 200_000)
+            ->where('dashboard.kpis.invoices.value', 1)
+            ->where('dashboard.kpis.low_stock.value', 1)
             ->where('dashboard.top_customers.0.customer', 'Alice')
-            ->has('dashboard.trend', 30));
+            ->has('dashboard.trend.points', 24));
 
-    $key = DashboardQuery::cacheKey($this->world->tenant->id, $this->world->branch->id);
+    $period = DashboardPeriod::resolve('today', CarbonImmutable::now('Asia/Dhaka'));
+    $key = DashboardQuery::cacheKey($this->world->tenant->id, $this->world->branch->id, $period, true);
     expect(Cache::has($key))->toBeTrue()
-        ->and(Cache::has(DashboardQuery::cacheKey($this->world->tenant->id, $this->second->id)))->toBeFalse()
-        ->and($key)->not->toBe(DashboardQuery::cacheKey($this->world->tenant->id + 1, $this->world->branch->id));
+        ->and(Cache::has(DashboardQuery::cacheKey($this->world->tenant->id, $this->second->id, $period, true)))->toBeFalse()
+        ->and($key)->not->toBe(DashboardQuery::cacheKey($this->world->tenant->id + 1, $this->world->branch->id, $period, true));
 });
 
 it('requires dashboard.view', function (): void {

@@ -33,7 +33,12 @@ final class ReportController extends Controller
             $groups[$report->group()][] = ['name' => $report->name()];
         }
 
-        return Inertia::render('reports/index', ['groups' => $groups]);
+        $user = $request->user();
+
+        return Inertia::render('reports/index', [
+            'groups' => $groups,
+            'canExport' => $user instanceof User && $user->can('reports.export'),
+        ]);
     }
 
     public function show(ReportRequest $request, string $report): Response

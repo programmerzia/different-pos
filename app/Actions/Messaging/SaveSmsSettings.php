@@ -24,7 +24,7 @@ final readonly class SaveSmsSettings
     public function __construct(private TenantContext $context) {}
 
     /**
-     * @param  array{driver: string, sender_id?: string|null, sid?: string|null, base_url?: string|null, api_token?: string|null, clear_token?: bool, templates?: array<string, array{enabled?: bool, body?: string|null}>}  $data
+     * @param  array{driver: string, sender_id?: string|null, sid?: string|null, base_url?: string|null, api_token?: string|null, clear_token?: bool, cost_per_segment?: int|null, templates?: array<string, array{enabled?: bool, body?: string|null}>}  $data
      */
     public function handle(User $actor, array $data): Tenant
     {
@@ -57,6 +57,8 @@ final readonly class SaveSmsSettings
                 'sid' => trim((string) ($data['sid'] ?? '')),
                 'base_url' => trim((string) ($data['base_url'] ?? '')),
                 'api_token' => $token,
+                'cost_per_segment' => isset($data['cost_per_segment']) ? max(0, (int) $data['cost_per_segment'])
+                    : (is_int($current['cost_per_segment'] ?? null) ? $current['cost_per_segment'] : SmsSettings::DEFAULT_COST_PER_SEGMENT),
                 'templates' => $templates,
             ];
 

@@ -293,7 +293,7 @@ Roles:
 | Sentry | PHP + React errors | yes (prod) |
 | Uptime monitor | `/up` | yes (prod) |
 | BD geo reference data | divisions/districts/upazilas/unions (EN+BN) + post codes, imported once into `geo_*` from an open dataset (licence verified and recorded in `docs/adr`) | yes (data only) |
-| **SMS provider** | `SmsGateway` contract; drivers `ssl_wireless` (HTTP via Laravel `Http`), `log`, `null`. No SDK dependency (ADR 0007). Settings live in `tenants.settings.sms` (`driver`, `sender_id`, `sid`, `base_url`, `api_token`, `templates`); the `api_token` is stored `Crypt`-encrypted inside that JSON, is never sent to a page and is scrubbed from audit rows. Queued `App\Sms\SendSms` (3 tries, backoff 30s/120s, `WithTenantContext`) | no |
+| **SMS provider** | `SmsGateway` contract; drivers `ssl_wireless` (HTTP via Laravel `Http`), `log`, `null`. No SDK dependency (ADR 0007). Settings live in `tenants.settings.sms` (`driver`, `sender_id`, `sid`, `base_url`, `api_token`, `cost_per_segment` (paisa, estimate only), `templates`); the `api_token` is stored `Crypt`-encrypted inside that JSON, is never sent to a page and is scrubbed from audit rows. Queued `App\Sms\SendSms` (3 tries, backoff 30s/120s, `WithTenantContext`). Manual sends from the messaging hub go through `App\Sms\SendAdHocSms` (`settings.manage`, one logged job per recipient) | no |
 | Payment gateways | non-goal | no |
 
 ## 5. Security constraints (non-negotiable)

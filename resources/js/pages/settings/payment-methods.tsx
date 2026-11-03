@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
+import AppLayout from '@/layouts/app-layout';
+import SettingsLayout from '@/layouts/settings/layout';
 
 type Method = {
     id: number;
@@ -92,6 +94,7 @@ export default function PaymentMethods({
     return (
         <AdminPage
             title={t('payment.title')}
+            subtitle={t('settings_hub.desc_long.payment_methods')}
             newLabel={t('payment.new')}
             onNew={() => setEditing('new')}
         >
@@ -200,3 +203,5 @@ export default function PaymentMethods({
         </AdminPage>
     );
 }
+
+PaymentMethods.layout = [AppLayout, SettingsLayout];

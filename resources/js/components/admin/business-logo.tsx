@@ -1,7 +1,7 @@
 import { router, useForm } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { FormSection } from '@/components/form-section';
+import { HubCard, HubSection } from '@/components/admin/hub-section';
 import InputError from '@/components/input-error';
 import { TenantLogo } from '@/components/tenant-logo';
 import { Button } from '@/components/ui/button';
@@ -64,73 +64,77 @@ export function BusinessLogo({
     };
 
     return (
-        <FormSection
+        <HubSection
             title={t('business.section_logo')}
-            description={t('business.logo_hint')}
+            subtitle={t('business.logo_hint')}
         >
-            <div className="flex flex-col items-start gap-3">
-                <TenantLogo
-                    url={preview ?? logoUrl}
-                    name={t('business.logo_preview')}
-                    className="size-32 rounded-xl"
-                    imageClassName="p-2"
-                />
-                <p className="text-sm text-muted-foreground">
-                    {preview
-                        ? t('business.logo_selected', {
-                              name: form.data.logo?.name ?? '',
-                          })
-                        : logoUrl
-                          ? name
-                          : t('business.logo_none')}
-                </p>
-            </div>
-            <div className="flex flex-col gap-3">
-                <Upload
-                    key={pickerKey}
-                    accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                    maxSizeMb={2}
-                    label={t('business.logo')}
-                    onFiles={(files) => form.setData('logo', files[0] ?? null)}
-                />
-                <InputError message={form.errors.logo} />
-                <div className="flex flex-wrap gap-2">
-                    <Button
-                        type="button"
-                        className="min-h-11"
-                        disabled={!form.data.logo || form.processing}
-                        onClick={save}
-                    >
-                        {form.processing ? (
-                            <Spinner aria-hidden="true" />
-                        ) : null}
-                        {logoUrl
-                            ? t('business.logo_replace')
-                            : t('business.logo_upload')}
-                    </Button>
-                    {form.data.logo ? (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            className="min-h-11"
-                            onClick={reset}
-                        >
-                            {t('business.logo_cancel')}
-                        </Button>
-                    ) : null}
-                    {logoUrl ? (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="min-h-11"
-                            disabled={removing}
-                            onClick={() => setConfirming(true)}
-                        >
-                            {t('business.logo_remove')}
-                        </Button>
-                    ) : null}
+            <HubCard className="grid gap-4 space-y-0 sm:grid-cols-[auto_1fr]">
+                <div className="flex flex-col items-start gap-3">
+                    <TenantLogo
+                        url={preview ?? logoUrl}
+                        name={t('business.logo_preview')}
+                        className="size-28 rounded-xl"
+                        imageClassName="p-2"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        {preview
+                            ? t('business.logo_selected', {
+                                  name: form.data.logo?.name ?? '',
+                              })
+                            : logoUrl
+                              ? name
+                              : t('business.logo_none')}
+                    </p>
                 </div>
-            </div>
+                <div className="flex flex-col gap-3">
+                    <Upload
+                        key={pickerKey}
+                        accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                        maxSizeMb={2}
+                        label={t('business.logo')}
+                        onFiles={(files) =>
+                            form.setData('logo', files[0] ?? null)
+                        }
+                    />
+                    <InputError message={form.errors.logo} />
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            type="button"
+                            className="[@media(pointer:coarse)]:min-h-11"
+                            disabled={!form.data.logo || form.processing}
+                            onClick={save}
+                        >
+                            {form.processing ? (
+                                <Spinner aria-hidden="true" />
+                            ) : null}
+                            {logoUrl
+                                ? t('business.logo_replace')
+                                : t('business.logo_upload')}
+                        </Button>
+                        {form.data.logo ? (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                className="[@media(pointer:coarse)]:min-h-11"
+                                onClick={reset}
+                            >
+                                {t('business.logo_cancel')}
+                            </Button>
+                        ) : null}
+                        {logoUrl ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="[@media(pointer:coarse)]:min-h-11"
+                                disabled={removing}
+                                onClick={() => setConfirming(true)}
+                            >
+                                {t('business.logo_remove')}
+                            </Button>
+                        ) : null}
+                    </div>
+                </div>
+            </HubCard>
             <ConfirmDialog
                 open={confirming}
                 onOpenChange={setConfirming}
@@ -140,6 +144,6 @@ export function BusinessLogo({
                 destructive
                 onConfirm={remove}
             />
-        </FormSection>
+        </HubSection>
     );
 }

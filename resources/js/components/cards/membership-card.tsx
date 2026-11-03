@@ -126,19 +126,23 @@ export function MembershipCard({
             {side === 'front' ? (
                 <div className="mc-face mc-front">
                     <div className="mc-sheen" />
-                    {brand.logo_url ? (
-                        <div className="mc-logo">
-                            <img src={brand.logo_url} alt="" />
-                        </div>
-                    ) : null}
                     <div className="mc-top">
-                        <div>
-                            <div className="mc-tenant">{brand.name}</div>
-                            <div className="mc-tagline">{t('cards.face.tagline')}</div>
+                        <div className="mc-brand">
+                            {brand.logo_url ? (
+                                <div className="mc-logo">
+                                    <img src={brand.logo_url} alt="" />
+                                </div>
+                            ) : null}
+                            <div>
+                                <div className="mc-tenant">{brand.name}</div>
+                                <div className="mc-tagline">{t('cards.face.tagline')}</div>
+                            </div>
                         </div>
                         <div className="mc-marks">
-                            <div className="mc-chip">CHIP</div>
-                            <div className="mc-nfc" aria-hidden="true">))))</div>
+                            <div className="mc-chip" aria-hidden="true" />
+                            <div className="mc-nfc" aria-hidden="true">
+                                <span /><span /><span />
+                            </div>
                         </div>
                     </div>
                     <div className="mc-bottom">

@@ -189,7 +189,10 @@ export default function PurchaseCreate({
                 </div>
 
                 <section aria-labelledby="pl-title" className="grid gap-3">
-                    <h2 id="pl-title" className="text-xl font-semibold">
+                    <h2
+                        id="pl-title"
+                        className="text-xs font-bold tracking-wider uppercase"
+                    >
                         {t('purchases.items')}
                     </h2>
                     <ScanField
@@ -203,16 +206,16 @@ export default function PurchaseCreate({
                         </p>
                     ) : null}
                     {lines.length === 0 ? (
-                        <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                        <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
                             {t('purchases.scan_hint')}
                         </p>
                     ) : (
-                        <div className="overflow-x-auto rounded-lg border">
+                        <div className="overflow-x-auto rounded-xl border bg-surface shadow-xs">
                             <table className="w-full text-sm">
                                 <caption className="sr-only">
                                     {t('purchases.items')}
                                 </caption>
-                                <thead className="bg-muted text-left">
+                                <thead className="bg-surface-sunken text-left text-[11px] font-semibold text-muted-foreground">
                                     <tr>
                                         <th scope="col" className="px-3 py-2">
                                             {t('products.product')}
@@ -356,7 +359,7 @@ export default function PurchaseCreate({
                             </>
                         ) : null}
                     </div>
-                    <dl className="grid content-start gap-2 rounded-lg border p-4">
+                    <dl className="grid content-start gap-2 rounded-xl border bg-surface p-4 shadow-xs">
                         <div className="flex justify-between">
                             <dt>{t('purchases.subtotal')}</dt>
                             <dd className="num">

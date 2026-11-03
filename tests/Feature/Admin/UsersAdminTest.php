@@ -50,7 +50,7 @@ it('lists the staff of this tenant only, with search and filters', function (): 
     app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->id);
 
     $this->actingAs($owner)->get('/app/settings/users')->assertOk()->assertInertia(fn (Assert $page) => $page
-        ->component('settings/users/index')->has('users', 2)->where('meta.total', 2));
+        ->component('settings/users/index')->has('users', 2)->where('meta.total', 2)->where('dialog', null)->has('matrix.roles', 5));
     $this->get('/app/settings/users?q=karim')->assertInertia(fn (Assert $page) => $page->has('users', 1)->where('users.0.name', 'Karim Cashier'));
     $this->get('/app/settings/users?filter[status]=inactive')->assertInertia(fn (Assert $page) => $page->has('users', 1));
     $this->get('/app/settings/users?filter[role]='.roleId($tenant, SystemRoles::OWNER))->assertInertia(fn (Assert $page) => $page->has('users', 1)->where('users.0.id', $owner->id));
@@ -125,7 +125,7 @@ it('shows the edit form and 404s a user of another tenant', function (): void {
     [$foreign] = adminActor();
 
     $this->actingAs($owner)->get("/app/settings/users/{$owner->id}/edit")->assertOk()->assertInertia(fn (Assert $page) => $page
-        ->component('settings/users/form')->where('user.id', $owner->id)->has('roles', 5)->has('branches', 1));
+        ->component('settings/users/index')->where('dialog', 'edit')->where('editing.id', $owner->id)->has('roles', 5)->has('branches', 1));
     $this->get("/app/settings/users/{$foreign->id}/edit")->assertNotFound();
     $this->put("/app/settings/users/{$foreign->id}", userPayload($tenant, $branch))->assertNotFound();
     $this->post("/app/settings/users/{$foreign->id}/deactivate")->assertNotFound();

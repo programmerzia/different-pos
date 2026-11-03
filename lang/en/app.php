@@ -10,6 +10,7 @@ return [
     'password_changed' => 'Password changed.',
     'created' => 'Created.',
     'updated' => 'Updated.',
+    'pin_reset' => 'PIN updated for :name.',
     'deleted' => 'Deleted.',
     'forbidden' => 'You do not have permission to do that.',
     'not_found' => 'Not found.',

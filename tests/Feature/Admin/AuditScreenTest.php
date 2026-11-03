@@ -7,6 +7,8 @@ require_once __DIR__.'/AdminHelpers.php';
 use App\Models\User;
 use App\Support\Audit\Audit;
 use App\Support\Permissions\SystemRoles;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Models\Activity;
 
@@ -60,4 +62,25 @@ it('offers only this tenant\'s users and subject types as filters', function ():
         ->has('users', 1)->where('users.0.id', $owner->id)
         ->where('subjects', fn ($subjects) => collect($subjects)->pluck('label')->contains('Tenant')));
     expect($foreignTenant->id)->not->toBe($tenant->id);
+});
+
+it('offers the event filter, stamps the request IP and keeps events tenant-scoped', function (): void {
+    [$owner, $tenant] = adminActor();
+    [$foreignOwner, $foreignTenant] = adminActor();
+
+    $request = Request::create('/app/x', 'GET', server: ['REMOTE_ADDR' => '203.0.113.9']);
+    $request->setRouteResolver(fn (): Route => new Route('GET', '/app/x', []));
+    app()->instance('request', $request);
+    Audit::log('sale.voided', $tenant, [], $owner);
+    app()->instance('request', Request::create('/'));
+    Audit::log('price.changed', $tenant, [], $owner);
+    Audit::log('foreign.only', $foreignTenant, [], $foreignOwner);
+
+    $this->actingAs($owner)->get('/app/settings/audit?filter[event]=sale.voided')->assertInertia(fn (Assert $page) => $page
+        ->has('entries', 1)
+        ->where('entries.0.event', 'sale.voided')
+        ->where('entries.0.ip', '203.0.113.9')
+        ->where('events', fn ($events) => collect($events)->contains('sale.voided') && ! collect($events)->contains('foreign.only')));
+    $this->actingAs($owner)->get('/app/settings/audit?filter[event]=price.changed')->assertInertia(fn (Assert $page) => $page
+        ->where('entries.0.ip', null));
 });

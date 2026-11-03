@@ -28,7 +28,7 @@ final class AuditController extends Controller implements HasMiddleware
     public function index(Request $request): Response
     {
         $tenantId = app(TenantContext::class)->tenantId();
-        $table = TableQuery::fromRequest($request, ['created_at'], ['from', 'to', 'user', 'subject'], '-created_at');
+        $table = TableQuery::fromRequest($request, ['created_at'], ['from', 'to', 'user', 'subject', 'event'], '-created_at');
 
         $from = $this->day($table->filters['from'] ?? '');
         $to = $this->day($table->filters['to'] ?? '');
@@ -41,7 +41,8 @@ final class AuditController extends Controller implements HasMiddleware
             ->when($from instanceof CarbonImmutable, fn (Builder $q) => $q->where('created_at', '>=', $from?->startOfDay()))
             ->when($to instanceof CarbonImmutable, fn (Builder $q) => $q->where('created_at', '<=', $to?->endOfDay()))
             ->when(isset($table->filters['user']), fn (Builder $q) => $q->where('causer_type', User::class)->where('causer_id', (int) $table->filters['user']))
-            ->when(isset($table->filters['subject']), fn (Builder $q) => $q->where('subject_type', $table->filters['subject']));
+            ->when(isset($table->filters['subject']), fn (Builder $q) => $q->where('subject_type', $table->filters['subject']))
+            ->when(isset($table->filters['event']), fn (Builder $q) => $q->where('event', $table->filters['event']));
 
         $page = $table->applySort($query)->orderByDesc('id')->paginate($table->perPage, ['*'], 'page', $table->page);
 
@@ -49,6 +50,7 @@ final class AuditController extends Controller implements HasMiddleware
             'entries' => $this->rows($page->items()),
             'meta' => ['page' => $page->currentPage(), 'perPage' => $page->perPage(), 'total' => $page->total(), 'lastPage' => $page->lastPage()],
             'users' => User::query()->inCurrentTenant()->orderBy('name')->get(['id', 'name'])->map(static fn (User $u): array => ['id' => $u->id, 'name' => $u->name])->all(),
+            'events' => Activity::query()->where('tenant_id', $tenantId)->whereNotNull('event')->distinct()->orderBy('event')->pluck('event')->map(static fn (mixed $e): string => (string) $e)->values()->all(),
             'subjects' => Activity::query()->where('tenant_id', $tenantId)->whereNotNull('subject_type')->distinct()->orderBy('subject_type')->pluck('subject_type')
                 ->map(static fn (string $type): array => ['value' => $type, 'label' => class_basename($type)])->values()->all(),
         ]);
@@ -72,6 +74,7 @@ final class AuditController extends Controller implements HasMiddleware
                 'event' => $a->event,
                 'description' => $a->description,
                 'user' => $causer instanceof User ? $causer->name : null,
+                'ip' => is_string($a->properties['ip'] ?? null) ? $a->properties['ip'] : null,
                 'subject_type' => $a->subject_type !== null ? class_basename($a->subject_type) : null,
                 'subject_id' => $a->subject_id,
                 'properties' => collect($a->properties)->all(),

@@ -2,15 +2,17 @@
 <section class="card front mc mc-print" data-revealed="true" data-card="{{ $card['card_code'] }}">
     <div class="mc-face mc-front">
         <div class="mc-sheen"></div>
-        @if ($tenantLogo)<div class="mc-logo"><img src="{{ $tenantLogo }}" alt=""></div>@endif
         <div class="mc-top">
-            <div>
-                <div class="mc-tenant">{{ $tenantName }}</div>
-                <div class="mc-tagline">{{ __('cards.face.tagline') }}</div>
+            <div class="mc-brand">
+                @if ($tenantLogo)<div class="mc-logo"><img src="{{ $tenantLogo }}" alt=""></div>@endif
+                <div>
+                    <div class="mc-tenant">{{ $tenantName }}</div>
+                    <div class="mc-tagline">{{ __('cards.face.tagline') }}</div>
+                </div>
             </div>
             <div class="mc-marks">
-                <div class="mc-chip">CHIP</div>
-                <div class="mc-nfc" aria-hidden="true">))))</div>
+                <div class="mc-chip" aria-hidden="true"></div>
+                <div class="mc-nfc" aria-hidden="true"><span></span><span></span><span></span></div>
             </div>
         </div>
         <div class="mc-bottom">

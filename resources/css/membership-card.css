@@ -71,36 +71,38 @@
     align-items: flex-start;
     justify-content: space-between;
 }
-/*
- * Tenant logo: a small white rounded badge at the right edge, under the chip, in the space the
- * mockup leaves empty; 18% of the card height (54 mm x 0.18 = 9.7 mm), the logo contained inside.
- */
-.mc-logo {
-    position: absolute;
-    top: 19.5cqw;
-    right: 5.882cqw;
-    z-index: 10;
+/* Brand block: round white logo badge beside the business name (hidden when there is no logo). */
+.mc-brand {
     display: flex;
-    width: 11.33cqw;
-    height: 11.33cqw;
+    align-items: center;
+    gap: 2.4cqw;
+    min-width: 0;
+}
+.mc-logo {
+    flex: none;
+    display: flex;
+    width: 10cqw;
+    height: 10cqw;
     align-items: center;
     justify-content: center;
-    padding: 1.2cqw;
-    border: 2px solid var(--mc-border);
-    border-radius: 2.6cqw;
+    overflow: hidden;
+    padding: 0.9cqw;
+    border: 0.35cqw solid rgb(255 255 255 / 0.85);
+    border-radius: 9999px;
     background: var(--mc-white);
     box-shadow:
-        0 4px 10px -2px rgb(0 0 0 / 0.25),
-        0 1px 3px rgb(0 0 0 / 0.12);
+        0 0 0 0.35cqw rgb(255 255 255 / 0.18),
+        0 3px 8px -2px rgb(0 0 0 / 0.35);
 }
 .mc-logo img {
     display: block;
     width: 100%;
     height: 100%;
+    border-radius: 9999px;
     object-fit: contain;
 }
 .mc-print .mc-logo {
-    box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+    box-shadow: none;
 }
 .mc-tenant {
     color: var(--mc-primary-soft);
@@ -121,28 +123,66 @@
     align-items: center;
     gap: 2.353cqw;
 }
+/* EMV-style chip: brushed gold with the contact grooves, no text. */
 .mc-chip {
-    display: flex;
-    width: 9.412cqw;
-    height: 7.059cqw;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid color-mix(in srgb, var(--mc-warning) 50%, transparent);
-    border-radius: 1.176cqw;
-    background: linear-gradient(to bottom right, var(--mc-warning), var(--mc-warning));
-    color: var(--mc-black);
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 2.353cqw;
-    font-weight: 700;
-    box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+    position: relative;
+    width: 10cqw;
+    height: 7.4cqw;
+    overflow: hidden;
+    border: 0.25cqw solid rgb(120 80 10 / 0.55);
+    border-radius: 1.6cqw;
+    background:
+        linear-gradient(135deg, #f8e08e 0%, #d4a93a 38%, #f3d274 55%, #b88a24 100%);
+    box-shadow:
+        inset 0 0.3cqw 0.6cqw rgb(255 255 255 / 0.55),
+        inset 0 -0.3cqw 0.6cqw rgb(0 0 0 / 0.25),
+        0 1px 2px rgb(0 0 0 / 0.3);
 }
+.mc-chip::before,
+.mc-chip::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+/* horizontal grooves */
+.mc-chip::before {
+    background:
+        linear-gradient(rgb(90 60 10 / 0.6), rgb(90 60 10 / 0.6)) left 33% / 100% 0.25cqw no-repeat,
+        linear-gradient(rgb(90 60 10 / 0.6), rgb(90 60 10 / 0.6)) left 66% / 100% 0.25cqw no-repeat;
+}
+/* centre pad + vertical grooves */
+.mc-chip::after {
+    width: 40%;
+    height: 48%;
+    inset: auto;
+    top: 26%;
+    left: 30%;
+    border: 0.25cqw solid rgb(90 60 10 / 0.6);
+    border-radius: 0.9cqw;
+    box-shadow:
+        -3cqw 0 0 -1.3cqw rgb(90 60 10 / 0.6),
+        3cqw 0 0 -1.3cqw rgb(90 60 10 / 0.6);
+}
+/* Contactless mark: three nested arcs. */
 .mc-nfc {
-    color: var(--mc-primary-soft);
-    font-size: 4.118cqw;
-    font-weight: 700;
-    letter-spacing: -0.05em;
-    line-height: 1.43;
+    position: relative;
+    width: 5.2cqw;
+    height: 6.4cqw;
 }
+.mc-nfc span {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    border: 0.45cqw solid var(--mc-primary-soft);
+    border-color: transparent var(--mc-primary-soft) transparent transparent;
+    border-radius: 9999px;
+    transform: translateY(-50%);
+    opacity: 0.95;
+}
+.mc-nfc span:nth-child(1) { width: 2cqw; height: 2cqw; left: -0.6cqw; }
+.mc-nfc span:nth-child(2) { width: 3.8cqw; height: 3.8cqw; left: -1.6cqw; }
+.mc-nfc span:nth-child(3) { width: 5.6cqw; height: 5.6cqw; left: -2.6cqw; }
 .mc-bottom {
     position: relative;
     z-index: 10;

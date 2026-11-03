@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin;
 
+use App\Actions\Users\ResetStaffPin;
 use App\Models\User;
 use App\Support\Phone\BdPhone;
 use App\Support\Tenancy\TenantContext;
@@ -44,6 +45,7 @@ final class SaveUserRequest extends FormRequest
                 }
             }],
             'password' => [$editing ? 'nullable' : 'required', 'string', Password::default()],
+            'pin' => ['nullable', 'string', 'regex:'.ResetStaffPin::PATTERN],
             'is_active' => ['sometimes', 'boolean'],
             'must_change_password' => ['sometimes', 'boolean'],
             'role_ids' => ['required', 'array', 'min:1'],

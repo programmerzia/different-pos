@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\Users\DeleteRole;
 use App\Actions\Users\SaveRole;
+use App\Http\Controllers\Admin\Concerns\RendersStaffPage;
 use App\Http\Controllers\Concerns\TranslatesDomainErrors;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -21,7 +22,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
 
-/** /app/settings/roles: the permission matrix (users.manage via route middleware). */
+/** /app/settings/roles: the permission matrix, shown on the Users & Roles page (users.manage via route middleware). */
 final class RoleController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
@@ -29,23 +30,13 @@ final class RoleController extends Controller implements HasMiddleware
         return [new Middleware('can:users.manage')];
     }
 
+    use RendersStaffPage;
     use TranslatesDomainErrors;
 
-    public function index(): Response
+    /** Deep link to the matrix on the Users & Roles page (one page, mockup screen 20). */
+    public function index(Request $request): Response
     {
-        $roles = $this->roles()->with('permissions:id,name')->withCount('users')->orderBy('id')->get();
-
-        return Inertia::render('settings/roles', [
-            'permissions' => Permission::ALL,
-            'roles' => $roles->map(static fn (Role $r): array => [
-                'id' => (int) $r->id,
-                'name' => $r->name,
-                'is_system' => (bool) $r->getAttribute('is_system'),
-                'max_discount_pct_bp' => (int) $r->getAttribute('max_discount_pct_bp'),
-                'permissions' => $r->permissions->pluck('name')->values()->all(),
-                'users' => (int) $r->getAttribute('users_count'),
-            ])->values()->all(),
-        ]);
+        return $this->staffPage($request, ['focus' => 'roles']);
     }
 
     public function store(Request $request, SaveRole $save): RedirectResponse

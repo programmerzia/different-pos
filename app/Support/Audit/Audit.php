@@ -55,6 +55,17 @@ final class Audit
         };
         $activity->setAttribute('tenant_id', $tenantId);
 
+        // The request's IP is the "Terminal / IP" of the audit screen; console and queue work (no matched route) has none.
+        $request = app()->bound('request') ? request() : null;
+        $ip = $request?->route() !== null ? $request->ip() : null;
+        if ($ip !== null) {
+            $properties = $activity->getAttribute('properties');
+            $properties = $properties instanceof Collection ? $properties->all() : (array) $properties;
+            if (! isset($properties['ip'])) {
+                $activity->setAttribute('properties', $properties + ['ip' => $ip]);
+            }
+        }
+
         foreach (['properties', 'attribute_changes'] as $column) {
             $value = $activity->getAttribute($column);
             if ($value !== null) {

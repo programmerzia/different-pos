@@ -10,13 +10,16 @@ use Illuminate\Support\Facades\Crypt;
 
 /**
  * The tenant's SMS configuration, read from tenants.settings['sms']:
- * {driver, sender_id, sid, base_url, api_token, templates: {key: {enabled, body}}}.
+ * {driver, sender_id, sid, base_url, api_token, cost_per_segment (paisa), templates: {key: {enabled, body}}}.
  * The api_token is stored encrypted (Crypt::encryptString) inside that array and only decrypted here;
  * it never reaches a page, a log or an audit row (Audit::FORBIDDEN lists api_token).
  */
 final readonly class SmsSettings
 {
     public const array DRIVERS = ['null', 'log', 'ssl_wireless'];
+
+    /** Default price of one SMS segment in paisa (৳0.35), used for the composer's cost estimate only. */
+    public const int DEFAULT_COST_PER_SEGMENT = 35;
 
     /** @param  array<string, array{enabled: bool, body: string}>  $templates */
     public function __construct(
@@ -26,6 +29,7 @@ final readonly class SmsSettings
         public string $baseUrl,
         public ?string $apiToken,
         public array $templates,
+        public int $costPerSegment = self::DEFAULT_COST_PER_SEGMENT,
     ) {}
 
     public static function fromTenant(Tenant $tenant): self
@@ -49,6 +53,7 @@ final readonly class SmsSettings
             is_string($raw['base_url'] ?? null) ? $raw['base_url'] : '',
             self::decrypt($raw['api_token'] ?? null),
             $templates,
+            is_int($raw['cost_per_segment'] ?? null) && $raw['cost_per_segment'] >= 0 ? $raw['cost_per_segment'] : self::DEFAULT_COST_PER_SEGMENT,
         );
     }
 

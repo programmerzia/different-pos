@@ -1080,9 +1080,14 @@ export default function CardsIndex({
                             </div>
                             {view.mode === 'gallery' ? (
                                 <ul
-                                    aria-label={t('cards.studio.gallery_title', {
-                                        count: digits.n(view.members.length),
-                                    })}
+                                    aria-label={t(
+                                        'cards.studio.gallery_title',
+                                        {
+                                            count: digits.n(
+                                                view.members.length,
+                                            ),
+                                        },
+                                    )}
                                     data-testid="card-gallery"
                                     className="grid w-full grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-4"
                                 >
@@ -1290,9 +1295,7 @@ export default function CardsIndex({
                                                                     : undefined
                                                             }
                                                             onClick={() =>
-                                                                showInGallery(
-                                                                    m,
-                                                                )
+                                                                showInGallery(m)
                                                             }
                                                             onKeyDown={(e) => {
                                                                 if (

@@ -137,15 +137,18 @@ export default function PurchaseShow({
                 />
 
                 <section aria-labelledby="pi-title" className="grid gap-2">
-                    <h2 id="pi-title" className="text-xl font-semibold">
+                    <h2
+                        id="pi-title"
+                        className="text-xs font-bold tracking-wider uppercase"
+                    >
                         {t('purchases.items')}
                     </h2>
-                    <div className="overflow-x-auto rounded-lg border">
+                    <div className="overflow-x-auto rounded-xl border bg-surface shadow-xs">
                         <table className="w-full text-sm">
                             <caption className="sr-only">
                                 {t('purchases.items')}
                             </caption>
-                            <thead className="bg-muted text-left">
+                            <thead className="bg-surface-sunken text-left text-[11px] font-semibold text-muted-foreground">
                                 <tr>
                                     <th scope="col" className="px-3 py-2">
                                         {t('products.product')}
@@ -215,10 +218,13 @@ export default function PurchaseShow({
                         aria-labelledby="pb-title"
                         className="grid content-start gap-2"
                     >
-                        <h2 id="pb-title" className="text-xl font-semibold">
+                        <h2
+                            id="pb-title"
+                            className="text-xs font-bold tracking-wider uppercase"
+                        >
                             {t('purchases.batches')}
                         </h2>
-                        <ul className="divide-y rounded-lg border text-sm">
+                        <ul className="divide-y rounded-xl border bg-surface text-sm shadow-xs">
                             {batches.map((b) => (
                                 <li
                                     key={b.id}
@@ -240,10 +246,10 @@ export default function PurchaseShow({
                         </ul>
                         {payments.length > 0 ? (
                             <>
-                                <h2 className="mt-4 text-xl font-semibold">
+                                <h2 className="mt-4 text-xs font-bold tracking-wider uppercase">
                                     {t('purchases.payments')}
                                 </h2>
-                                <ul className="divide-y rounded-lg border text-sm">
+                                <ul className="divide-y rounded-xl border bg-surface text-sm shadow-xs">
                                     {payments.map((p) => (
                                         <li
                                             key={p.id}
@@ -262,7 +268,7 @@ export default function PurchaseShow({
                             </>
                         ) : null}
                     </section>
-                    <dl className="grid content-start gap-2 rounded-lg border p-4 text-sm">
+                    <dl className="grid content-start gap-2 rounded-xl border bg-surface p-4 text-sm shadow-xs">
                         <div className="flex justify-between">
                             <dt>{t('purchases.subtotal')}</dt>
                             <dd className="num">

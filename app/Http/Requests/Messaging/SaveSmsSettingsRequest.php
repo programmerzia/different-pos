@@ -30,6 +30,7 @@ final class SaveSmsSettingsRequest extends FormRequest
             'base_url' => ['nullable', 'url:https', 'max:200'],
             'api_token' => ['nullable', 'string', 'max:300'],
             'clear_token' => ['nullable', 'boolean'],
+            'cost_per_segment' => ['nullable', 'integer', 'min:0', 'max:100000'],
         ];
         foreach (Templates::keys() as $key) {
             $rules["templates.$key.enabled"] = ['required', 'boolean'];

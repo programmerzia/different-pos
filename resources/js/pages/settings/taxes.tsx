@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
+import AppLayout from '@/layouts/app-layout';
+import SettingsLayout from '@/layouts/settings/layout';
 
 type Tax = {
     id: number;
@@ -81,6 +83,7 @@ export default function Taxes({ taxes }: { taxes: Tax[] }) {
     return (
         <AdminPage
             title={t('taxes.title')}
+            subtitle={t('settings_hub.desc_long.tax_vat')}
             newLabel={t('taxes.new')}
             onNew={() => setEditing('new')}
         >
@@ -159,3 +162,5 @@ export default function Taxes({ taxes }: { taxes: Tax[] }) {
         </AdminPage>
     );
 }
+
+Taxes.layout = [AppLayout, SettingsLayout];

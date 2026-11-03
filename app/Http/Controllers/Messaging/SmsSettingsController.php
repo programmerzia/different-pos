@@ -50,6 +50,7 @@ final class SmsSettingsController extends Controller
                 'sid' => $settings->sid,
                 'base_url' => $settings->baseUrl,
                 'has_token' => $settings->apiToken !== null,
+                'cost_per_segment' => $settings->costPerSegment,
                 'templates' => $templates,
             ],
         ]);
@@ -61,7 +62,7 @@ final class SmsSettingsController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401);
 
-        /** @var array{driver: string, sender_id?: string|null, sid?: string|null, base_url?: string|null, api_token?: string|null, clear_token?: bool, templates?: array<string, array{enabled?: bool, body?: string|null}>} $data */
+        /** @var array{driver: string, sender_id?: string|null, sid?: string|null, base_url?: string|null, api_token?: string|null, clear_token?: bool, cost_per_segment?: int|null, templates?: array<string, array{enabled?: bool, body?: string|null}>} $data */
         $data = $request->validated();
         $action->handle($user, $data);
 

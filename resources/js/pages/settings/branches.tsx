@@ -3,10 +3,7 @@ import { useState } from 'react';
 import { AdminPage } from '@/components/admin/admin-page';
 import { CheckField } from '@/components/admin/check-field';
 import { RecordDialog } from '@/components/admin/record-dialog';
-import {
-    SimpleTable,
-    type SimpleColumn,
-} from '@/components/admin/simple-table';
+import { EmptyState } from '@/components/empty-state';
 import { FormField } from '@/components/form-field';
 import { MoneyInput } from '@/components/money-input';
 import { NativeSelect } from '@/components/native-select';
@@ -15,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
+import AppLayout from '@/layouts/app-layout';
+import SettingsLayout from '@/layouts/settings/layout';
 
 type BranchRow = {
     id: number;
@@ -39,57 +38,6 @@ export default function Branches({ branches }: { branches: BranchRow[] }) {
     const { t } = useT();
     const digits = useDigits();
     const [editing, setEditing] = useState<BranchRow | 'new' | null>(null);
-
-    const columns: SimpleColumn<BranchRow>[] = [
-        {
-            id: 'code',
-            headerKey: 'admin.code',
-            cell: (r) => <span className="font-mono">{r.code}</span>,
-        },
-        {
-            id: 'name',
-            headerKey: 'admin.name',
-            cell: (r) => <span className="font-medium">{r.name}</span>,
-        },
-        {
-            id: 'phone',
-            headerKey: 'admin.phone',
-            cell: (r) => (r.phone ? digits.n(r.phone) : '-'),
-        },
-        {
-            id: 'users',
-            headerKey: 'branches.staff',
-            numeric: true,
-            cell: (r) => digits.n(r.users),
-        },
-        {
-            id: 'status',
-            headerKey: 'admin.status',
-            cell: (r) => (
-                <StatusBadge
-                    status={r.is_active ? 'active' : 'inactive'}
-                    tone={r.is_active ? 'success' : 'neutral'}
-                    label={t(r.is_active ? 'admin.active' : 'admin.inactive')}
-                />
-            ),
-        },
-        {
-            id: 'edit',
-            headerKey: 'admin.actions',
-            cell: (r) => (
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="min-h-11 md:min-h-8"
-                    onClick={() => setEditing(r)}
-                >
-                    <Pencil aria-hidden="true" />
-                    {t('actions.edit')}
-                </Button>
-            ),
-        },
-    ];
 
     const initial =
         editing && editing !== 'new'
@@ -123,14 +71,68 @@ export default function Branches({ branches }: { branches: BranchRow[] }) {
     return (
         <AdminPage
             title={t('branches.title')}
+            subtitle={t('settings_hub.desc_long.branches')}
             newLabel={t('branches.new')}
             onNew={() => setEditing('new')}
         >
-            <SimpleTable
-                caption={t('branches.title')}
-                rows={branches}
-                columns={columns}
-            />
+            {branches.length === 0 ? (
+                <EmptyState title={t('table.empty')} />
+            ) : (
+                <ul className="space-y-2.5" aria-label={t('branches.title')}>
+                    {branches.map((b) => (
+                        <li
+                            key={b.id}
+                            className="flex items-center justify-between gap-3 rounded-xl border bg-surface-sunken p-3.5 text-xs"
+                        >
+                            <div className="flex min-w-0 items-center gap-3">
+                                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-soft font-mono text-xs font-bold text-primary">
+                                    {b.code}
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="font-bold text-foreground">
+                                        {b.name}
+                                    </div>
+                                    <div className="truncate text-[11px] text-muted-foreground">
+                                        {[
+                                            b.address,
+                                            b.phone
+                                                ? `${t('admin.phone')}: ${digits.n(b.phone)}`
+                                                : null,
+                                            t('branches.staff_count', {
+                                                n: digits.n(b.users),
+                                            }),
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' · ')}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-3">
+                                <StatusBadge
+                                    status={b.is_active ? 'active' : 'inactive'}
+                                    tone={b.is_active ? 'success' : 'neutral'}
+                                    label={t(
+                                        b.is_active
+                                            ? 'admin.active'
+                                            : 'admin.inactive',
+                                    )}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 bg-surface text-[11px] [@media(pointer:coarse)]:min-h-11"
+                                    aria-label={`${t('actions.edit')}: ${b.name}`}
+                                    onClick={() => setEditing(b)}
+                                >
+                                    <Pencil aria-hidden="true" />
+                                    {t('actions.edit')}
+                                </Button>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            )}
             {editing ? (
                 <RecordDialog
                     key={editing === 'new' ? 'new' : editing.id}
@@ -317,3 +319,5 @@ export default function Branches({ branches }: { branches: BranchRow[] }) {
         </AdminPage>
     );
 }
+
+Branches.layout = [AppLayout, SettingsLayout];

@@ -1,26 +1,28 @@
-import { PageHeader } from '@/components/page-header';
 import { Head, useForm } from '@inertiajs/react';
-import { FormSection } from '@/components/form-section';
+import { MessageSquare } from 'lucide-react';
+import { useCallback } from 'react';
+import { HubCard, HubSection, HubToggle } from '@/components/admin/hub-section';
+import { FormField } from '@/components/form-field';
 import InputError from '@/components/input-error';
+import { MoneyInput } from '@/components/money-input';
+import { NativeSelect } from '@/components/native-select';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useT } from '@/i18n';
+import AppLayout from '@/layouts/app-layout';
+import SettingsLayout, { useSettingsSave } from '@/layouts/settings/layout';
 import type { SmsSettings } from '@/types/messaging';
 
 type Props = { drivers: string[]; sms: SmsSettings };
 
 type TemplateData = Record<string, { enabled: boolean; body: string }>;
 
+/**
+ * Settings hub → Messaging Providers (mockup "SMS & WhatsApp Messaging Gateways"): provider, sender,
+ * credentials (the token is never sent back), the per-part price the composer's estimate uses, the
+ * automatic templates and a test SMS. Saved by the hub's "Save Changes (Ctrl+S)".
+ */
 export default function SmsSettingsPage({ drivers, sms }: Props) {
     const { t } = useT();
     const form = useForm({
@@ -30,6 +32,7 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
         base_url: sms.base_url,
         api_token: '',
         clear_token: false,
+        cost_per_segment: sms.cost_per_segment,
         templates: Object.fromEntries(
             sms.templates.map((tpl) => [
                 tpl.key,
@@ -39,23 +42,26 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
     });
     const test = useForm({ phone: '' });
     const real = form.data.driver === 'ssl_wireless';
+    const errors = form.errors as Record<string, string | undefined>;
 
-    const save = () => form.put('/app/settings/sms', { preserveScroll: true });
+    const { put, reset, clearErrors } = form;
+    const save = useCallback(
+        () => put('/app/settings/sms', { preserveScroll: true }),
+        [put],
+    );
+    const discard = useCallback(() => {
+        reset();
+        clearErrors();
+    }, [reset, clearErrors]);
+    useSettingsSave({
+        save,
+        dirty: form.isDirty,
+        processing: form.processing,
+        discard,
+    });
+
     const sendTest = () =>
         test.post('/app/settings/sms/test', { preserveScroll: true });
-
-    useHotkeys('form', [
-        {
-            id: 'form.save',
-            keys: 'mod+s',
-            labelKey: 'sms.save',
-            allowInInput: true,
-            handler: (event) => {
-                event.preventDefault();
-                save();
-            },
-        },
-    ]);
 
     const setTemplate = (
         key: string,
@@ -70,11 +76,6 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
         <>
             <Head title={t('sms.settings.title')} />
             <div className="space-y-8">
-                <PageHeader
-                    title={t('sms.settings.title')}
-                    subtitle={t('sms.settings.subtitle')}
-                />
-
                 <form
                     className="space-y-8"
                     onSubmit={(event) => {
@@ -82,78 +83,111 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                         save();
                     }}
                 >
-                    <FormSection
-                        title={t('sms.provider.title')}
-                        description={t('sms.provider.hint')}
+                    <HubSection
+                        title={t('sms.settings.hub_title')}
+                        subtitle={t('sms.settings.subtitle')}
                     >
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="driver">
-                                {t('sms.provider.label')}
-                            </Label>
-                            <Select
-                                value={form.data.driver}
-                                onValueChange={(v) => form.setData('driver', v)}
-                            >
-                                <SelectTrigger
-                                    id="driver"
-                                    className="min-h-11 md:min-h-9"
+                        <HubCard>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <FormField
+                                    label={t('sms.provider.label')}
+                                    error={errors['driver']}
                                 >
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {drivers.map((d) => (
-                                        <SelectItem key={d} value={d}>
-                                            {t(`sms.driver.${d}`)}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <InputError message={form.errors.driver} />
-                        </div>
-
-                        {real ? (
-                            <>
-                                <div className="grid gap-1.5">
-                                    <Label htmlFor="sid">
-                                        {t('sms.provider.sid')}
-                                    </Label>
-                                    <Input
-                                        id="sid"
-                                        className="min-h-11 md:min-h-9"
-                                        value={form.data.sid}
-                                        onChange={(e) =>
-                                            form.setData('sid', e.target.value)
-                                        }
-                                    />
-                                    <InputError message={form.errors.sid} />
-                                </div>
-                                <div className="grid gap-1.5">
-                                    <Label htmlFor="api_token">
-                                        {t('sms.provider.token')}
-                                    </Label>
-                                    <Input
-                                        id="api_token"
-                                        type="password"
-                                        autoComplete="off"
-                                        className="min-h-11 md:min-h-9"
-                                        value={form.data.api_token}
-                                        placeholder={
-                                            sms.has_token
-                                                ? t('sms.provider.token_kept')
-                                                : ''
-                                        }
+                                    <NativeSelect
+                                        value={form.data.driver}
                                         onChange={(e) =>
                                             form.setData(
-                                                'api_token',
+                                                'driver',
+                                                e.target.value,
+                                            )
+                                        }
+                                    >
+                                        {drivers.map((d) => (
+                                            <option key={d} value={d}>
+                                                {t(`sms.driver.${d}`)}
+                                            </option>
+                                        ))}
+                                    </NativeSelect>
+                                </FormField>
+                                <FormField
+                                    label={t('sms.provider.sender')}
+                                    error={errors['sender_id']}
+                                >
+                                    <Input
+                                        className="font-mono font-bold"
+                                        value={form.data.sender_id}
+                                        onChange={(e) =>
+                                            form.setData(
+                                                'sender_id',
                                                 e.target.value,
                                             )
                                         }
                                     />
-                                    <InputError
-                                        message={form.errors.api_token}
-                                    />
+                                </FormField>
+                            </div>
+
+                            {real ? (
+                                <>
+                                    <div className="grid gap-3 sm:grid-cols-2">
+                                        <FormField
+                                            label={t('sms.provider.sid')}
+                                            error={errors['sid']}
+                                        >
+                                            <Input
+                                                className="font-mono"
+                                                value={form.data.sid}
+                                                onChange={(e) =>
+                                                    form.setData(
+                                                        'sid',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </FormField>
+                                        <FormField
+                                            label={t('sms.provider.base_url')}
+                                            error={errors['base_url']}
+                                        >
+                                            <Input
+                                                inputMode="url"
+                                                value={form.data.base_url}
+                                                placeholder="https://smsplus.sslwireless.com"
+                                                onChange={(e) =>
+                                                    form.setData(
+                                                        'base_url',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </FormField>
+                                    </div>
+                                    <FormField
+                                        label={t('sms.provider.token')}
+                                        hint={t('sms.provider.hint')}
+                                        error={errors['api_token']}
+                                    >
+                                        <Input
+                                            type="password"
+                                            autoComplete="off"
+                                            className="font-mono"
+                                            value={form.data.api_token}
+                                            placeholder={
+                                                sms.has_token
+                                                    ? t(
+                                                          'sms.provider.token_kept',
+                                                      )
+                                                    : ''
+                                            }
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    'api_token',
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </FormField>
                                     {sms.has_token ? (
-                                        <label className="flex items-center gap-2 text-sm">
+                                        <label className="flex min-h-8 items-center gap-2 text-xs [@media(pointer:coarse)]:min-h-11">
                                             <Checkbox
                                                 checked={form.data.clear_token}
                                                 onCheckedChange={(v) =>
@@ -166,181 +200,158 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                                             {t('sms.provider.token_clear')}
                                         </label>
                                     ) : null}
-                                </div>
-                                <div className="grid gap-1.5">
-                                    <Label htmlFor="base_url">
-                                        {t('sms.provider.base_url')}
-                                    </Label>
-                                    <Input
-                                        id="base_url"
-                                        inputMode="url"
-                                        className="min-h-11 md:min-h-9"
-                                        value={form.data.base_url}
-                                        placeholder="https://smsplus.sslwireless.com"
-                                        onChange={(e) =>
+                                </>
+                            ) : null}
+
+                            <div className="grid gap-3 border-t pt-2 sm:grid-cols-2">
+                                <FormField
+                                    label={t('sms.provider.cost')}
+                                    hint={t('sms.provider.cost_hint')}
+                                    error={errors['cost_per_segment']}
+                                >
+                                    <MoneyInput
+                                        value={form.data.cost_per_segment}
+                                        onChange={(v) =>
                                             form.setData(
-                                                'base_url',
-                                                e.target.value,
+                                                'cost_per_segment',
+                                                v ?? 0,
                                             )
                                         }
                                     />
-                                    <InputError
-                                        message={form.errors.base_url}
-                                    />
-                                </div>
-                            </>
-                        ) : null}
+                                </FormField>
+                            </div>
+                        </HubCard>
+                    </HubSection>
 
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="sender_id">
-                                {t('sms.provider.sender')}
-                            </Label>
-                            <Input
-                                id="sender_id"
-                                className="min-h-11 md:min-h-9"
-                                value={form.data.sender_id}
-                                onChange={(e) =>
-                                    form.setData('sender_id', e.target.value)
-                                }
-                            />
-                            <InputError message={form.errors.sender_id} />
-                        </div>
-                    </FormSection>
+                    <HubSection
+                        title={t('sms.templates.title')}
+                        subtitle={t('sms.templates.hint')}
+                    >
+                        <div className="space-y-3">
+                            {sms.templates.map((tpl) => {
+                                const data = form.data.templates[tpl.key]!;
 
-                    <section className="max-w-180 space-y-4">
-                        <div>
-                            <h2 className="text-xl font-semibold">
-                                {t('sms.templates.title')}
-                            </h2>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                {t('sms.templates.hint')}
-                            </p>
-                        </div>
-                        {sms.templates.map((tpl) => {
-                            const data = form.data.templates[tpl.key]!;
-
-                            return (
-                                <div
-                                    key={tpl.key}
-                                    className="space-y-2 rounded-lg border bg-card p-4"
-                                >
-                                    <div className="flex flex-wrap items-center gap-3">
-                                        <Label
-                                            htmlFor={`tpl-${tpl.key}`}
-                                            className="mr-auto text-base font-medium"
-                                        >
-                                            {t(`sms.template.${tpl.key}`)}
-                                        </Label>
-                                        <label className="flex min-h-11 items-center gap-2 text-sm md:min-h-8">
-                                            <Checkbox
-                                                checked={data.enabled}
-                                                onCheckedChange={(v) =>
-                                                    setTemplate(tpl.key, {
-                                                        enabled: v === true,
-                                                    })
-                                                }
-                                            />
-                                            {t('sms.templates.enabled')}
-                                        </label>
-                                    </div>
-                                    <textarea
-                                        id={`tpl-${tpl.key}`}
-                                        rows={3}
-                                        maxLength={480}
-                                        value={data.body}
-                                        onChange={(e) =>
-                                            setTemplate(tpl.key, {
-                                                body: e.target.value,
-                                            })
-                                        }
-                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                                    />
-                                    <InputError
-                                        message={
-                                            form.errors[
-                                                `templates.${tpl.key}.body` as keyof typeof form.errors
-                                            ]
-                                        }
-                                    />
-                                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                        <span>
-                                            {t('sms.templates.placeholders')}
-                                        </span>
-                                        {tpl.placeholders.map((p) => (
-                                            <code
-                                                key={p}
-                                                className="rounded-sm bg-muted px-1.5 py-0.5"
-                                            >{`{${p}}`}</code>
-                                        ))}
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="ml-auto min-h-11 md:min-h-8"
-                                            onClick={() =>
+                                return (
+                                    <HubCard
+                                        key={tpl.key}
+                                        className="space-y-2"
+                                    >
+                                        <HubToggle
+                                            label={t(`sms.template.${tpl.key}`)}
+                                            description={t(
+                                                'sms.templates.enabled',
+                                            )}
+                                            checked={data.enabled}
+                                            onChange={(v) =>
                                                 setTemplate(tpl.key, {
-                                                    body: tpl.default,
+                                                    enabled: v,
                                                 })
                                             }
-                                        >
-                                            {t('sms.templates.reset')}
-                                        </Button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </section>
-
-                    <Button
-                        type="submit"
-                        disabled={form.processing}
-                        className="min-h-11 md:min-h-9"
-                    >
+                                        />
+                                        <textarea
+                                            aria-label={t(
+                                                `sms.template.${tpl.key}`,
+                                            )}
+                                            rows={3}
+                                            maxLength={480}
+                                            value={data.body}
+                                            onChange={(e) =>
+                                                setTemplate(tpl.key, {
+                                                    body: e.target.value,
+                                                })
+                                            }
+                                            className="w-full rounded-lg border border-border bg-surface p-2 font-mono text-xs leading-relaxed text-foreground outline-none focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                        />
+                                        <InputError
+                                            message={
+                                                errors[
+                                                    `templates.${tpl.key}.body`
+                                                ]
+                                            }
+                                        />
+                                        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                                            <span>
+                                                {t(
+                                                    'sms.templates.placeholders',
+                                                )}
+                                            </span>
+                                            {tpl.placeholders.map((p) => (
+                                                <code
+                                                    key={p}
+                                                    className="rounded border bg-surface px-1.5 py-0.5 font-mono text-[10px] text-foreground"
+                                                >{`{${p}}`}</code>
+                                            ))}
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="ml-auto h-7 text-[11px] [@media(pointer:coarse)]:min-h-11"
+                                                onClick={() =>
+                                                    setTemplate(tpl.key, {
+                                                        body: tpl.default,
+                                                    })
+                                                }
+                                            >
+                                                {t('sms.templates.reset')}
+                                            </Button>
+                                        </div>
+                                    </HubCard>
+                                );
+                            })}
+                        </div>
+                    </HubSection>
+                    <button type="submit" className="sr-only" tabIndex={-1}>
                         {t('sms.save')}
-                    </Button>
+                    </button>
                 </form>
 
-                <FormSection
+                <HubSection
                     title={t('sms.test.title')}
-                    description={t('sms.test.hint')}
+                    subtitle={t('sms.test.hint')}
                 >
-                    <div className="grid gap-1.5">
-                        <Label htmlFor="test-phone">
-                            {t('sms.test.phone')}
-                        </Label>
-                        <Input
-                            id="test-phone"
-                            type="tel"
-                            inputMode="tel"
-                            autoComplete="off"
-                            className="min-h-11 md:min-h-9"
-                            value={test.data.phone}
-                            placeholder="01XXXXXXXXX"
-                            onChange={(e) =>
-                                test.setData('phone', e.target.value)
-                            }
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    sendTest();
+                    <HubCard>
+                        <div className="flex flex-wrap items-end gap-3">
+                            <FormField
+                                label={t('sms.test.phone')}
+                                error={test.errors.phone}
+                                className="w-60"
+                            >
+                                <Input
+                                    type="tel"
+                                    inputMode="tel"
+                                    autoComplete="off"
+                                    className="font-mono"
+                                    value={test.data.phone}
+                                    placeholder="01XXXXXXXXX"
+                                    onChange={(e) =>
+                                        test.setData('phone', e.target.value)
+                                    }
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            sendTest();
+                                        }
+                                    }}
+                                />
+                            </FormField>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="bg-surface"
+                                disabled={
+                                    test.processing || test.data.phone === ''
                                 }
-                            }}
-                        />
-                        <InputError message={test.errors.phone} />
-                    </div>
-                    <div className="flex items-end">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            disabled={test.processing || test.data.phone === ''}
-                            className="min-h-11 md:min-h-9"
-                            onClick={sendTest}
-                        >
-                            {t('sms.test.send')}
-                        </Button>
-                    </div>
-                </FormSection>
+                                onClick={sendTest}
+                            >
+                                <MessageSquare aria-hidden="true" />
+                                {t('sms.test.send')}
+                            </Button>
+                        </div>
+                    </HubCard>
+                </HubSection>
             </div>
         </>
     );
 }
+
+SmsSettingsPage.layout = [AppLayout, SettingsLayout];

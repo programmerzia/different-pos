@@ -32,12 +32,13 @@ it('shows every permission and this tenant\'s roles only', function (): void {
     adminActor(); // another tenant
 
     $this->actingAs($owner)->get('/app/settings/roles')->assertOk()->assertInertia(fn (Assert $page) => $page
-        ->component('settings/roles')
-        ->where('permissions', Permission::ALL)
-        ->has('roles', 5)
-        ->where('roles.0.name', SystemRoles::OWNER)
-        ->where('roles.0.is_system', true)
-        ->where('roles.0.users', 1));
+        ->component('settings/users/index')
+        ->where('focus', 'roles')
+        ->where('matrix.permissions', Permission::ALL)
+        ->has('matrix.roles', 5)
+        ->where('matrix.roles.0.name', SystemRoles::OWNER)
+        ->where('matrix.roles.0.is_system', true)
+        ->where('matrix.roles.0.users', 1));
 });
 
 it('creates a custom role and edits its permissions and discount cap', function (): void {

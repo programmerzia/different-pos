@@ -13,6 +13,8 @@ import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useT } from '@/i18n';
+import AppLayout from '@/layouts/app-layout';
+import SettingsLayout from '@/layouts/settings/layout';
 
 type Branch = { id: number; code: string; name: string };
 type RegisterRow = {
@@ -88,6 +90,7 @@ export default function Registers({
     return (
         <AdminPage
             title={t('registers.title')}
+            subtitle={t('settings_hub.desc_long.registers_devices')}
             newLabel={t('registers.new')}
             onNew={() => setEditing('new')}
             actions={
@@ -201,3 +204,5 @@ export default function Registers({
         </AdminPage>
     );
 }
+
+Registers.layout = [AppLayout, SettingsLayout];

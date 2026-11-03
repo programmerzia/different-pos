@@ -15,11 +15,13 @@ use App\Support\Tenancy\TenantContext;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
-/** Creates or updates a staff user of the current tenant, with their roles and branches. */
+/** Creates or updates a staff user of the current tenant, with their roles, branches and (optionally) a new register PIN. */
 final readonly class SaveUser
 {
+    public function __construct(private ResetStaffPin $pins) {}
+
     /**
-     * @param  array{name?: string, username?: string|null, email?: string|null, phone?: string|null, password?: string|null, is_active?: bool, must_change_password?: bool, role_ids?: list<int>, branch_ids?: list<int>}  $data
+     * @param  array{name?: string, username?: string|null, email?: string|null, phone?: string|null, password?: string|null, pin?: string|null, is_active?: bool, must_change_password?: bool, role_ids?: list<int>, branch_ids?: list<int>}  $data
      */
     public function handle(User $actor, array $data, ?User $user = null): User
     {
@@ -71,6 +73,11 @@ final readonly class SaveUser
             $branchCodes = $this->syncBranches($user, $data['branch_ids'] ?? null);
 
             Audit::log($created ? 'user.created' : 'user.updated', $user, array_filter(['roles' => $roleNames, 'branches' => $branchCodes], static fn ($v): bool => $v !== null), $actor);
+
+            $pin = $this->blank($data['pin'] ?? null);
+            if ($pin !== null) {
+                $this->pins->handle($actor, $user, $pin);
+            }
 
             return $user;
         });

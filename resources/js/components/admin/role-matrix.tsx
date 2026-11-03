@@ -1,17 +1,16 @@
 import { router } from '@inertiajs/react';
-import { Save, Trash2 } from 'lucide-react';
+import { Check, Plus, Save, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { AdminPage } from '@/components/admin/admin-page';
 import { RecordDialog } from '@/components/admin/record-dialog';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { FormField } from '@/components/form-field';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
+import { cn } from '@/lib/utils';
 
-type Role = {
+export type MatrixRole = {
     id: number;
     name: string;
     is_system: boolean;
@@ -26,42 +25,49 @@ const sameSet = (a: string[], b: string[]) =>
     a.length === b.length && a.every((p) => b.includes(p));
 
 /** Basis points <-> a percent text with up to two decimals ("12.5"). */
-const toPercent = (bp: number) => String(bp / 100);
-const fromPercent = (text: string) =>
+export const toPercent = (bp: number) => String(bp / 100);
+export const fromPercent = (text: string) =>
     Math.min(
         10000,
         Math.max(0, Math.round(Number.parseFloat(text || '0') * 100) || 0),
     );
 
-export default function Roles({
+/** Permissions grouped by their prefix ("sales.void" → "sales"), in Permission::ALL order. */
+export function groupPermissions(permissions: string[]): [string, string[]][] {
+    const map = new Map<string, string[]>();
+    for (const name of permissions) {
+        const group = name.split('.')[0] ?? name;
+        map.set(group, [...(map.get(group) ?? []), name]);
+    }
+
+    return [...map.entries()];
+}
+
+/**
+ * Mockup "Granular Operational Permissions Matrix": permission rows (plain-language label + code) × role
+ * columns with the ✓ / — marks. Each cell is a toggle (Space/Enter); the Owner column is locked on.
+ * A role's changes are saved with its own Save button; custom roles can be added and, unused, deleted.
+ */
+export function RoleMatrix({
     permissions,
     roles,
 }: {
     permissions: string[];
-    roles: Role[];
+    roles: MatrixRole[];
 }) {
     const { t } = useT();
     const digits = useDigits();
     const [drafts, setDrafts] = useState<Record<number, Draft>>({});
     const [creating, setCreating] = useState(false);
-    const [deleting, setDeleting] = useState<Role | null>(null);
+    const [deleting, setDeleting] = useState<MatrixRole | null>(null);
+    const groups = useMemo(() => groupPermissions(permissions), [permissions]);
 
-    const groups = useMemo(() => {
-        const map = new Map<string, string[]>();
-        for (const name of permissions) {
-            const group = name.split('.')[0] ?? name;
-            map.set(group, [...(map.get(group) ?? []), name]);
-        }
-
-        return [...map.entries()];
-    }, [permissions]);
-
-    const draftOf = (role: Role): Draft =>
+    const draftOf = (role: MatrixRole): Draft =>
         drafts[role.id] ?? {
             permissions: role.permissions,
             max_discount_pct_bp: role.max_discount_pct_bp,
         };
-    const dirty = (role: Role) => {
+    const dirty = (role: MatrixRole) => {
         const d = drafts[role.id];
 
         return (
@@ -71,9 +77,10 @@ export default function Roles({
         );
     };
     // The Owner always holds every permission.
-    const locked = (role: Role) => role.is_system && role.name === 'Owner';
+    const locked = (role: MatrixRole) =>
+        role.is_system && role.name === 'Owner';
 
-    const toggle = (role: Role, permission: string) => {
+    const toggle = (role: MatrixRole, permission: string) => {
         const current = draftOf(role);
         const next = current.permissions.includes(permission)
             ? current.permissions.filter((p) => p !== permission)
@@ -81,7 +88,7 @@ export default function Roles({
         setDrafts({ ...drafts, [role.id]: { ...current, permissions: next } });
     };
 
-    const save = (role: Role) => {
+    const save = (role: MatrixRole) => {
         const d = draftOf(role);
         router.put(
             `/app/settings/roles/${role.id}`,
@@ -97,32 +104,59 @@ export default function Roles({
         );
     };
 
+    const cell = 'px-2 py-2 text-center';
+    const rowHead = 'sticky left-0 z-[1] bg-surface px-3 py-2 text-left';
+
     return (
-        <AdminPage
-            title={t('roles.title')}
-            newLabel={t('roles.new')}
-            onNew={() => setCreating(true)}
+        <section
+            id="roles"
+            tabIndex={-1}
+            aria-labelledby="roles-title"
+            className="scroll-mt-4 overflow-hidden rounded-xl border bg-surface shadow-xs outline-none"
         >
-            <p className="text-sm text-muted-foreground">{t('roles.hint')}</p>
-            <div className="overflow-x-auto rounded-lg border border-border">
-                <table className="w-full text-sm">
-                    <caption className="sr-only">{t('roles.title')}</caption>
-                    <thead className="bg-muted">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-surface-sunken p-3">
+                <div>
+                    <h2
+                        id="roles-title"
+                        className="text-xs font-bold text-foreground"
+                    >
+                        {t('roles.matrix_title')}
+                    </h2>
+                    <p className="text-[11px] text-muted-foreground">
+                        {t('roles.hint')}
+                    </p>
+                </div>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="bg-surface"
+                    onClick={() => setCreating(true)}
+                >
+                    <Plus aria-hidden="true" />
+                    {t('roles.new')}
+                </Button>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                    <caption className="sr-only">
+                        {t('roles.matrix_title')}
+                    </caption>
+                    <thead className="border-b bg-surface font-semibold text-muted-foreground">
                         <tr>
-                            <th
-                                scope="col"
-                                className="sticky left-0 bg-muted px-3 py-2 text-left font-medium"
-                            >
-                                {t('roles.permission')}
+                            <th scope="col" className={cn(rowHead, 'py-2.5')}>
+                                {t('roles.permission_area')}
                             </th>
                             {roles.map((role) => (
                                 <th
                                     key={role.id}
                                     scope="col"
-                                    className="min-w-32 px-3 py-2 text-center align-bottom font-medium"
+                                    className="min-w-24 px-2 py-2.5 text-center align-bottom"
                                 >
-                                    <div>{role.name}</div>
-                                    <div className="text-xs font-normal text-muted-foreground">
+                                    <div className="text-foreground">
+                                        {role.name}
+                                    </div>
+                                    <div className="text-[10px] font-normal">
                                         {t('roles.users_count', {
                                             n: digits.n(role.users),
                                         })}
@@ -131,24 +165,24 @@ export default function Roles({
                             ))}
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr className="border-t border-border">
+                    <tbody className="divide-y divide-border">
+                        <tr className="hover:bg-surface-sunken">
                             <th
                                 scope="row"
-                                className="sticky left-0 bg-background px-3 py-2 text-left font-medium"
+                                className={cn(
+                                    rowHead,
+                                    'font-medium text-foreground',
+                                )}
                             >
                                 {t('roles.max_discount')}
                             </th>
                             {roles.map((role) => (
-                                <td
-                                    key={role.id}
-                                    className="px-3 py-2 text-center"
-                                >
+                                <td key={role.id} className={cell}>
                                     <Input
                                         type="text"
                                         inputMode="decimal"
                                         aria-label={`${role.name}: ${t('roles.max_discount')}`}
-                                        className="num mx-auto w-20 text-right"
+                                        className="num mx-auto h-7 w-16 text-right"
                                         value={toPercent(
                                             draftOf(role).max_discount_pct_bp,
                                         )}
@@ -169,36 +203,34 @@ export default function Roles({
                             ))}
                         </tr>
                         {groups.map(([group, names]) => (
-                            <FragmentRows
+                            <GroupRows
                                 key={group}
                                 group={group}
                                 names={names}
                                 roles={roles}
-                                draftOf={draftOf}
+                                has={(role, name) =>
+                                    locked(role) ||
+                                    draftOf(role).permissions.includes(name)
+                                }
                                 locked={locked}
                                 toggle={toggle}
                             />
                         ))}
-                        <tr className="border-t border-border">
-                            <th
-                                scope="row"
-                                className="sticky left-0 bg-background px-3 py-2"
-                            >
+                        <tr>
+                            <th scope="row" className={rowHead}>
                                 <span className="sr-only">
                                     {t('admin.actions')}
                                 </span>
                             </th>
                             {roles.map((role) => (
-                                <td
-                                    key={role.id}
-                                    className="px-3 py-2 text-center"
-                                >
+                                <td key={role.id} className={cell}>
                                     <div className="flex justify-center gap-1">
                                         <Button
                                             type="button"
                                             size="sm"
-                                            className="min-h-11 md:min-h-8"
+                                            className="h-7 px-2 text-[11px] [@media(pointer:coarse)]:min-h-11"
                                             disabled={!dirty(role)}
+                                            aria-label={`${t('admin.save')}: ${role.name}`}
                                             onClick={() => save(role)}
                                         >
                                             <Save aria-hidden="true" />
@@ -209,8 +241,8 @@ export default function Roles({
                                                 type="button"
                                                 size="icon"
                                                 variant="outline"
-                                                className="size-11 md:size-8"
-                                                aria-label={t('roles.delete')}
+                                                className="size-7 [@media(pointer:coarse)]:size-11"
+                                                aria-label={`${t('roles.delete')}: ${role.name}`}
                                                 onClick={() =>
                                                     setDeleting(role)
                                                 }
@@ -267,65 +299,95 @@ export default function Roles({
                         : undefined
                 }
             />
-        </AdminPage>
+        </section>
     );
 }
 
-function FragmentRows({
+function GroupRows({
     group,
     names,
     roles,
-    draftOf,
+    has,
     locked,
     toggle,
 }: {
     group: string;
     names: string[];
-    roles: Role[];
-    draftOf: (role: Role) => Draft;
-    locked: (role: Role) => boolean;
-    toggle: (role: Role, permission: string) => void;
+    roles: MatrixRole[];
+    has: (role: MatrixRole, permission: string) => boolean;
+    locked: (role: MatrixRole) => boolean;
+    toggle: (role: MatrixRole, permission: string) => void;
 }) {
     const { t } = useT();
 
     return (
         <>
-            <tr className="border-t border-border bg-muted/50">
+            <tr className="bg-surface-sunken/60">
                 <th
                     scope="colgroup"
                     colSpan={roles.length + 1}
-                    className="px-3 py-1.5 text-left text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                    className="px-3 py-1.5 text-left text-[10px] font-bold tracking-wider text-muted-foreground uppercase"
                 >
                     {t(`roles.group.${group}`)}
                 </th>
             </tr>
             {names.map((name) => (
-                <tr key={name} className="border-t border-border">
+                <tr
+                    key={name}
+                    className="transition-colors hover:bg-surface-sunken"
+                >
                     <th
                         scope="row"
-                        className="sticky left-0 bg-background px-3 py-1.5 text-left font-normal"
+                        className="sticky left-0 z-[1] bg-surface px-3 py-2 text-left font-medium text-foreground"
                     >
                         <span className="block">
                             {t(`roles.perm.${name.replace('.', '_')}`)}
                         </span>
-                        <span className="font-mono text-xs text-muted-foreground">
+                        <span className="font-mono text-[10px] font-normal text-muted-foreground">
                             {name}
                         </span>
                     </th>
-                    {roles.map((role) => (
-                        <td key={role.id} className="px-3 py-1.5 text-center">
-                            <Checkbox
-                                aria-label={`${role.name}: ${name}`}
-                                checked={
-                                    locked(role) ||
-                                    draftOf(role).permissions.includes(name)
-                                }
-                                disabled={locked(role)}
-                                onCheckedChange={() => toggle(role, name)}
-                                className="size-5 md:size-4"
-                            />
-                        </td>
-                    ))}
+                    {roles.map((role) => {
+                        const on = has(role, name);
+
+                        return (
+                            <td key={role.id} className="px-2 py-1 text-center">
+                                <label
+                                    className={cn(
+                                        'inline-flex size-8 items-center justify-center rounded-lg transition-colors hover:bg-surface-sunken has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50 [@media(pointer:coarse)]:size-11',
+                                        locked(role)
+                                            ? 'cursor-not-allowed'
+                                            : 'cursor-pointer',
+                                    )}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only"
+                                        checked={on}
+                                        disabled={locked(role)}
+                                        aria-label={`${role.name}: ${t(`roles.perm.${name.replace('.', '_')}`)}`}
+                                        onChange={() => toggle(role, name)}
+                                    />
+                                    {on ? (
+                                        <span className="inline-flex size-4 items-center justify-center rounded-full bg-success-soft text-success">
+                                            <Check
+                                                className="size-3"
+                                                strokeWidth={3}
+                                                aria-hidden="true"
+                                            />
+                                        </span>
+                                    ) : (
+                                        <span
+                                            className="text-border"
+                                            aria-hidden="true"
+                                        >
+                                            —
+                                        </span>
+                                    )}
+                                </label>
+                            </td>
+                        );
+                    })}
                 </tr>
             ))}
         </>

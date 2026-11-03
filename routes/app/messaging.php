@@ -13,4 +13,5 @@ Route::put('settings/sms', [SmsSettingsController::class, 'update'])->name('sett
 Route::post('settings/sms/test', [SmsSettingsController::class, 'test'])->middleware('throttle:10,1')->name('settings.sms.test');
 
 Route::get('messages', [MessageController::class, 'index'])->name('messages.index');
+Route::post('messages/send', [MessageController::class, 'send'])->middleware('throttle:10,1')->name('messages.send');
 Route::post('messages/{message}/resend', [MessageController::class, 'resend'])->name('messages.resend');

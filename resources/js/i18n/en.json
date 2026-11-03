@@ -286,30 +286,166 @@
         "confirm": "Confirm"
     },
     "dashboard": {
-        "title": "Dashboard",
-        "kpi": {
-            "sales": "Net sales",
-            "invoices": "Invoices",
-            "average": "Average bill",
-            "collections": "Collections",
-            "open_dues": "Open dues",
-            "low_stock": "Low stock items"
-        },
-        "vs_yesterday": "vs yesterday",
-        "vs_last_month": "vs last month",
-        "today": "Today",
-        "month": "This month",
-        "trend": "Net sales, last 30 days",
-        "trend_table": "Show as table",
-        "top_customers": "Top 5 customers this month",
-        "top_products": "Top 5 products this month",
-        "aging": "Dues aging",
-        "low_stock": "Low stock",
-        "on_hand": "On hand",
-        "reorder": "Reorder at",
-        "open_report": "Open full report",
+        "title": "Executive POS Dashboard",
+        "subtitle": "Sales velocity, margin analytics, payment split and stock alerts",
+        "live": "Live BI",
+        "live_short": "Live",
+        "updated": "Updated {{time}}",
+        "period_label": "Period:",
+        "branch_label": "Branch:",
+        "all_branches": "All Branches (Consolidated)",
+        "from": "From",
+        "to": "to",
+        "refresh": "Refresh",
+        "refresh_all": "Refresh all widgets (R)",
         "nothing": "Nothing to show yet.",
-        "updated": "Updated {{time}}"
+        "top5": "Top 5",
+        "period": {
+            "today": "Today",
+            "yesterday": "Yesterday",
+            "7d": "7 Days",
+            "30d": "30 Days",
+            "this_month": "This Month",
+            "custom": "Custom Range"
+        },
+        "widget": {
+            "menu": "Widget menu",
+            "refresh": "Refresh widget",
+            "period": "Change period",
+            "open_report": "Open full report",
+            "export": "Export data (CSV)"
+        },
+        "kpi": {
+            "sales": "Net Sales",
+            "sales_note": "{{n}} transactions",
+            "profit": "Gross Profit",
+            "profit_note": "{{percent}}% avg margin",
+            "invoices": "Transactions",
+            "invoices_note": "Invoices billed",
+            "average": "Avg Basket",
+            "average_note": "Per transaction",
+            "dues": "Dues Outstanding",
+            "dues_note": "{{n}} active debtors",
+            "collections": "Collections",
+            "collections_note": "Settled dues",
+            "returns": "Returns",
+            "returns_note": "{{n}} returns",
+            "stock_value": "FIFO Stock Value",
+            "stock_value_note": "{{n}} SKUs on hand",
+            "low_stock": "Low-Stock Count",
+            "low_stock_note": "Below reorder level",
+            "skus": "{{n}} SKUs",
+            "now": "Now"
+        },
+        "setup": {
+            "title": "Store Setup Checklist",
+            "progress": "{{done}} of {{total}} Completed ({{percent}}%)",
+            "subtitle": "Complete these first steps to get the most out of the POS, your branches and your reports",
+            "dismiss": "Dismiss checklist",
+            "view": "View",
+            "start": "Set up",
+            "done": "Done",
+            "todo": "To do",
+            "steps": {
+                "logo": "Upload Business Logo",
+                "payment_methods": "Set Payment Methods",
+                "products": "Add Catalog Products",
+                "customers": "Add Customers",
+                "first_sale": "Make the First Sale"
+            }
+        },
+        "trend": {
+            "title": "Revenue Velocity & Sales Trend",
+            "subtitle_hour": "Hourly progression vs the previous day",
+            "subtitle_day": "Daily net sales vs the previous period",
+            "current": "Net sales",
+            "previous": "Previous",
+            "hour": "Hour",
+            "day": "Date",
+            "table": "Show as table",
+            "chart": "Show as chart"
+        },
+        "mix": {
+            "title": "Payment Method Mix",
+            "subtitle": "Money received by payment method",
+            "total": "100% Total",
+            "tendered": "Tendered",
+            "method": "Method",
+            "amount": "Amount"
+        },
+        "heat": {
+            "title": "Hourly Sales Heat-Map",
+            "subtitle": "Number of sales, {{from}} – {{to}}",
+            "low": "Low",
+            "high": "High",
+            "day": "Day",
+            "sales": "{{n}} sales",
+            "dow_0": "Sun",
+            "dow_1": "Mon",
+            "dow_2": "Tue",
+            "dow_3": "Wed",
+            "dow_4": "Thu",
+            "dow_5": "Fri",
+            "dow_6": "Sat",
+            "slot_10": "10am",
+            "slot_12": "12pm",
+            "slot_14": "2pm",
+            "slot_16": "4pm",
+            "slot_18": "6pm",
+            "slot_20": "8pm",
+            "slot_22": "10pm"
+        },
+        "branches": {
+            "title": "Branch Performance Comparison",
+            "subtitle": "Sales vs previous period vs gross profit",
+            "subtitle_no_profit": "Sales vs previous period",
+            "count": "{{n}} Outlets",
+            "branch": "Branch",
+            "sales": "Sales",
+            "previous": "Previous",
+            "profit": "Gross Profit"
+        },
+        "aging": {
+            "title": "Dues Aging",
+            "subtitle": "Open dues by age of the invoice",
+            "link": "Dues Aging Report"
+        },
+        "top_products": {
+            "title": "Top Selling Products",
+            "subtitle": "Ranked by revenue in the period",
+            "sold": "{{qty}} sold",
+            "link": "All Products Catalog"
+        },
+        "top_customers": {
+            "title": "Top Customers",
+            "subtitle": "Highest net purchases in the period",
+            "visits": "{{n}} visits",
+            "link": "All Members List"
+        },
+        "low_stock": {
+            "title": "Low Stock Alerts",
+            "subtitle": "Immediate reorder recommended",
+            "critical": "{{n}} Critical",
+            "line": "{{on_hand}} in stock (Min {{min}})",
+            "unit": "Unit: {{cost}}",
+            "reorder": "Reorder",
+            "link": "Stock Management Ledger"
+        },
+        "recent": {
+            "title": "Recent Sales Invoices",
+            "subtitle": "Latest register checkouts",
+            "walk_in": "Walk-in Customer",
+            "link": "All Sales Transactions"
+        },
+        "debtors": {
+            "title": "Overdue Balances to Chase",
+            "subtitle": "Customer dues requiring follow-up",
+            "total": "{{amount}} Total",
+            "phone": "Phone: {{phone}}",
+            "days": "{{n}} days overdue",
+            "collect": "Collect",
+            "link": "Full Due Aging Ledger"
+        }
     },
     "reports": {
         "title": "Reports",
@@ -445,7 +581,12 @@
             "brand": "Brand",
             "bucket": "Last purchased",
             "limit": "Show top",
-            "any": "All"
+            "any": "All",
+            "all_categories": "All categories",
+            "all_brands": "All brands",
+            "all_buckets": "Any last purchase",
+            "limit_default": "Top 100",
+            "top_n": "Top {{n}}"
         },
         "export": "Export CSV",
         "export_failed": "The export failed. Try again.",
@@ -454,7 +595,105 @@
         "no_rows": "No data for these filters.",
         "as_of": "As of today",
         "back": "All reports",
-        "rows": "{{count}} rows"
+        "rows": "{{count}} rows",
+        "directory": {
+            "title": "Reports & Business Intelligence",
+            "subtitle": "Daily cash summary, sales, returns, dues, stock valuation and more",
+            "period": "Report period",
+            "periods": {
+                "today": "Today",
+                "yesterday": "Yesterday",
+                "this_week": "This Week",
+                "this_month": "This Month",
+                "last_quarter": "Last Quarter",
+                "fiscal_year": "Fiscal Year {{year}}",
+                "custom": "Custom range"
+            },
+            "export_excel": "Export Excel",
+            "next_phase": "Coming in the next phase",
+            "format": "Format:",
+            "run": "Run Report",
+            "categories": {
+                "money": "Money",
+                "sales": "Sales",
+                "customers": "Customers",
+                "inventory": "Inventory",
+                "purchases": "Purchases",
+                "tax": "Tax & Compliance"
+            },
+            "items": {
+                "daily_cash": {
+                    "title": "Daily Cash Summary Report",
+                    "desc": "Sales, money collected by payment method, refunds and net cash for every day"
+                },
+                "discounts": {
+                    "title": "Discount Report (By Cashier & Reason)",
+                    "desc": "Line, group and order discounts granted, cashier overrides, and reason breakdown"
+                },
+                "returns": {
+                    "title": "Returns & Exchanges Report",
+                    "desc": "Every return and exchange with its reason, refund and store credit"
+                },
+                "daily_sales": {
+                    "title": "Daily Sales & Invoices Summary",
+                    "desc": "Invoices, gross sales, discounts, tax, returns and net sales by date"
+                },
+                "product_sales": {
+                    "title": "Product Sales Velocity & Margin",
+                    "desc": "Units sold and returned, sales, COGS and gross profit per SKU"
+                },
+                "sales_by_user": {
+                    "title": "Sales by Cashier",
+                    "desc": "Invoices and net sales per cashier"
+                },
+                "sales_by_tender": {
+                    "title": "Sales by Payment Method",
+                    "desc": "Money received and refunded by payment method"
+                },
+                "dues_aging": {
+                    "title": "Customer Due Aging Analysis",
+                    "desc": "Outstanding balances bucketed into 0-30, 31-60, 61-90 and 90+ days"
+                },
+                "top_customers": {
+                    "title": "Top Customer Lifetime Value (LTV)",
+                    "desc": "Highest revenue generating members and purchase frequency"
+                },
+                "last_purchase": {
+                    "title": "Customers by Last Purchase",
+                    "desc": "Who has not bought for one, two, three or more months"
+                },
+                "stock_valuation": {
+                    "title": "FIFO Stock Valuation Ledger",
+                    "desc": "Stock quantities valued at current batch cost and retail price"
+                },
+                "low_stock": {
+                    "title": "Low Stock & Purchase Reorder Alert",
+                    "desc": "Items below threshold calculated against 30-day run rate"
+                },
+                "dead_stock": {
+                    "title": "Dead Stock Report (>90 Days Zero Sale)",
+                    "desc": "Unmoved capital with markdown recommendations"
+                },
+                "transfers": {
+                    "title": "Inter-Branch Transfer Discrepancy",
+                    "desc": "Dispatched vs received quantities with in-transit variance"
+                },
+                "vendor_payables": {
+                    "title": "Vendor Payables & Bill Statement",
+                    "desc": "Unpaid vendor invoices, terms and upcoming payment dues"
+                },
+                "pnl": {
+                    "title": "Profit & Loss (P&L) Statement",
+                    "desc": "Net revenue minus COGS minus operational expenses"
+                },
+                "vat": {
+                    "title": "VAT Output Summary (Mushak 6.3)",
+                    "desc": "Auditable VAT breakdown for National Board of Revenue (NBR)"
+                }
+            }
+        },
+        "search": "Search rows…",
+        "total_label": "Total ({{n}})"
     },
     "sms": {
         "nav_settings": "SMS",
@@ -462,7 +701,8 @@
         "save": "Save SMS settings",
         "settings": {
             "title": "SMS settings",
-            "subtitle": "Choose the SMS provider and the messages customers receive."
+            "subtitle": "Choose the SMS provider and the messages customers receive.",
+            "hub_title": "SMS & Messaging Gateway"
         },
         "provider": {
             "title": "Provider",
@@ -473,7 +713,9 @@
             "token_kept": "A token is saved. Leave blank to keep it.",
             "token_clear": "Remove the saved token",
             "base_url": "Base URL (optional)",
-            "sender": "Sender name"
+            "sender": "Sender name",
+            "cost": "Price per SMS part",
+            "cost_hint": "Used only for the composer's cost estimate."
         },
         "driver": {
             "null": "None (SMS off)",
@@ -524,8 +766,69 @@
                 "phone": "Phone",
                 "event": "Type",
                 "message": "Message",
-                "status": "Status"
+                "status": "Status",
+                "channel": "Channel",
+                "cost": "Cost"
             }
+        },
+        "hub": {
+            "title": "Customer Messaging",
+            "subtitle": "Send SMS to customers, reuse your templates and check the delivery log",
+            "tabs": "Messaging sections",
+            "tab_composer": "Composer & Dispatch",
+            "tab_templates": "Templates Library",
+            "tab_scheduled": "Scheduled",
+            "tab_log": "Message Log",
+            "tab_settings": "SMS Settings",
+            "next_phase": "Next phase",
+            "whatsapp_soon": "WhatsApp: next phase",
+            "gateway": "SMS gateway: {{driver}}",
+            "composer_title": "Dispatch campaign composer",
+            "not_configured": "No SMS provider is set up, so nothing can be sent yet.",
+            "open_settings": "Open SMS settings",
+            "channel": "Delivery channel",
+            "whatsapp": "WhatsApp Business",
+            "sms": "SMS",
+            "target": "Recipient target",
+            "target_due": "Bulk: all customers with a due ({{n}})",
+            "target_one": "Single: {{name}}",
+            "pick_customer": "choose a customer",
+            "target_group": "Group: {{name}} ({{n}})",
+            "target_all": "All registered customers ({{n}})",
+            "template": "Template",
+            "template_custom": "Custom message",
+            "variables": "Click to insert a variable:",
+            "insert_variable": "Insert {{name}}",
+            "body": "Message text",
+            "counter": "{{chars}} chars · {{parts}} SMS part(s) · {{encoding}}",
+            "encoding_gsm7": "GSM",
+            "encoding_ucs2": "Unicode",
+            "body_ph": "Type the message here…",
+            "cost_estimate": "Estimated cost:",
+            "cost_per_msg": "{{amount}} / msg",
+            "cost_total": "{{amount}} in total",
+            "send": "Send message",
+            "send_one": "Send message now",
+            "send_many": "Send to {{n}} customers",
+            "confirm_title": "Send this SMS?",
+            "confirm_body": "{{n}} customer(s) will get {{parts}} SMS part(s) each. Estimated cost {{amount}}. Messages cannot be recalled.",
+            "sample_name": "Rahim Uddin",
+            "sample_due": "1,200.00",
+            "sample_number": "1000 0017",
+            "search_customer": "Search name, phone or customer no.",
+            "no_phone": "No mobile number",
+            "clear_customer": "Choose another customer",
+            "preview_title": "Live recipient phone preview",
+            "preview_label": "Message preview: {{text}}",
+            "preview_sender": "SMS",
+            "preview_empty": "Your message appears here",
+            "preview_now": "now",
+            "preview_reply": "Text message",
+            "templates_title": "Your SMS templates",
+            "templates_hint": "The automatic messages from SMS settings; load one into the composer to send it by hand.",
+            "tpl_auto_on": "Automatic: on",
+            "tpl_auto_off": "Automatic: off",
+            "use_template": "Use in composer"
         }
     },
     "customers": {
@@ -636,7 +939,7 @@
             "exchange": "Exchange"
         },
         "statement": {
-            "title": "Customer statement",
+            "title": "Customer Statement",
             "search": "Search by number, name, phone or shop",
             "period": "Period",
             "apply": "Apply",
@@ -654,7 +957,11 @@
                 "paid": "Paid",
                 "due": "Due",
                 "status": "Status"
-            }
+            },
+            "subtitle": "Sales, payments and dues of one customer for a period",
+            "phone": "Phone",
+            "customer_no": "Customer no",
+            "change": "Change"
         },
         "page_title": "Customers & Members",
         "subtitle": "360° customer directory with loyalty tiers, card statuses, and due tracking",
@@ -1090,7 +1397,7 @@
     },
     "vendors": {
         "title": "Vendors",
-        "new": "New vendor",
+        "new": "Add Vendor",
         "edit": "Edit vendor",
         "search": "Search name, company or phone",
         "empty": "No vendors yet",
@@ -1111,12 +1418,37 @@
         "balance_advance": "Paid in advance.",
         "balance_clear": "Nothing owed.",
         "no_purchases": "No purchases from this vendor in this branch.",
-        "pay": "Pay vendor",
+        "pay": "Pay Vendor",
         "pay_amount": "Amount",
         "pay_method": "Payment method",
         "pay_reference": "Reference",
         "pay_reference_required": "This method needs a reference.",
-        "pay_confirm": "Record payment"
+        "pay_confirm": "Record payment",
+        "list_title": "Vendor & Supplier Directory",
+        "subtitle": "Apparel mills, fabric manufacturers, packaging suppliers, and payables ledger",
+        "export_csv": "Export CSV",
+        "export_selected": "Export Vendor Ledger",
+        "col_contact": "Contact Person / Hub",
+        "col_hub": "Hub / Address",
+        "col_hub_order": "Hub Location / Last Order",
+        "col_open_bills": "Open Bills",
+        "col_payable": "Payable Balance",
+        "hub": "Hub Location",
+        "all_hubs": "All Hubs",
+        "view_default": "Default (All Vendors)",
+        "view_owing": "Overdue Payables",
+        "payable_status": "Payable Balance Status",
+        "status_all": "All Suppliers",
+        "status_cleared": "Cleared / Zero Balance",
+        "new_title": "Register New Supplier / Vendor",
+        "edit_title": "Edit Supplier / Vendor",
+        "new_subtitle": "Create supplier account with trading terms and contact info",
+        "f_name": "Vendor Company Name *",
+        "f_name_ph": "e.g. Heritage Loom Mills Ltd",
+        "f_phone": "Mobile / Phone Number",
+        "f_address": "Supplier Hub Location / Address",
+        "f_address_ph": "e.g. House 4, Road 2, Narayanganj",
+        "create_profile": "Create Vendor Profile"
     },
     "purchases": {
         "title": "Purchases",
@@ -1155,7 +1487,34 @@
         "payments": "Payments",
         "cancel": "Cancel purchase",
         "cancel_title": "Cancel this purchase?",
-        "cancel_hint": "The stock it added is removed again. This only works while none of it has been sold or paid for."
+        "cancel_hint": "The stock it added is removed again. This only works while none of it has been sold or paid for.",
+        "list_title": "Vendor Purchases & GRN",
+        "subtitle": "Receive products into stock, track batch variants, landed costs, and vendor payables",
+        "col_grn": "GRN #",
+        "col_branch": "Receiving Branch",
+        "col_bill_ref": "Bill Ref",
+        "col_qty": "Quantity",
+        "col_paid": "Paid",
+        "col_balance": "Balance Due",
+        "col_total_bill": "Total Bill",
+        "qty_cell": "{{items}} items · {{qty}} pcs",
+        "paid_zero": "Paid ({{amount}})",
+        "view_items": "View Items",
+        "export_csv": "Export CSV",
+        "new_grn": "New Purchase & Receive Stock (GRN)",
+        "kpi_bills": "Total Inward Bills",
+        "kpi_bills_note": "{{n}} purchase vouchers",
+        "kpi_items": "Items Received in Stock",
+        "kpi_items_value": "{{qty}} pcs",
+        "kpi_items_note": "Across the listed bills",
+        "kpi_paid": "Total Amount Paid",
+        "kpi_paid_note": "Settled to vendors",
+        "kpi_due": "Outstanding Vendor Payables",
+        "kpi_due_note": "{{n}} vendors with a balance",
+        "view_default": "Default (All Purchases)",
+        "view_unpaid": "Unpaid Vendor Bills",
+        "all_branches": "All Branches",
+        "export_selected": "Export Inward Bills"
     },
     "stock": {
         "title": "Stock",
@@ -1263,7 +1622,12 @@
         "data": "Recorded data",
         "empty": "No activity matches these filters.",
         "from": "From",
-        "to": "To"
+        "to": "To",
+        "header": "Immutable Audit Security Trail",
+        "subtitle": "Tamper-proof event logs for discount overrides, price modifications, drawer kicks and voids",
+        "terminal": "Terminal / IP",
+        "details_col": "Auditable Details",
+        "all_actions": "All Actions"
     },
     "branches": {
         "title": "Branches",
@@ -1281,7 +1645,8 @@
         "cash_rounding": "Cash rounding step",
         "cash_rounding_hint": "0 means no rounding.",
         "allow_negative_stock": "Allow selling below zero stock",
-        "auto_print": "Print the receipt automatically"
+        "auto_print": "Print the receipt automatically",
+        "staff_count": "{{n}} staff"
     },
     "business": {
         "title": "Business settings",
@@ -1320,7 +1685,15 @@
         "logo_remove_body": "Receipts, cards and the sign-in page will show the business name instead.",
         "logo_preview": "Logo preview",
         "logo_selected": "Selected: {{name}}",
-        "logo_cancel": "Cancel"
+        "logo_cancel": "Cancel",
+        "hub_profile": "Business & Company Profile",
+        "hub_profile_hint": "Registration details printed on tax invoices and receipts.",
+        "regional_hint": "Default language, time zone and currency for the whole business.",
+        "sales_hint": "Return window, back-dating, VAT pricing and customer credit.",
+        "tax_inclusive_hint": "When on, shelf prices already include VAT.",
+        "credit_terms": "Customer due & credit terms",
+        "pin_section": "Customer PIN Policy",
+        "pin_section_hint": "When a customer must enter their PIN at the register."
     },
     "login": {
         "title": "Log in",
@@ -1460,7 +1833,9 @@
             "users_manage": "Manage users and roles",
             "settings_manage": "Manage settings",
             "audit_view": "View the audit log"
-        }
+        },
+        "matrix_title": "Permissions matrix",
+        "permission_area": "Permission area"
     },
     "taxes": {
         "title": "Taxes",
@@ -1499,7 +1874,32 @@
         "password_keep": "Leave empty to keep the current password.",
         "must_change": "Must choose a new password at next sign-in",
         "roles_hint": "Choose at least one role.",
-        "branches_hint": "Choose the branches this person may work in. The first is their default."
+        "branches_hint": "Choose the branches this person may work in. The first is their default.",
+        "page_title": "Staff Users & Role Permissions",
+        "page_subtitle": "Manage cashiers, managers, their register PINs and the permission matrix",
+        "add_staff": "Add Staff Member",
+        "staff_title": "Staff of {{business}}",
+        "role": "Role",
+        "assigned_branch": "Assigned branch",
+        "last_active": "Last active",
+        "all_branches": "All branches",
+        "pin_locked": "PIN locked",
+        "no_pin": "No PIN",
+        "reset_pin": "Reset PIN",
+        "add_title": "Add Staff Member",
+        "edit_title": "Edit Staff Member",
+        "dialog_subtitle": "Sign-in, roles, branches and register PIN",
+        "full_name": "Full name",
+        "full_name_ph": "e.g. Mahfuzur Rahman",
+        "initial_pin": "Initial register PIN",
+        "pin_hint": "4–6 digits, optional. Used to switch user and approve at the register.",
+        "system_roles": "System roles",
+        "save_staff": "Save Staff",
+        "reset_pin_title": "Reset PIN: {{name}}",
+        "new_pin": "New 4–6 digit PIN",
+        "reset_pin_hint": "Also unlocks a PIN that was locked after wrong tries.",
+        "update_pin": "Update PIN",
+        "pin_invalid": "The PIN must be 4 to 6 digits."
     },
     "pos": {
         "title": "Register",
@@ -2110,5 +2510,71 @@
     "password_input": {
         "show": "Show password",
         "hide": "Hide password"
+    },
+    "settings_hub": {
+        "title": "Store & System Settings",
+        "subtitle": "Manage the store profile, branches, registers, VAT, payments, messaging and security",
+        "save": "Save Changes",
+        "save_short": "Save Changes",
+        "discard": "Discard",
+        "unsaved": "You have unsaved changes in settings.",
+        "nothing_to_save": "This section saves each change in its own dialog.",
+        "menu": "Configuration menu",
+        "account": "My account",
+        "next_phase": "Next phase",
+        "next_phase_toast": "This section comes in the next phase.",
+        "section": {
+            "business_profile": "Business Profile",
+            "branches": "Branches",
+            "registers_devices": "Registers & Devices",
+            "tax_vat": "Tax & VAT",
+            "units": "Units of Measure",
+            "payment_methods": "Payment Methods",
+            "receipt_printers": "Receipt & Printers",
+            "invoice_numbering": "Invoice Numbering",
+            "customer_pin_policy": "Customer PIN Policy",
+            "membership_cards": "Membership Card Design",
+            "messaging_providers": "Messaging Providers",
+            "returns_policy": "Returns & Exchanges",
+            "notifications": "Notifications & Alerts",
+            "appearance": "Appearance & Themes",
+            "language": "Language & Regional",
+            "keyboard_shortcuts": "Keyboard Shortcuts",
+            "data_import_export": "Data Import & Export",
+            "users_roles": "Users & Roles",
+            "audit": "Audit Log",
+            "profile": "My Profile",
+            "security": "Security"
+        },
+        "desc": {
+            "business_profile": "Shop identity, VAT BIN & address",
+            "branches": "Manage multi-branch retail outlets",
+            "registers_devices": "Counters and register devices",
+            "tax_vat": "VAT rates and tax groups",
+            "units": "Pieces, kilograms, metres …",
+            "payment_methods": "Cash, bKash, Nagad & card",
+            "receipt_printers": "Thermal ESC/POS & test print",
+            "invoice_numbering": "Sequence format & prefixes",
+            "customer_pin_policy": "Security PIN for due & redemption",
+            "membership_cards": "CR80 card & barcode layout",
+            "messaging_providers": "SMS gateway, sender & templates",
+            "returns_policy": "Return window & sales rules",
+            "notifications": "Low-stock triggers & EOD summaries",
+            "appearance": "Colour schemes, dark mode & density",
+            "language": "Language, time zone & ৳ currency",
+            "keyboard_shortcuts": "Key map & cheat sheet",
+            "data_import_export": "Catalogue CSV import & backups",
+            "users_roles": "Staff, PINs & permissions",
+            "audit": "Who changed what, and when",
+            "profile": "Your name, email & password",
+            "security": "Two-factor & passkeys"
+        },
+        "desc_long": {
+            "branches": "Manage your shops and how each one prints and sells",
+            "registers_devices": "Counters that sell, and the devices paired with them",
+            "tax_vat": "VAT rates applied to products and receipts",
+            "units": "How quantities are counted and shown",
+            "payment_methods": "Cash, mobile wallets, cards and customer credit"
+        }
     }
 }

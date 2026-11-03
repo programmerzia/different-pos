@@ -12,6 +12,8 @@ import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useT } from '@/i18n';
+import AppLayout from '@/layouts/app-layout';
+import SettingsLayout from '@/layouts/settings/layout';
 
 type UnitRow = {
     id: number;
@@ -73,6 +75,7 @@ export default function Units({ units }: { units: UnitRow[] }) {
     return (
         <AdminPage
             title={t('units.title')}
+            subtitle={t('settings_hub.desc_long.units')}
             newLabel={t('units.new')}
             onNew={() => setEditing('new')}
         >
@@ -144,3 +147,5 @@ export default function Units({ units }: { units: UnitRow[] }) {
         </AdminPage>
     );
 }
+
+Units.layout = [AppLayout, SettingsLayout];
