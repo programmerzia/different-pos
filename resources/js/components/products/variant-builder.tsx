@@ -98,10 +98,13 @@ export function VariantBuilder({
     return (
         <section className="grid gap-4" aria-labelledby="variants-title">
             <div>
-                <h2 id="variants-title" className="text-xl font-semibold">
+                <h3
+                    id="variants-title"
+                    className="text-xs font-bold text-foreground"
+                >
                     {t('products.variants')}
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                </h3>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
                     {t('products.variants_hint')}
                 </p>
             </div>

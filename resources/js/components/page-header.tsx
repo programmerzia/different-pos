@@ -1,4 +1,10 @@
-import { ChevronDown, Download, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import {
+    ChevronDown,
+    Download,
+    FileSpreadsheet,
+    FileText,
+    Printer,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,9 +54,12 @@ export function PageHeader({
     subtitle,
     actions,
     badge,
+    as: Heading = 'h1',
     className,
 }: {
     title: ReactNode;
+    /** `h2` for a list header nested under the page's own header (mockup catalog hub). */
+    as?: 'h1' | 'h2';
     /** Record count shown in the pill next to the title (formatted with the user's digits). */
     count?: number | null;
     subtitle?: ReactNode;
@@ -71,9 +80,9 @@ export function PageHeader({
         >
             <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-lg leading-7 font-bold text-foreground">
+                    <Heading className="text-lg leading-7 font-bold text-foreground">
                         {title}
-                    </h1>
+                    </Heading>
                     {count !== undefined && count !== null ? (
                         <span className="num rounded-full border bg-surface-sunken px-2 py-0.5 font-mono text-[11px] font-bold text-muted-foreground">
                             {digits.n(count)}
@@ -120,7 +129,10 @@ export function ExportMenu({ items }: { items: ExportItem[] }) {
                     <ChevronDown className="size-3" aria-hidden="true" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 rounded-xl p-1 text-xs">
+            <DropdownMenuContent
+                align="end"
+                className="w-44 rounded-xl p-1 text-xs"
+            >
                 {items.map((item, i) => {
                     const Icon =
                         item.kind === 'print'

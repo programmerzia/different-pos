@@ -9,11 +9,29 @@ import {
     Printer,
     RefreshCw,
     GitMerge,
+    IdCard,
     ShoppingCart,
 } from 'lucide-react';
 import { actions, type AppAction } from './actions';
 import type { CardMember } from '@/components/cards/card-face';
 import type { CardRow, CustomerRow } from '@/types/customers';
+
+/** CR80 print view of a customer's active card (opens in a new tab; the browser saves the PDF). */
+export const cardPrintUrl = (customerUuid: string): string =>
+    `/app/membership-cards/print?customers=${customerUuid}&layout=cr80`;
+
+/** The customer list as CSV, with the list's query string (`q`, `filter[...]`, `sort`). */
+export const customersExportUrl = (
+    query: Record<string, string | number> = {},
+): string => {
+    const params = new URLSearchParams(
+        Object.entries(query)
+            .filter(([key]) => key !== 'page' && key !== 'per_page')
+            .map(([key, value]) => [key, String(value)]),
+    ).toString();
+
+    return `/app/customers/export.csv${params ? `?${params}` : ''}`;
+};
 
 /**
  * Customer and membership-card row actions: the same registry feeds the row context menu, row
@@ -46,6 +64,16 @@ export const customerActions: AppAction<CustomerRow>[] = [
         permission: 'customers.view',
         run: ({ row, navigate }) =>
             navigate(`/app/customers/${row.uuid}/statement`),
+    },
+    {
+        id: 'customer.print_card',
+        entity: 'customer',
+        labelKey: 'customers.actions.print_card',
+        icon: IdCard,
+        permission: 'cards.issue',
+        visible: (row) => row.card_status === 'active',
+        run: ({ row, navigate }) =>
+            navigate(cardPrintUrl(row.uuid), { newTab: true }),
     },
     {
         id: 'customer.issue_card',
@@ -151,7 +179,8 @@ export const memberCardActions: AppAction<CardMember>[] = [
         permission: 'cards.issue',
         group: 'danger',
         requires: 'handler',
-        visible: (row) => row.card?.status === 'active' || row.card?.status === 'lost',
+        visible: (row) =>
+            row.card?.status === 'active' || row.card?.status === 'lost',
         run: ({ row, handlers }) => handlers?.['member_card.reissue']?.(row),
     },
 ];
@@ -184,5 +213,13 @@ export function registerCustomerActions(): void {
         icon: FileText,
         permission: 'customers.view',
         href: '/app/customers/statement',
+    });
+    actions.register({
+        id: 'cmd.customers_export',
+        entity: null,
+        labelKey: 'customers.export_csv',
+        icon: FileSpreadsheet,
+        permission: 'customers.view',
+        run: () => window.location.assign(customersExportUrl()),
     });
 }

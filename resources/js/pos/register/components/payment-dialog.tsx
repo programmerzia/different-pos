@@ -1,4 +1,14 @@
-import { ShieldCheck, Trash2 } from 'lucide-react';
+import {
+    AlertTriangle,
+    Banknote,
+    CreditCard,
+    Landmark,
+    ShieldCheck,
+    Smartphone,
+    UserPlus,
+    Wallet,
+    type LucideIcon,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Kbd } from '@/components/kbd';
 import { MoneyInput } from '@/components/money-input';
@@ -9,7 +19,18 @@ import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
 import type { PosError } from '../api';
-import { OVERRIDABLE, quickCash, settle, type TenderRow } from '../tenders';
+import {
+    addCash,
+    creditMeter,
+    exactCash,
+    initialTenders,
+    leaveDue,
+    payKey,
+    pickTender,
+    tenderOptions,
+    type TenderIcon,
+} from '../present';
+import { OVERRIDABLE, settle, type TenderRow } from '../tenders';
 import type { Approval, CustomerCard, PaymentMethod } from '../types';
 import { PosDialog } from './pos-dialog';
 
@@ -22,22 +43,22 @@ export const APPROVABLE: Record<string, string> = {
     backdate_not_allowed: 'pos.backdate',
 };
 
-const SHORTCUTS: { key: string; pick: (m: PaymentMethod) => boolean }[] = [
-    { key: 'c', pick: (m) => m.type === 'cash' },
-    { key: 'k', pick: (m) => m.type === 'card' },
-    {
-        key: 'b',
-        pick: (m) => m.type === 'mobile_wallet' && /bkash/i.test(m.name),
-    },
-    {
-        key: 'n',
-        pick: (m) => m.type === 'mobile_wallet' && /nagad/i.test(m.name),
-    },
-];
+const ICONS: Record<TenderIcon, LucideIcon> = {
+    cash: Banknote,
+    card: CreditCard,
+    wallet: Smartphone,
+    bank: Landmark,
+    credit: Wallet,
+};
+
+/** Quick cash steps (mockup: +100 / +500 / +1000), keys 1–3. */
+const CASH_STEPS: readonly Paisa[] = [10_000, 50_000, 100_000];
 
 /**
- * F9: split tender. Cash is prefilled with the exact amount; quick cash 1–4; Alt+C/K/B/N add a method,
- * Alt+D leaves the rest as due (named customer only). Enter or F10 completes.
+ * F9, the mockup's "Payment & Due Settlement" panel: one row per payment method (cash prefilled
+ * with the exact amount), quick cash, and the settlement on the right (tendered, change or due with
+ * the credit-limit meter). Alt+C/K/B/N/R/A pick a method, Alt+E exact cash, Alt+D rest as due,
+ * 1–3 add cash, Enter or F10 completes.
  */
 type Props = {
     open: boolean;
@@ -47,6 +68,7 @@ type Props = {
     approval: Approval | null;
     onSubmit: (tenders: TenderRow[]) => Promise<PosError | null>;
     onNeedApproval: (permission: string) => void;
+    onAttachCustomer: () => void;
     onClose: () => void;
 };
 
@@ -60,9 +82,10 @@ export function PaymentDialog({ open, onClose, ...rest }: Props) {
             onClose={() => !busy && onClose()}
             title={t('pos.pay.title')}
             description={t('pos.pay.hint')}
+            icon={CreditCard}
             className="sm:max-w-2xl"
         >
-            <PaymentBody onClose={onClose} onBusy={setBusy} {...rest} />
+            <PaymentBody onBusy={setBusy} {...rest} />
         </PosDialog>
     );
 }
@@ -74,14 +97,18 @@ function PaymentBody({
     approval,
     onSubmit,
     onNeedApproval,
-    onClose,
+    onAttachCustomer,
     onBusy,
-}: Omit<Props, 'open'> & { onBusy: (busy: boolean) => void }) {
+}: Omit<Props, 'open' | 'onClose'> & { onBusy: (busy: boolean) => void }) {
     const { t } = useT();
     const d = useDigits();
-    const cash = methods.find((m) => m.type === 'cash');
+    const options = useMemo(
+        () => tenderOptions(methods, customer),
+        [methods, customer],
+    );
+    const cashId = options.find((o) => o.method.type === 'cash')?.method.id;
     const [rows, setRows] = useState<TenderRow[]>(() =>
-        cash ? [{ methodId: cash.id, amount: total, reference: '' }] : [],
+        initialTenders(options, total),
     );
     const [busy, setBusyState] = useState(false);
     const [error, setError] = useState<PosError | null>(null);
@@ -91,78 +118,40 @@ function PaymentBody({
         onBusy(value);
     };
 
-    const usable = useMemo(
-        () =>
-            methods.filter(
-                (m) =>
-                    m.type !== 'customer_credit' ||
-                    (customer !== null && customer.advance > 0),
-            ),
-        [methods, customer],
-    );
     const s = settle(total, rows, methods, customer);
     const approved = approval !== null;
     const blocking = s.problems.filter(
         (p) => !(OVERRIDABLE.includes(p) && approved),
     );
-    const methodName = (id: number) =>
-        methods.find((m) => m.id === id)?.name ?? '';
-
-    const add = (method: PaymentMethod) => {
-        setRows((prev) => {
-            if (prev.some((r) => r.methodId === method.id)) {
-                return prev;
+    const meter = creditMeter(s.balanceAfter, customer?.credit_limit ?? null);
+    const amountOf = (id: number) =>
+        rows.find((r) => r.methodId === id)?.amount ?? 0;
+    const setRow = (id: number, patch: Partial<TenderRow>) =>
+        setRows((prev) =>
+            prev.map((r) => (r.methodId === id ? { ...r, ...patch } : r)),
+        );
+    /**
+     * After a key changed the amounts: refocus (a field being edited shows its own text until it is
+     * focused again), on the given row or wherever the focus was.
+     */
+    const refocus = (id?: number) =>
+        requestAnimationFrame(() => {
+            const current = document.activeElement;
+            const target =
+                id === undefined
+                    ? current
+                    : document.getElementById(`pos-tender-${id}`);
+            if (current instanceof HTMLElement) {
+                current.blur();
             }
-            const nonCash = prev
-                .filter((r) => r.methodId !== cash?.id)
-                .reduce((sum, r) => sum + r.amount, 0);
-            let amount = Math.max(0, total - nonCash);
-            if (method.type === 'customer_credit' && customer) {
-                amount = Math.min(amount, customer.advance);
+            if (target instanceof HTMLElement) {
+                target.focus();
             }
-            if (method.id === cash?.id) {
-                return [
-                    ...prev,
-                    { methodId: method.id, amount, reference: '' },
-                ];
-            }
-            // The new tender takes the rest; cash keeps only what is still open.
-            const next = prev
-                .map((r) =>
-                    r.methodId === cash?.id
-                        ? {
-                              ...r,
-                              amount: Math.max(0, total - nonCash - amount),
-                          }
-                        : r,
-                )
-                .filter((r) => r.methodId !== cash?.id || r.amount > 0);
-
-            return [...next, { methodId: method.id, amount, reference: '' }];
         });
+    const pick = (id: number) => {
+        setRows((prev) => pickTender(prev, id, total, methods, customer));
+        refocus(id);
     };
-    const setRow = (index: number, patch: Partial<TenderRow>) =>
-        setRows((prev) =>
-            prev.map((r, i) => (i === index ? { ...r, ...patch } : r)),
-        );
-    const setCash = (amount: Paisa) => {
-        if (!cash) {
-            return;
-        }
-        setRows((prev) =>
-            prev.some((r) => r.methodId === cash.id)
-                ? prev.map((r) =>
-                      r.methodId === cash.id ? { ...r, amount } : r,
-                  )
-                : [...prev, { methodId: cash.id, amount, reference: '' }],
-        );
-    };
-    const leaveDue = () =>
-        setRows((prev) =>
-            prev.map((r) =>
-                r.methodId === cash?.id ? { ...r, amount: 0 } : r,
-            ),
-        );
 
     const submit = async () => {
         if (busy || blocking.length > 0) {
@@ -175,309 +164,411 @@ function PaymentBody({
         setError(result);
     };
 
-    const quick = quickCash(total);
-
-    // Alt+C/K/B/N/D, quick cash 1–4 and F10, on the form (a native listener: the form is not a widget).
+    // Native listener on the panel (it is not a widget): F10, Alt+keys, quick cash 1–3.
     const keys = useRef<(e: KeyboardEvent) => void>(() => undefined);
     useEffect(() => {
         keys.current = (e: KeyboardEvent) => {
-            if (e.key === 'F10' && !e.shiftKey) {
-                e.preventDefault();
-                void submit();
-
+            const action = payKey(
+                {
+                    key: e.key,
+                    altKey: e.altKey,
+                    ctrlKey: e.ctrlKey,
+                    metaKey: e.metaKey,
+                    shiftKey: e.shiftKey,
+                    typing: e.target instanceof HTMLInputElement,
+                },
+                options,
+                cashId === undefined ? 0 : CASH_STEPS.length,
+            );
+            if (!action) {
                 return;
             }
-            if (e.altKey && !e.ctrlKey && !e.metaKey) {
-                const key = e.key.toLowerCase();
-                if (key === 'd') {
-                    e.preventDefault();
-                    leaveDue();
-
-                    return;
-                }
-                const method = usable.find((m) =>
-                    SHORTCUTS.find((sc) => sc.key === key)?.pick(m),
-                );
-                if (method) {
-                    e.preventDefault();
-                    add(method);
-                }
-
-                return;
-            }
-            const typing = e.target instanceof HTMLInputElement;
-            const n = Number(e.key);
-            if (!typing && Number.isInteger(n) && n >= 1 && n <= quick.length) {
-                e.preventDefault();
-                setCash(quick[n - 1] ?? total);
+            e.preventDefault();
+            switch (action.type) {
+                case 'submit':
+                    void submit();
+                    break;
+                case 'due':
+                    setRows((prev) => leaveDue(prev, cashId));
+                    refocus();
+                    break;
+                case 'exact':
+                    setRows((prev) => exactCash(prev, total, cashId));
+                    refocus();
+                    break;
+                case 'pick':
+                    pick(action.methodId);
+                    break;
+                case 'quick':
+                    setRows((prev) =>
+                        addCash(prev, cashId, CASH_STEPS[action.index] ?? 0),
+                    );
+                    refocus();
+                    break;
             }
         };
     });
     useEffect(() => {
-        const form = formRef.current;
+        // The whole panel (header close button included), not only the form.
+        const panel =
+            formRef.current?.closest<HTMLElement>('[role="dialog"]') ??
+            formRef.current;
         const listener = (e: KeyboardEvent) => keys.current(e);
-        form?.addEventListener('keydown', listener);
+        panel?.addEventListener('keydown', listener);
 
-        return () => form?.removeEventListener('keydown', listener);
+        return () => panel?.removeEventListener('keydown', listener);
     }, []);
 
     return (
         <form
             ref={formRef}
-            className="space-y-4"
+            className="grid grid-cols-1 gap-4 text-xs md:grid-cols-2"
             onSubmit={(e) => {
                 e.preventDefault();
                 void submit();
             }}
         >
-            <div className="flex items-baseline justify-between rounded-lg bg-muted px-4 py-3">
-                <span className="text-sm font-semibold uppercase">
-                    {t('pos.totals.total')}
-                </span>
-                <span className="num text-3xl font-bold">{d.money(total)}</span>
-            </div>
-
-            <fieldset className="flex flex-wrap gap-2">
-                <legend className="sr-only">{t('pos.pay.methods')}</legend>
-                {usable.map((m) => {
-                    const sc = SHORTCUTS.find((x) => x.pick(m));
+            {/* Left: tender breakdown */}
+            <fieldset className="space-y-2">
+                <legend className="mb-1 text-xs font-bold text-muted-foreground">
+                    {t('pos.pay.breakdown')}
+                </legend>
+                {options.map(({ method, icon, key }) => {
+                    const Icon = ICONS[icon];
+                    const amount = amountOf(method.id);
+                    const row = rows.find((r) => r.methodId === method.id);
 
                     return (
-                        <Button
-                            key={m.id}
-                            type="button"
-                            variant="outline"
-                            className="min-h-11"
-                            onClick={() => add(m)}
-                        >
-                            {m.name}
-                            {m.type === 'customer_credit' && customer && (
-                                <span className="num text-xs text-muted-foreground">
-                                    ({d.money(customer.advance)})
-                                </span>
-                            )}
-                            {sc && <Kbd keys={`alt+${sc.key}`} onButton />}
-                        </Button>
-                    );
-                })}
-                {customer && (
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="min-h-11"
-                        onClick={leaveDue}
-                    >
-                        {t('pos.pay.leave_due')} <Kbd keys="alt+d" onButton />
-                    </Button>
-                )}
-            </fieldset>
-
-            <ul className="space-y-2">
-                {rows.map((row, i) => {
-                    const method = methods.find((m) => m.id === row.methodId);
-
-                    return (
-                        <li
-                            key={row.methodId}
-                            className="grid grid-cols-[8rem_1fr_auto] items-center gap-2 sm:grid-cols-[10rem_1fr_1fr_auto]"
-                        >
-                            <span className="truncate font-semibold">
-                                {methodName(row.methodId)}
-                            </span>
-                            <MoneyInput
-                                value={row.amount}
-                                onChange={(v) => setRow(i, { amount: v ?? 0 })}
-                                aria-describedby="pos-pay-summary"
-                                className="h-11"
-                            />
-                            {method?.requires_reference ? (
+                        <div key={method.id} className="space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                                <label
+                                    htmlFor={`pos-tender-${method.id}`}
+                                    className="flex w-36 shrink-0 items-center gap-1.5 truncate text-[11px] font-medium text-foreground"
+                                >
+                                    <Icon
+                                        className="size-3.5 shrink-0 text-muted-foreground"
+                                        aria-hidden="true"
+                                    />
+                                    <span className="truncate">
+                                        {method.name}
+                                    </span>
+                                    {method.type === 'customer_credit' &&
+                                        customer && (
+                                            <span className="num text-[10px] text-muted-foreground">
+                                                ({d.money(customer.advance)})
+                                            </span>
+                                        )}
+                                    {key && (
+                                        <Kbd
+                                            keys={`alt+${key}`}
+                                            className="ml-auto text-[9px]"
+                                        />
+                                    )}
+                                </label>
+                                <div className="flex-1">
+                                    <MoneyInput
+                                        id={`pos-tender-${method.id}`}
+                                        value={amount}
+                                        onChange={(v) =>
+                                            setRow(method.id, {
+                                                amount: v ?? 0,
+                                            })
+                                        }
+                                        aria-describedby="pos-pay-summary"
+                                        className={cn(
+                                            'h-9 bg-surface-sunken font-mono font-bold',
+                                            amount === 0 &&
+                                                'text-muted-foreground',
+                                        )}
+                                    />
+                                </div>
+                            </div>
+                            {method.requires_reference && amount > 0 && (
                                 <Input
-                                    className="h-11"
-                                    value={row.reference}
+                                    className="ml-auto h-9 w-[calc(100%-9.5rem)] text-xs"
+                                    value={row?.reference ?? ''}
                                     placeholder={t('pos.pay.reference')}
                                     aria-label={t('pos.pay.reference_for', {
                                         method: method.name,
                                     })}
                                     aria-invalid={
-                                        row.reference.trim() === '' || undefined
+                                        (row?.reference ?? '').trim() === '' ||
+                                        undefined
                                     }
                                     onChange={(e) =>
-                                        setRow(i, { reference: e.target.value })
+                                        setRow(method.id, {
+                                            reference: e.target.value,
+                                        })
                                     }
                                 />
-                            ) : (
-                                <span className="max-sm:hidden" />
                             )}
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-11"
-                                aria-label={t('pos.pay.remove', {
-                                    method: methodName(row.methodId),
-                                })}
-                                onClick={() =>
-                                    setRows((prev) =>
-                                        prev.filter((_, j) => j !== i),
-                                    )
-                                }
-                            >
-                                <Trash2 aria-hidden="true" />
-                            </Button>
-                        </li>
+                        </div>
                     );
                 })}
-            </ul>
 
-            {cash && quick.length > 0 && (
-                <fieldset className="flex flex-wrap gap-2">
-                    <legend className="sr-only">{t('pos.pay.quick')}</legend>
-                    {quick.map((amount, i) => (
-                        <Button
-                            key={amount}
+                {cashId !== undefined && (
+                    <div className="flex flex-wrap items-center gap-1 pt-2">
+                        <button
                             type="button"
-                            variant="secondary"
-                            className="num min-h-11"
-                            onClick={() => setCash(amount)}
-                        >
-                            {d.money(amount)}{' '}
-                            <Kbd keys={String(i + 1)} onButton />
-                        </Button>
-                    ))}
-                </fieldset>
-            )}
-
-            <dl
-                id="pos-pay-summary"
-                className="num grid grid-cols-2 gap-x-4 gap-y-1 text-sm"
-                aria-live="polite"
-            >
-                <dt>{t('pos.pay.tendered')}</dt>
-                <dd className="text-right">{d.money(s.tendered)}</dd>
-                <dt className="text-lg font-semibold">{t('pos.pay.change')}</dt>
-                <dd
-                    className={cn(
-                        'text-right text-lg font-bold',
-                        s.change > 0 && 'text-success',
-                    )}
-                >
-                    {d.money(s.change)}
-                </dd>
-                {s.due > 0 && (
-                    <>
-                        <dt className="font-semibold text-warning">
-                            {t('pos.pay.due')}
-                        </dt>
-                        <dd className="text-right font-semibold text-warning">
-                            {d.money(s.due)}
-                        </dd>
-                    </>
-                )}
-                {customer &&
-                    s.balanceAfter !== null &&
-                    (s.due > 0 || s.creditUsed > 0) && (
-                        <>
-                            <dt className="text-muted-foreground">
-                                {t('pos.pay.balance_after')}
-                            </dt>
-                            <dd className="text-right text-muted-foreground">
-                                {d.money(s.balanceAfter)}
-                                {customer.credit_limit !== null &&
-                                    ` / ${d.money(customer.credit_limit)}`}
-                            </dd>
-                        </>
-                    )}
-            </dl>
-
-            {s.problems.length > 0 && (
-                <ul className="space-y-1 text-sm" role="alert">
-                    {s.problems.map((p) => (
-                        <li
-                            key={p}
-                            className={cn(
-                                OVERRIDABLE.includes(p) && approved
-                                    ? 'text-muted-foreground'
-                                    : 'text-danger',
-                            )}
-                        >
-                            {t(`pos.pay.problem.${p}`)}
-                            {p === 'over_limit' && !approved && (
-                                <Button
-                                    type="button"
-                                    variant="link"
-                                    className="h-auto p-0 pl-2"
-                                    onClick={() =>
-                                        onNeedApproval(
-                                            'pos.customer_pin_override',
-                                        )
-                                    }
-                                >
-                                    {t('pos.manager.ask')}
-                                </Button>
-                            )}
-                        </li>
-                    ))}
-                </ul>
-            )}
-
-            {error && (
-                <div
-                    className="rounded-md border border-danger bg-danger-soft p-3 text-sm"
-                    role="alert"
-                >
-                    <p className="font-semibold">
-                        {error.message || t('pos.errors.network')}
-                    </p>
-                    {error.detail && (
-                        <p className="mt-1 text-muted-foreground">
-                            {error.detail}
-                        </p>
-                    )}
-                    {error.code && APPROVABLE[error.code] && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="mt-2 min-h-11"
+                            className="touch-target flex min-h-7 items-center gap-1 rounded border border-primary bg-primary-soft px-2 py-1 font-mono text-[10px] font-bold text-primary hover:bg-primary hover:text-primary-foreground"
                             onClick={() =>
-                                onNeedApproval(
-                                    APPROVABLE[error.code ?? ''] ?? '',
+                                setRows((prev) =>
+                                    exactCash(prev, total, cashId),
                                 )
                             }
                         >
-                            <ShieldCheck aria-hidden="true" />{' '}
-                            {t('pos.manager.ask')}
-                        </Button>
+                            {t('pos.pay.exact')}
+                            <Kbd keys="alt+e" className="text-[9px]" />
+                        </button>
+                        {CASH_STEPS.map((step, i) => (
+                            <button
+                                key={step}
+                                type="button"
+                                className="touch-target flex min-h-7 flex-1 items-center justify-center gap-1 rounded border bg-surface-sunken py-1 font-mono text-[10px] font-semibold hover:border-primary"
+                                aria-label={t('pos.pay.add_cash', {
+                                    amount: d.money(step),
+                                })}
+                                aria-keyshortcuts={String(i + 1)}
+                                title={`${t('pos.pay.add_cash', { amount: d.money(step) })} (${i + 1})`}
+                                onClick={() =>
+                                    setRows((prev) =>
+                                        addCash(prev, cashId, step),
+                                    )
+                                }
+                            >
+                                +{d.n(step / 100)}
+                            </button>
+                        ))}
+                        <button
+                            type="button"
+                            className="touch-target min-h-7 rounded bg-danger-soft px-2 py-1 font-mono text-[10px] font-semibold text-danger"
+                            onClick={() =>
+                                setRows((prev) =>
+                                    prev.map((r) => ({ ...r, amount: 0 })),
+                                )
+                            }
+                        >
+                            {t('pos.pay.reset')}
+                        </button>
+                    </div>
+                )}
+                {customer && (
+                    <button
+                        type="button"
+                        className="touch-target flex min-h-7 w-full items-center justify-between gap-2 rounded border border-dashed border-warning/40 px-2 py-1 text-[11px] font-semibold text-warning hover:bg-warning-soft"
+                        onClick={() =>
+                            setRows((prev) => leaveDue(prev, cashId))
+                        }
+                    >
+                        {t('pos.pay.leave_due')}
+                        <Kbd keys="alt+d" className="text-[9px]" />
+                    </button>
+                )}
+            </fieldset>
+
+            {/* Right: settlement */}
+            <div className="flex flex-col justify-between gap-3 rounded-xl bg-surface-sunken p-4">
+                <div
+                    id="pos-pay-summary"
+                    className="space-y-2 text-xs"
+                    aria-live="polite"
+                >
+                    <div className="flex justify-between text-muted-foreground">
+                        <span>{t('pos.pay.payable')}</span>
+                        <span className="num text-sm font-bold text-foreground">
+                            {d.money(total)}
+                        </span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                        <span>{t('pos.pay.tendered')}</span>
+                        <span className="num text-sm font-bold text-success">
+                            {d.money(s.tendered)}
+                        </span>
+                    </div>
+
+                    {s.due > 0 ? (
+                        <div className="space-y-1 rounded-xl border border-warning/30 bg-warning-soft p-2.5 text-warning">
+                            <div className="flex items-center justify-between text-xs font-bold">
+                                <span className="flex items-center gap-1">
+                                    <AlertTriangle
+                                        className="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    {t('pos.pay.paid_amount', {
+                                        amount: d.money(s.tendered),
+                                    })}
+                                </span>
+                                <span>
+                                    {t('pos.pay.due')}: {d.money(s.due)}
+                                </span>
+                            </div>
+                            {s.tendered === 0 && (
+                                <p className="text-[10px] font-bold">
+                                    {t('pos.pay.full_credit')}
+                                </p>
+                            )}
+                            {!customer ? (
+                                <div className="flex items-center justify-between gap-2 border-t border-warning/30 pt-2">
+                                    <span className="text-[10px] font-bold text-danger">
+                                        {t('pos.pay.attach_for_due')}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className="touch-target flex min-h-6 items-center gap-1 rounded bg-warning px-2 text-[10px] font-bold text-primary-foreground"
+                                        onClick={onAttachCustomer}
+                                    >
+                                        <UserPlus
+                                            className="size-3"
+                                            aria-hidden="true"
+                                        />
+                                        {t('pos.pay.attach')}
+                                    </button>
+                                </div>
+                            ) : (
+                                s.balanceAfter !== null && (
+                                    <div className="space-y-1 border-t border-warning/30 pt-2">
+                                        <div className="flex justify-between font-mono text-[10px]">
+                                            <span>
+                                                {t('pos.pay.balance_after')}
+                                            </span>
+                                            <span className="num">
+                                                {d.money(s.balanceAfter)}
+                                                {customer.credit_limit !==
+                                                    null &&
+                                                    ` / ${d.money(customer.credit_limit)}`}
+                                            </span>
+                                        </div>
+                                        {meter && (
+                                            <div
+                                                className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/10"
+                                                aria-hidden="true"
+                                            >
+                                                <div
+                                                    className={cn(
+                                                        'h-full',
+                                                        meter.over
+                                                            ? 'bg-danger'
+                                                            : 'bg-warning',
+                                                    )}
+                                                    style={{
+                                                        width: `${meter.percent}%`,
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            )}
+                        </div>
+                    ) : (
+                        <div className="flex justify-between border-t pt-2 font-bold">
+                            <span>{t('pos.pay.change')}</span>
+                            <span className="num text-base text-success">
+                                {d.money(s.change)}
+                            </span>
+                        </div>
+                    )}
+
+                    {customer &&
+                        s.due === 0 &&
+                        s.creditUsed > 0 &&
+                        s.balanceAfter !== null && (
+                            <div className="flex justify-between text-muted-foreground">
+                                <span>{t('pos.pay.balance_after')}</span>
+                                <span className="num">
+                                    {d.money(s.balanceAfter)}
+                                </span>
+                            </div>
+                        )}
+
+                    {s.problems.length > 0 && (
+                        <ul className="space-y-1 text-[11px]" role="alert">
+                            {s.problems.map((p) => (
+                                <li
+                                    key={p}
+                                    className={cn(
+                                        OVERRIDABLE.includes(p) && approved
+                                            ? 'text-muted-foreground'
+                                            : 'font-semibold text-danger',
+                                    )}
+                                >
+                                    {t(`pos.pay.problem.${p}`)}
+                                    {p === 'over_limit' && !approved && (
+                                        <Button
+                                            type="button"
+                                            variant="link"
+                                            className="h-auto p-0 pl-2 text-[11px]"
+                                            onClick={() =>
+                                                onNeedApproval(
+                                                    'pos.customer_pin_override',
+                                                )
+                                            }
+                                        >
+                                            {t('pos.manager.ask')}
+                                        </Button>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    {error && (
+                        <div
+                            className="rounded-lg border border-danger bg-danger-soft p-2.5 text-xs"
+                            role="alert"
+                        >
+                            <p className="font-semibold">
+                                {error.message || t('pos.errors.network')}
+                            </p>
+                            {error.detail && (
+                                <p className="mt-1 text-muted-foreground">
+                                    {error.detail}
+                                </p>
+                            )}
+                            {error.code && APPROVABLE[error.code] && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-2 min-h-9"
+                                    onClick={() =>
+                                        onNeedApproval(
+                                            APPROVABLE[error.code ?? ''] ?? '',
+                                        )
+                                    }
+                                >
+                                    <ShieldCheck aria-hidden="true" />{' '}
+                                    {t('pos.manager.ask')}
+                                </Button>
+                            )}
+                        </div>
+                    )}
+
+                    {approved && (
+                        <p className="flex items-center gap-1 text-[11px] text-success">
+                            <ShieldCheck
+                                className="size-3.5"
+                                aria-hidden="true"
+                            />{' '}
+                            {t('pos.manager.approved_by', {
+                                name: approval.managerName,
+                            })}
+                        </p>
                     )}
                 </div>
-            )}
 
-            {approved && (
-                <p className="flex items-center gap-1 text-sm text-success">
-                    <ShieldCheck className="size-4" aria-hidden="true" />{' '}
-                    {t('pos.manager.approved_by', {
-                        name: approval.managerName,
-                    })}
-                </p>
-            )}
-
-            <div className="flex justify-end gap-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    className="min-h-11"
-                    disabled={busy}
-                    onClick={onClose}
-                >
-                    {t('confirm.cancel')} <Kbd keys="escape" onButton />
-                </Button>
-                <Button
+                <button
                     type="submit"
-                    className="min-h-11 min-w-40 text-base"
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-primary-foreground shadow-md transition-colors hover:bg-primary-hover disabled:opacity-40"
                     disabled={busy || blocking.length > 0}
                 >
-                    {busy ? t('pos.pay.saving') : t('pos.pay.complete')}{' '}
-                    <Kbd keys="f10" onButton />
-                </Button>
+                    {busy
+                        ? t('pos.pay.saving')
+                        : s.due > 0
+                          ? t('pos.pay.complete_due')
+                          : t('pos.pay.complete')}
+                    <Kbd keys="f10" tone="on-primary" />
+                </button>
             </div>
         </form>
     );

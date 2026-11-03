@@ -10,8 +10,8 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * What to print or export: `ids` = membership card ids and/or `customers` = customer uuids (a
- * customer without an active card gets one issued on demand), each a comma list in a query string
+ * What to print or export: `ids` = membership card ids and/or `customers` = customer uuids (only
+ * `cards.prepare` reads them: a customer without an active card gets one issued there, never on a GET), each a comma list in a query string
  * or an array in a body; `layout` cr80 | bleed | a4; `crop` adds crop marks (bleed and a4).
  */
 final class CardIdsRequest extends FormRequest

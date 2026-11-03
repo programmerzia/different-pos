@@ -26,11 +26,15 @@ use App\Support\Database\Transaction;
 use App\Support\Http\TableQuery;
 use App\Support\Money\Money;
 use App\Support\Quantity\Quantity;
+use App\Support\Stock\BranchStockColumns;
 use App\Support\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -40,28 +44,114 @@ final class ProductController extends Controller
     use AuthorizesRequests;
     use TranslatesDomainErrors;
 
-    public function __construct(private readonly TenantContext $context) {}
+    public function __construct(private readonly TenantContext $context, private readonly BranchStockColumns $stockColumns) {}
 
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Product::class);
+
+        return Inertia::render('products/index', [...$this->listing($request), 'editor' => null, 'form' => null]);
+    }
+
+    /** The add dialog over the list (02_AppFlow §2: a deep link renders the list with the dialog open). */
+    public function create(Request $request): Response
+    {
+        $this->authorize('viewAny', Product::class);
+        $this->authorize('create', Product::class);
+
+        return Inertia::render('products/index', [
+            ...$this->listing($request),
+            'editor' => ['product' => null, 'families' => []],
+            'form' => $this->formOptions(),
+        ]);
+    }
+
+    /** The edit dialog over the list. */
+    public function edit(Request $request, Product $product): Response
+    {
+        $this->authorize('update', $product);
+        $canCost = $this->actor($request)->can('products.view_cost');
+        $product->load('family:id,uuid,code,name');
+
+        return Inertia::render('products/index', [
+            ...$this->listing($request),
+            'editor' => [
+                'product' => ProductPresenter::detail($product, $canCost),
+                'families' => $product->family_id === null ? $this->families() : [],
+            ],
+            'form' => $this->formOptions(),
+        ]);
+    }
+
+    /**
+     * The catalog list: filtered, sorted page of products with per-branch stock and totals over the whole filtered set.
+     *
+     * @return array<string, mixed>
+     */
+    private function listing(Request $request): array
+    {
         $user = $this->actor($request);
         $canCost = $user->can('products.view_cost');
 
         $table = TableQuery::fromRequest(
             $request,
-            sortable: ['name', 'sku', 'sale_price', 'on_hand', ...($canCost ? ['cost_price'] : [])],
-            filterable: ['category', 'brand', 'status'],
+            sortable: ['name', 'sku', 'barcode', 'sale_price', 'on_hand', ...($canCost ? ['cost_price'] : [])],
+            filterable: ['category', 'brand', 'status', 'stock', 'added'],
             defaultSort: 'name',
         );
 
+        $filtered = $this->filtered($table);
+        $page = $table->paginate((clone $filtered)
+            ->selectRaw('products.*, COALESCE(branch_stocks.qty_on_hand, 0) AS on_hand')
+            ->with(['category:id,name', 'brand:id,name', 'family:id,uuid']));
+
+        $branches = $this->stockColumns->branchesFor($user);
+        /** @var list<Product> $items */
+        $items = array_values($page->items());
+        $stock = $this->stockColumns->onHand(array_map(static fn (Product $p): int => $p->id, $items), $branches);
+
+        $sums = (clone $filtered)->toBase()
+            ->selectRaw('COALESCE(SUM(products.sale_price), 0) AS sale, COALESCE(SUM(products.cost_price), 0) AS cost')
+            ->first();
+        /** @var object{sale: int|string, cost: int|string}|null $sums */
+        $branchTotals = $this->stockColumns->totals($filtered, $branches);
+
+        return [
+            'rows' => array_map(static function (Product $p) use ($canCost, $stock): array {
+                $row = ProductPresenter::row($p, $canCost);
+                $perBranch = $p->track_stock ? ($stock[$p->id] ?? []) : null;
+                $row['stock'] = $perBranch;
+                $row['total_stock'] = $perBranch === null ? null : array_sum($perBranch);
+                $row['track_stock'] = $p->track_stock;
+
+                return $row;
+            }, $items),
+            'meta' => ['page' => $page->currentPage(), 'perPage' => $page->perPage(), 'total' => $page->total(), 'lastPage' => $page->lastPage()],
+            'totals' => [
+                'sale_price' => (int) ($sums->sale ?? 0),
+                'cost_price' => $canCost ? (int) ($sums->cost ?? 0) : null,
+                'stock' => $branchTotals,
+                'total_stock' => array_sum($branchTotals),
+            ],
+            'branches' => $this->stockColumns->present($branches),
+            'categories' => Category::query()->orderBy('name')->get(['id', 'name']),
+            'brands' => Brand::query()->orderBy('name')->get(['id', 'name']),
+            'canViewCost' => $canCost,
+        ];
+    }
+
+    /**
+     * The list query with search and filters applied, joined to the current branch's stock row (no select, no order).
+     *
+     * @return Builder<Product>
+     */
+    private function filtered(TableQuery $table): Builder
+    {
         $branchId = $this->context->branchId();
         $query = Product::query()
             ->leftJoin('branch_stocks', static function ($join) use ($branchId): void {
                 $join->on('branch_stocks.product_id', '=', 'products.id')->where('branch_stocks.branch_id', '=', $branchId);
-            })
-            ->selectRaw('products.*, COALESCE(branch_stocks.qty_on_hand, 0) AS on_hand')
-            ->with(['category:id,name', 'brand:id,name', 'family:id,uuid']);
+            });
 
         if ($table->search !== '') {
             $like = '%'.addcslashes($table->search, '\\%_').'%';
@@ -78,45 +168,36 @@ final class ProductController extends Controller
         if (isset($table->filters['brand'])) {
             $query->where('products.brand_id', (int) $table->filters['brand']);
         }
+        $onHand = 'COALESCE(branch_stocks.qty_on_hand, 0)';
+        $low = static fn (Builder $q): Builder => $q->where('products.track_stock', true)
+            ->where('products.reorder_level', '>', 0)
+            ->whereRaw("{$onHand} <= products.reorder_level");
         match ($table->filters['status'] ?? null) {
             'active' => $query->where('products.is_active', true),
             'inactive' => $query->where('products.is_active', false),
-            'low' => $query->where('products.track_stock', true)
-                ->where('products.reorder_level', '>', 0)
-                ->whereRaw('COALESCE(branch_stocks.qty_on_hand, 0) <= products.reorder_level'),
+            'low' => $low($query),
             default => null,
         };
+        match ($table->filters['stock'] ?? null) {
+            'out' => $query->where('products.track_stock', true)->whereRaw("{$onHand} <= 0"),
+            'low' => $low($query)->whereRaw("{$onHand} > 0"),
+            'in' => $query->where('products.track_stock', true)->whereRaw("{$onHand} > 0")
+                ->where(static fn (Builder $q): Builder => $q->where('products.reorder_level', '<=', 0)->orWhereRaw("{$onHand} > products.reorder_level")),
+            default => null,
+        };
+        $timezone = $this->context->tenant()->timezone;
+        $since = match ($table->filters['added'] ?? null) {
+            'today' => CarbonImmutable::now($timezone)->startOfDay(),
+            '7d' => CarbonImmutable::now($timezone)->subDays(7)->startOfDay(),
+            '30d' => CarbonImmutable::now($timezone)->subDays(30)->startOfDay(),
+            '90d' => CarbonImmutable::now($timezone)->subDays(90)->startOfDay(),
+            default => null,
+        };
+        if ($since instanceof CarbonImmutable) {
+            $query->where('products.created_at', '>=', $since->utc());
+        }
 
-        $page = $table->paginate($query);
-
-        return Inertia::render('products/index', [
-            'rows' => collect($page->items())->map(static fn ($p): array => ProductPresenter::row($p, $canCost))->all(),
-            'meta' => ['page' => $page->currentPage(), 'perPage' => $page->perPage(), 'total' => $page->total(), 'lastPage' => $page->lastPage()],
-            'categories' => Category::query()->orderBy('name')->get(['id', 'name']),
-            'brands' => Brand::query()->orderBy('name')->get(['id', 'name']),
-            'canViewCost' => $canCost,
-        ]);
-    }
-
-    public function create(): Response
-    {
-        $this->authorize('create', Product::class);
-
-        return Inertia::render('products/form', ['product' => null, ...$this->formOptions()]);
-    }
-
-    public function edit(Request $request, Product $product): Response
-    {
-        $this->authorize('update', $product);
-        $canCost = $this->actor($request)->can('products.view_cost');
-        $product->load('family:id,uuid,code,name');
-
-        return Inertia::render('products/form', [
-            'product' => ProductPresenter::detail($product, $canCost),
-            ...$this->formOptions(),
-            'families' => $product->family_id === null ? $this->families() : [],
-            'canViewCost' => $canCost,
-        ]);
+        return $query;
     }
 
     public function store(SaveProductRequest $request, SaveProduct $save, SaveProductFamily $saveFamily, GenerateFamilyVariants $generate): RedirectResponse
@@ -154,7 +235,7 @@ final class ProductController extends Controller
         $this->guarded(fn (): Product => $save->handle($user, $data));
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Product saved.')]);
 
-        return to_route('products.index');
+        return $this->toList($request);
     }
 
     public function update(SaveProductRequest $request, Product $product, SaveProduct $save): RedirectResponse
@@ -169,7 +250,7 @@ final class ProductController extends Controller
         }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Product saved.')]);
 
-        return to_route('products.index');
+        return $this->toList($request);
     }
 
     public function active(Request $request, Product $product, SaveProduct $save): RedirectResponse
@@ -186,7 +267,7 @@ final class ProductController extends Controller
         $outcome = $this->guarded(fn (): DeleteOutcome => $delete->handle($this->actor($request), $product));
         Inertia::flash('toast', ['type' => 'success', 'message' => $outcome === DeleteOutcome::Deleted ? __('Product deleted.') : __('Product is in use, so it was deactivated.')]);
 
-        return to_route('products.index');
+        return $this->toList($request);
     }
 
     /**
@@ -288,6 +369,12 @@ final class ProductController extends Controller
             'vendors' => Vendor::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'variantOptions' => VariantOption::query()->with('values:id,variant_option_id,value,code')->orderBy('sort_order')->get(['id', 'name']),
         ];
+    }
+
+    /** Back to the list the dialog was opened over: the URL's list query (search, sort, page, filters) is kept. */
+    private function toList(Request $request): RedirectResponse
+    {
+        return to_route('products.index', Arr::only($request->query(), ['q', 'sort', 'page', 'per_page', 'filter']));
     }
 
     private function actor(Request $request): User

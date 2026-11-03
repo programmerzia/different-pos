@@ -100,7 +100,7 @@ final readonly class CardRenderer
 
     /**
      * @param  iterable<MembershipCard>  $cards
-     * @return list<array{customer_no: string, name: string, name_bn: string|null, shop_name: string|null, tier: string, since: string, cid: string, issue: string, card_code: string, barcode: string, qr: string}>
+     * @return list<array{customer_no: string, name: string, name_bn: string|null, shop_name: string|null, tier: string, since: string, cid: string, issue: string, card_code: string, barcode: string, qr_payload: string, qr: string}>
      */
     private function items(iterable $cards): array
     {
@@ -110,6 +110,7 @@ final readonly class CardRenderer
         foreach ($cards as $card) {
             $customer = CardExport::customerOf($card);
             $raw = (string) $customer->customer_no;
+            $payload = self::qrPayload($customer->name, $customer->shop_name, $raw);
             $items[] = [
                 'customer_no' => CardExport::customerNo($customer),
                 'name' => $customer->name,
@@ -121,11 +122,24 @@ final readonly class CardRenderer
                 'issue' => str_pad((string) $card->issue_no, 2, '0', STR_PAD_LEFT),
                 'card_code' => $card->card_code,
                 'barcode' => self::barcode($card->card_code),
-                'qr' => self::qr($card->card_code),
+                'qr_payload' => $payload,
+                'qr' => self::qr($payload),
             ];
         }
 
         return $items;
+    }
+
+    /**
+     * The QR payload on the back: `name|shop|number` (member name, the member's shop name or empty, the
+     * 8-digit card number). Same rule as qrPayload() in components/cards/card-face.ts; the barcode
+     * keeps the card code only.
+     */
+    public static function qrPayload(string $name, ?string $shop, string $number): string
+    {
+        $field = static fn (?string $value): string => trim((string) preg_replace('/[|\r\n]+/u', ' ', (string) $value));
+
+        return implode('|', [$field($name), $field($shop), (string) preg_replace('/\D/', '', $number)]);
     }
 
     /** Code128 bars in the same SVG shape the studio draws (viewBox in modules, stretched to the box). */

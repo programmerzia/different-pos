@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('customers/search', [CustomerController::class, 'search'])->name('customers.search');
 Route::get('customers/check-phone', [CustomerController::class, 'checkPhone'])->name('customers.check-phone');
 Route::get('customers/statement', [CustomerStatementController::class, 'index'])->name('customers.statement.index');
+Route::get('customers/export.csv', [CustomerController::class, 'export'])->name('customers.export');
 
 Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
 Route::get('customers/create', [CustomerController::class, 'create'])->name('customers.create');
@@ -31,6 +32,7 @@ Route::post('customers/{customer}/statement/sms', [CustomerStatementController::
 
 Route::get('membership-cards', [MembershipCardController::class, 'index'])->name('cards.index');
 Route::post('membership-cards/issue', [MembershipCardController::class, 'issue'])->name('cards.issue');
+Route::post('membership-cards/prepare', [MembershipCardController::class, 'prepare'])->name('cards.prepare');
 Route::get('membership-cards/print', [MembershipCardController::class, 'print'])->name('cards.print');
 Route::get('membership-cards/export.csv', [MembershipCardController::class, 'export'])->name('cards.export');
 Route::post('membership-cards/printed', [MembershipCardController::class, 'printed'])->name('cards.printed');

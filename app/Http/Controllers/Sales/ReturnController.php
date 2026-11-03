@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Sales;
 
 use App\Actions\Sales\CreateSaleReturn;
 use App\Actions\Sales\Data\ReturnDraft;
+use App\Enums\AllocatableType;
 use App\Enums\RefundMode;
 use App\Enums\SaleStatus;
 use App\Http\Controllers\Concerns\TranslatesDomainErrors;
@@ -13,6 +14,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Sales\Concerns\PresentsSales;
 use App\Http\Requests\Sales\StoreSaleReturnRequest;
 use App\Models\Customer;
+use App\Models\Payment;
+use App\Models\PaymentAllocation;
+use App\Models\PaymentMethod;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleReturn;
@@ -38,14 +42,19 @@ final class ReturnController extends Controller
     {
         $this->authorize('viewAny', SaleReturn::class);
 
-        $table = TableQuery::fromRequest($request, ['number', 'returned_at', 'total'], ['from', 'to', 'mode'], '-returned_at');
-        $query = SaleReturn::query()
-            ->with(['sale:id,number', 'customer' => fn ($q) => $q->withTrashed(), 'exchangeSale:id,number'])
-            ->withCount('items');
+        $table = TableQuery::fromRequest($request, ['number', 'returned_at', 'total'], ['from', 'to', 'mode', 'reason', 'cashier'], '-returned_at');
+        $query = SaleReturn::query();
         $this->dateRange($query, 'returned_at', $table->filters['from'] ?? null, $table->filters['to'] ?? null);
         $mode = RefundMode::tryFrom($table->filters['mode'] ?? '');
         if ($mode instanceof RefundMode) {
             $query->where('refund_mode', $mode);
+        }
+        $reason = $table->filters['reason'] ?? null;
+        if (in_array($reason, StoreSaleReturnRequest::REASONS, true)) {
+            $query->where('reason', $reason);
+        }
+        if (isset($table->filters['cashier'])) {
+            $query->where('created_by', (int) $table->filters['cashier']);
         }
         if ($table->search !== '') {
             $prefix = addcslashes($table->search, '\\%_').'%';
@@ -54,25 +63,58 @@ final class ReturnController extends Controller
                 ->orWhereIn('sale_id', Sale::query()->select('id')->where('number', 'like', $prefix))
                 ->orWhereIn('customer_id', Customer::query()->withTrashed()->select('id')->where(fn ($c) => $c->where('name', 'like', $like)->orWhere('shop_name', 'like', $like))));
         }
+
+        $sums = (clone $query)->toBase()
+            ->selectRaw('COALESCE(SUM(total), 0) AS total, COALESCE(SUM(refunded), 0) AS refunded, COALESCE(SUM(credited), 0) AS credited')
+            ->first();
+
+        $query->with(['sale:id,number', 'customer' => fn ($q) => $q->withTrashed(), 'exchangeSale:id,number,total', 'items.saleItem:id,product_name'])
+            ->withCount(['items', 'items as restocked_count' => fn ($q) => $q->where('restock', true)]);
         $page = $table->paginate($query);
 
+        /** @var list<SaleReturn> $returns */
+        $returns = $page->items();
+        $methods = $this->refundMethods(array_map(static fn (SaleReturn $r): int => $r->id, $returns));
+        $staff = User::inCurrentTenant()->whereIn('id', array_filter(array_map(static fn (SaleReturn $r): ?int => $r->created_by, $returns)))->pluck('name', 'id');
+
         return Inertia::render('returns/index', [
-            'rows' => array_values(array_map(fn (SaleReturn $r): array => [
+            'rows' => array_map(fn (SaleReturn $r): array => [
                 'id' => $r->id,
                 'number' => $r->number,
                 'returned_at' => $this->localTime($r->returned_at),
                 'sale' => ['id' => $r->sale_id, 'number' => (string) $r->sale?->number],
                 'customer' => $this->customerSummary($r->customer),
                 'items' => (int) $r->getAttribute('items_count'),
+                'restocked' => (int) $r->getAttribute('restocked_count'),
+                'lines' => array_values($r->items->sortBy('id')->map(static fn (SaleReturnItem $i): array => [
+                    'name' => $i->saleItem->product_name ?? '',
+                    'qty' => $i->qty->milli,
+                ])->all()),
                 'total' => $r->total->paisa,
                 'refunded' => $r->refunded->paisa,
                 'credited' => $r->credited->paisa,
                 'refund_mode' => $r->refund_mode->value,
+                'refund_method' => $methods[$r->id] ?? null,
                 'reason' => $r->reason,
-                'exchange_sale' => $r->exchangeSale instanceof Sale ? ['id' => $r->exchangeSale->id, 'number' => (string) $r->exchangeSale->number] : null,
-            ], $page->items())),
+                'cashier' => $r->created_by !== null ? $staff->get($r->created_by) : null,
+                'exchange_sale' => $r->exchangeSale instanceof Sale ? [
+                    'id' => $r->exchangeSale->id,
+                    'number' => (string) $r->exchangeSale->number,
+                    'difference' => $r->exchangeSale->total->minus($r->total)->paisa,
+                ] : null,
+            ], $returns),
             'meta' => ['page' => $page->currentPage(), 'perPage' => $page->perPage(), 'total' => $page->total(), 'lastPage' => $page->lastPage()],
+            'totals' => [
+                'total' => (int) ($sums->total ?? 0),
+                'refunded' => (int) ($sums->refunded ?? 0),
+                'credited' => (int) ($sums->credited ?? 0),
+            ],
             'filters' => [...$table->filters, 'q' => $table->search],
+            'reasons' => StoreSaleReturnRequest::REASONS,
+            'cashiers' => fn (): array => array_values(User::inCurrentTenant()->orderBy('name')->get(['id', 'name'])
+                ->map(static fn (User $u): array => ['id' => $u->id, 'name' => $u->name])->all()),
+            // The return wizard dialog (reloaded alone with wizard_q / wizard_sale).
+            'wizard' => Inertia::optional(fn (): array => $this->wizardPayload($request)),
         ]);
     }
 
@@ -156,18 +198,35 @@ final class ReturnController extends Controller
     /** The shared return / exchange wizard page (returns.create and exchanges.create). */
     private function wizard(Request $request, string $mode): Response
     {
-        $actor = $this->actor($request);
         $q = trim($request->string('q')->value());
         $saleId = $request->integer('sale');
 
+        return Inertia::render('returns/create', [
+            'mode' => $mode,
+            'q' => $q,
+            ...$this->wizardData($request, $q, $saleId),
+        ]);
+    }
+
+    /** @return array<string, mixed> The return wizard dialog on the ledger. */
+    private function wizardPayload(Request $request): array
+    {
+        $this->authorize('create', SaleReturn::class);
+        $q = trim($request->string('wizard_q')->value());
+
+        return ['q' => $q, ...$this->wizardData($request, $q, $request->integer('wizard_sale'))];
+    }
+
+    /** @return array{candidates: list<array<string, mixed>>, sale: array<string, mixed>|null, methods: list<array<string, mixed>>, reasons: list<string>, can: array{exchange: bool}} */
+    private function wizardData(Request $request, string $q, int $saleId): array
+    {
+        $actor = $this->actor($request);
         $sale = $saleId > 0 ? Sale::query()->with(['items', 'customer' => fn ($c) => $c->withTrashed()])->find($saleId) : null;
         if ($sale instanceof Sale) {
             $this->authorize('view', $sale);
         }
 
-        return Inertia::render('returns/create', [
-            'mode' => $mode,
-            'q' => $q,
+        return [
             'candidates' => $sale === null && mb_strlen($q) >= 2 ? $this->candidates($q) : [],
             'sale' => $sale instanceof Sale ? $this->returnableSale($sale) : null,
             'methods' => $this->moneyMethods(),
@@ -175,7 +234,37 @@ final class ReturnController extends Controller
             'can' => [
                 'exchange' => $actor->can('create', SaleReturn::class) && $actor->can('create', Sale::class),
             ],
-        ]);
+        ];
+    }
+
+    /**
+     * Refund method name per return (the Out payment allocated to it).
+     *
+     * @param  list<int>  $returnIds
+     * @return array<int, string>
+     */
+    private function refundMethods(array $returnIds): array
+    {
+        if ($returnIds === []) {
+            return [];
+        }
+        $allocations = PaymentAllocation::query()
+            ->where('allocatable_type', AllocatableType::SaleReturn)
+            ->whereIn('allocatable_id', $returnIds)
+            ->orderBy('id')
+            ->get();
+        $payments = Payment::query()->withoutBranchScope()->with('paymentMethod')
+            ->whereIn('id', $allocations->pluck('payment_id')->all())->get()->keyBy('id');
+
+        $out = [];
+        foreach ($allocations as $allocation) {
+            $method = $payments->get($allocation->payment_id)?->paymentMethod;
+            if ($method instanceof PaymentMethod && ! isset($out[$allocation->allocatable_id])) {
+                $out[$allocation->allocatable_id] = $method->name;
+            }
+        }
+
+        return $out;
     }
 
     /** @return list<array<string, mixed>> */

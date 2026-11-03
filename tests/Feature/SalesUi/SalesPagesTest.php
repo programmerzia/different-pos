@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Enums\MessageStatus;
 use App\Enums\SaleStatus;
+use App\Http\Middleware\HandleInertiaRequests;
+use App\Models\Message;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Sale;
@@ -47,7 +50,15 @@ it('lists the branch sales with customer and shop name, never other branches or 
             ->where('rows.0.paid', 150_000)
             ->where('rows.0.due', 50_000)
             ->where('rows.0.payment_status', 'partial')
-            ->where('meta.total', 1));
+            ->where('rows.0.discount', 0)
+            ->where('rows.0.vat', 0)
+            ->where('rows.0.flags', [])
+            ->where('meta.total', 1)
+            ->where('totals.items', 1)
+            ->where('totals.total', 200_000)
+            ->where('totals.paid', 150_000)
+            ->where('totals.due', 50_000)
+            ->where('detail', null));
 });
 
 it('filters by status, payment status, customer and number', function (): void {
@@ -72,12 +83,15 @@ it('shows a sale; another branch or tenant gets a 404', function (): void {
     $user = $this->world->user('Cashier');
 
     $this->actingAs($user)->get(route('sales.show', $sale->id))
-        ->assertInertia(fn (Assert $page) => $page->component('sales/show')
-            ->where('sale.number', $sale->number)
-            ->where('customer.name', 'Rahim')
-            ->has('lines', 1)
-            ->has('payments', 1)
-            ->where('can.void', false));
+        ->assertInertia(fn (Assert $page) => $page->component('sales/index')
+            ->has('rows', 1)
+            ->where('detail.sale.number', $sale->number)
+            ->where('detail.customer.name', 'Rahim')
+            ->has('detail.lines', 1)
+            ->has('detail.payments', 1)
+            ->where('detail.sms', null)
+            ->where('detail.can.void', false)
+            ->where('detail.can.resend_sms', false));
     $this->actingAs($user)->get(route('sales.show', $other->id))->assertNotFound();
     $this->actingAs($user)->get(route('sales.show', $foreign->id))->assertNotFound();
     $this->actingAs($user)->get(route('sales.receipt', $foreign->id))->assertNotFound();
@@ -87,9 +101,9 @@ it('hides batches and cost without products.view_cost', function (): void {
     $sale = SalesUi::sale($this->world, $this->shirt);
 
     $this->actingAs($this->world->user('Cashier'))->get(route('sales.show', $sale->id))
-        ->assertInertia(fn (Assert $page) => $page->where('lines.0.cogs', null)->where('lines.0.batches', null)->where('sale.cogs_total', null));
+        ->assertInertia(fn (Assert $page) => $page->where('detail.lines.0.cogs', null)->where('detail.lines.0.batches', null)->where('detail.sale.cogs_total', null));
     $this->actingAs($this->world->user('Owner'))->get(route('sales.show', $sale->id))
-        ->assertInertia(fn (Assert $page) => $page->where('lines.0.cogs', 40_000)->has('lines.0.batches', 1)->where('lines.0.batches.0.unit_cost', 40_000));
+        ->assertInertia(fn (Assert $page) => $page->where('detail.lines.0.cogs', 40_000)->has('detail.lines.0.batches', 1)->where('detail.lines.0.batches.0.unit_cost', 40_000));
 });
 
 it('voids a same-day sale with sales.void only', function (): void {
@@ -150,4 +164,75 @@ it('creates a share link for an imported sale without a token', function (): voi
     expect($sale->refresh()->public_token)->toHaveLength(32)
         ->and($url)->toBe(route('receipts.public', $sale->public_token));
     $this->postJson(route('sales.share', $sale->id))->assertOk()->assertJsonPath('url', $url);
+});
+
+it('sums the whole filtered list in the totals row, skipping voided sales', function (): void {
+    SalesUi::sale($this->world, $this->shirt, $this->customer, 2, 150_000);
+    $voided = SalesUi::sale($this->world, $this->shirt);
+    Sale::query()->whereKey($voided->id)->update(['status' => SaleStatus::Voided]);
+
+    $this->actingAs($this->world->user('Cashier'))->get(route('sales.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('rows', 2)
+            ->where('meta.total', 2)
+            ->where('totals.items', 2)
+            ->where('totals.total', 200_000)
+            ->where('totals.paid', 150_000)
+            ->where('totals.due', 50_000));
+});
+
+it('filters flagged syncs and sales with returns', function (): void {
+    $flagged = SalesUi::sale($this->world, $this->shirt);
+    Sale::query()->whereKey($flagged->id)->update(['sync_flags' => json_encode(['price_mismatch'])]);
+    $returned = SalesUi::sale($this->world, $this->shirt);
+    Sale::query()->whereKey($returned->id)->update(['returned_total' => 10_000]);
+    $user = $this->world->user();
+
+    $ids = fn (string $query): array => collect($this->actingAs($user)->get('/app/sales?'.$query)->viewData('page')['props']['rows'])->pluck('id')->all();
+
+    expect($ids('filter[sync]=flagged'))->toBe([$flagged->id])
+        ->and($ids('filter[returns]=yes'))->toBe([$returned->id])
+        ->and($ids('filter[returns]=no'))->toBe([$flagged->id])
+        ->and(collect($this->actingAs($user)->get('/app/sales?filter[sync]=flagged')->viewData('page')['props']['rows'])->first()['flags'])->toBe(['price_mismatch']);
+});
+
+it('reloads only the invoice dialog on a partial visit', function (): void {
+    $sale = SalesUi::sale($this->world, $this->shirt, $this->customer);
+    $version = app(HandleInertiaRequests::class)->version(request());
+
+    $props = $this->actingAs($this->world->user('Cashier'))
+        ->withHeaders([
+            'X-Inertia' => 'true',
+            'X-Inertia-Version' => (string) $version,
+            'X-Inertia-Partial-Component' => 'sales/index',
+            'X-Inertia-Partial-Data' => 'detail',
+        ])
+        ->get(route('sales.show', $sale->id))
+        ->assertOk()
+        ->json('props');
+
+    expect($props)->toHaveKey('detail')
+        ->and($props)->not->toHaveKey('rows')
+        ->and($props['detail']['sale']['id'])->toBe($sale->id);
+});
+
+it('shows the receipt SMS status and offers a resend of a failed one to settings.manage only', function (): void {
+    $sale = SalesUi::sale($this->world, $this->shirt, $this->customer);
+    $message = Message::factory()->create([
+        'tenant_id' => $this->world->tenant->id,
+        'customer_id' => $this->customer->id,
+        'status' => MessageStatus::Failed,
+        'body' => 'Thank you Rahim! secret-body',
+        'related_type' => $sale->getMorphClass(),
+        'related_id' => $sale->id,
+    ]);
+
+    $this->actingAs($this->world->user('Cashier'))->get(route('sales.show', $sale->id))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('detail.sms.id', $message->id)
+            ->where('detail.sms.status', 'failed')
+            ->missing('detail.sms.body')
+            ->where('detail.can.resend_sms', false));
+    $this->actingAs($this->world->user('Owner'))->get(route('sales.show', $sale->id))
+        ->assertInertia(fn (Assert $page) => $page->where('detail.can.resend_sms', true));
 });

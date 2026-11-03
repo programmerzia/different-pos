@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Customer;
+use App\Models\CustomerGroup;
 use App\Models\Payment;
 use App\Support\Tenancy\TenantContext;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -97,4 +99,46 @@ it('refuses an allocation above the invoice due and users without payments.colle
     $this->actingAs(SalesUi::nobody($this->world))->post(route('dues.payments.store', $this->customer->uuid), [
         'amount' => 1_000, 'payment_method_id' => $this->world->methods['cash']->id,
     ])->assertForbidden();
+});
+
+it('adds the last purchase, debtors per bucket, group and credit-use filters', function (): void {
+    $group = CustomerGroup::factory()->create(['tenant_id' => $this->world->tenant->id, 'name' => 'Wholesale']);
+    $balance = $this->customer->refresh()->balance->paisa;
+    Customer::query()->whereKey($this->customer->id)->update(['credit_limit' => intdiv($balance * 100, 90)]);
+    $user = $this->world->user('Cashier');
+
+    $this->actingAs($user)->get(route('dues.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rows.0.last_sale_at', $this->new->refresh()->sold_at->setTimezone('Asia/Dhaka')->format('Y-m-d H:i'))
+            ->where('totals.debtors', ['d0_30' => 1, 'd31_60' => 1, 'd61_90' => 0, 'd90_plus' => 1])
+            ->where('groups', [['id' => $group->id, 'name' => 'Wholesale']])
+            ->missing('collect'));
+
+    $count = fn (array $filter): int => count($this->actingAs($user)->get(route('dues.index', ['filter' => $filter]))->viewData('page')['props']['rows']);
+    expect($count(['group' => (string) $group->id]))->toBe(0)
+        ->and($count(['credit' => 'near_limit']))->toBe(1)
+        ->and($count(['credit' => 'over_limit']))->toBe(0);
+
+    Customer::query()->whereKey($this->customer->id)->update(['customer_group_id' => $group->id, 'credit_limit' => 1]);
+    expect($count(['group' => (string) $group->id]))->toBe(1)
+        ->and($count(['credit' => 'over_limit']))->toBe(1);
+});
+
+it('loads the collect dialog for one customer alone, never another tenant\'s', function (): void {
+    $foreign = SalesUi::foreignSale();
+    $foreignUuid = app(TenantContext::class)->withoutTenancy(fn () => Customer::query()->findOrFail($foreign->customer_id)->uuid);
+    $partial = fn (string $uuid) => $this->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) app(HandleInertiaRequests::class)->version(request()),
+        'X-Inertia-Partial-Component' => 'dues/index',
+        'X-Inertia-Partial-Data' => 'collect',
+    ])->get(route('dues.index', ['collect' => $uuid]))->assertOk()->json('props');
+
+    $this->actingAs($this->world->user('Cashier'));
+    $mine = $partial($this->customer->uuid);
+    expect($mine)->not->toHaveKey('rows')
+        ->and(array_column($mine['collect']['invoices'], 'id'))->toBe([$this->old->id, $this->mid->id, $this->new->id])
+        ->and($mine['collect']['customer']['name'])->toBe('Selim')
+        ->and($mine['collect']['can']['collect'])->toBeTrue()
+        ->and($partial($foreignUuid)['collect'])->toBeNull();
 });

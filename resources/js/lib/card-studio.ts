@@ -1,7 +1,8 @@
 /**
- * Membership card studio helpers: the print queue, the member picker's keyboard cursor, A4 sheet
- * paging and the press URLs (CardIdsRequest: customers, layout, crop).
+ * Membership card studio helpers: the print queue (the member selection), the preview mode, the member picker's keyboard cursor, A4 sheet
+ * paging and the press URLs (CardIdsRequest: ids, layout, crop).
  */
+import { apiRequest } from '@/lib/api';
 import type { CardMember } from '@/components/cards/card-face';
 
 /** Members per server page (MembershipCardController::PER_PAGE) and cards per A4 sheet. */
@@ -32,6 +33,22 @@ export function refreshQueue(queue: readonly CardMember[], page: readonly CardMe
     return queue.map((m) => fresh.get(m.uuid) ?? m);
 }
 
+export type SelectionView =
+    | { mode: 'single'; member: CardMember | null }
+    | { mode: 'gallery'; members: CardMember[] };
+
+/**
+ * What the preview shows for a selection (= the print queue): several members (or All members) are
+ * a gallery, one member is the single flip card, none falls back to the member last picked.
+ */
+export function selectionView(selection: readonly CardMember[], fallback: CardMember | null): SelectionView {
+    if (selection.length > 1) {
+        return { mode: 'gallery', members: [...selection] };
+    }
+
+    return { mode: 'single', member: selection[0] ?? fallback };
+}
+
 /** Up/Down in the picker list: clamped, -1 when the list is empty. */
 export function moveCursor(current: number, delta: number, length: number): number {
     if (length === 0) {
@@ -49,9 +66,19 @@ export function sheetMembers<T>(rows: readonly T[], sheet: number, perSheet = PE
     return rows.slice(sheet * perSheet, (sheet + 1) * perSheet);
 }
 
-/** Print-ready HTML (GET) for customers; a member without an active card gets one issued. */
-export function printUrl(uuids: readonly string[], layout: PrintLayout, crop = false): string {
-    const query = new URLSearchParams({ customers: uuids.join(','), layout });
+/** POST cards.prepare: issues a missing card per customer and answers with the printable card ids. */
+export async function prepareCards(uuids: readonly string[]): Promise<number[]> {
+    const { card_ids } = await apiRequest<{ card_ids: number[] }>('/app/membership-cards/prepare', {
+        method: 'POST',
+        body: { customers: uuids },
+    });
+
+    return card_ids;
+}
+
+/** Print-ready HTML (GET) for existing card ids; the GET never issues a card. */
+export function printUrl(ids: readonly number[], layout: PrintLayout, crop = false): string {
+    const query = new URLSearchParams({ ids: ids.join(','), layout });
     if (crop || layout === 'a4') {
         query.set('crop', crop ? '1' : '0');
     }
@@ -59,5 +86,5 @@ export function printUrl(uuids: readonly string[], layout: PrintLayout, crop = f
     return `/app/membership-cards/print?${query.toString()}`;
 }
 
-export const exportUrl = (uuids: readonly string[]): string =>
-    `/app/membership-cards/export.csv?${new URLSearchParams({ customers: uuids.join(',') }).toString()}`;
+export const exportUrl = (ids: readonly number[]): string =>
+    `/app/membership-cards/export.csv?${new URLSearchParams({ ids: ids.join(',') }).toString()}`;

@@ -24,6 +24,7 @@ export function ManagerDialog({ permission, onApproved, onClose }: Props) {
 
     return (
         <PosDialog
+            icon={ShieldCheck}
             open={permission !== null}
             onClose={onClose}
             title={t('pos.manager.title')}

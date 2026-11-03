@@ -1,3 +1,4 @@
+import { Percent } from 'lucide-react';
 import { useState } from 'react';
 import { MoneyInput } from '@/components/money-input';
 import { Button } from '@/components/ui/button';
@@ -52,6 +53,7 @@ export function DiscountDialog({ open, title, onClose, ...rest }: Props) {
 
     return (
         <PosDialog
+            icon={Percent}
             open={open}
             onClose={onClose}
             title={title}

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\RefundMode;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\BranchStock;
 use App\Models\Sale;
 use App\Models\SaleReturn;
@@ -122,4 +123,56 @@ it('needs pos.sell for an exchange', function (): void {
 
     $this->actingAs($this->world->user('Accountant'))->post(route('exchanges.store'), [])->assertForbidden();
     $this->actingAs($this->world->user('Accountant'))->get(route('exchanges.create'))->assertForbidden();
+});
+
+it('lists the ledger with items, refund method, cashier, reason chips and totals', function (): void {
+    $manager = $this->world->user('Manager');
+    $this->actingAs($manager)->post(route('returns.store'), [
+        'sale_id' => $this->sale->id,
+        'lines' => [['sale_item_id' => $this->item->id, 'qty' => 1000, 'restock' => false]],
+        'refund_mode' => 'refund',
+        'refund_method_id' => $this->world->methods['cash']->id,
+        'reason' => 'defect',
+    ])->assertRedirect();
+
+    $this->actingAs($this->world->user('Cashier'))->get(route('returns.index'))
+        ->assertInertia(fn (Assert $page) => $page->component('returns/index')
+            ->has('rows', 1)
+            ->where('rows.0.lines.0.name', 'Panjabi')
+            ->where('rows.0.lines.0.qty', 1000)
+            ->where('rows.0.restocked', 0)
+            ->where('rows.0.refund_method', $this->world->methods['cash']->name)
+            ->where('rows.0.cashier', $manager->name)
+            ->where('rows.0.reason', 'defect')
+            ->where('totals.total', 100_000)
+            ->where('totals.refunded', 100_000)
+            ->missing('wizard'));
+
+    $this->get(route('returns.index', ['filter' => ['reason' => 'size']]))->assertInertia(fn (Assert $page) => $page->has('rows', 0));
+    $this->get(route('returns.index', ['filter' => ['reason' => 'defect']]))->assertInertia(fn (Assert $page) => $page->has('rows', 1));
+});
+
+it('loads the wizard dialog alone, never another tenant\'s sale', function (): void {
+    $foreign = SalesUi::foreignSale();
+    $partial = fn (array $query) => $this->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) app(HandleInertiaRequests::class)->version(request()),
+        'X-Inertia-Partial-Component' => 'returns/index',
+        'X-Inertia-Partial-Data' => 'wizard',
+    ])->get(route('returns.index', $query))->assertOk()->json('props');
+
+    $this->actingAs($this->world->user('Manager'));
+    $found = $partial(['wizard_q' => 'Karim']);
+    expect($found)->not->toHaveKey('rows')
+        ->and($found['wizard']['candidates'][0]['id'])->toBe($this->sale->id)
+        ->and($partial(['wizard_sale' => $this->sale->id])['wizard']['sale']['lines'][0]['returnable'])->toBe(3000)
+        ->and($partial(['wizard_sale' => $foreign->id])['wizard']['sale'])->toBeNull();
+
+    $this->actingAs($this->world->user('Cashier'));
+    $this->withHeaders([
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) app(HandleInertiaRequests::class)->version(request()),
+        'X-Inertia-Partial-Component' => 'returns/index',
+        'X-Inertia-Partial-Data' => 'wizard',
+    ])->get(route('returns.index', ['wizard_q' => 'Karim']))->assertForbidden();
 });

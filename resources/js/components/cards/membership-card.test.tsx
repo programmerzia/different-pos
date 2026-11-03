@@ -25,8 +25,8 @@ afterEach(async () => {
 
 describe('MembershipCard', () => {
     it('shows the number grouped 4 + 4, the holder, the tier and the business name on the front', () => {
-        render(<MembershipCard member={member} brand={brand} />);
-        expect(screen.getByTestId('card-number').textContent).toBe('1000 0017');
+        const { container } = render(<MembershipCard member={member} brand={brand} />);
+        expect(container.querySelector('.mc-num-full')?.textContent).toBe('1000 0017');
         expect(screen.getByText('Rahim Uddin')).toBeTruthy();
         expect(screen.getByText('রহিম উদ্দিন')).toBeTruthy();
         expect(screen.getByText('Different Fashion')).toBeTruthy();
@@ -35,9 +35,27 @@ describe('MembershipCard', () => {
         expect(screen.queryByRole('img')).toBeNull();
     });
 
-    it('adds the tenant logo when there is one', () => {
+    it('masks the number on screen (last four visible) until revealed; print always shows it', () => {
+        const { container, rerender } = render(<MembershipCard member={member} brand={brand} />);
+        const root = container.querySelector('.mc');
+        expect(container.querySelector('.mc-num-masked')?.textContent).toBe('•••• 0017');
+        expect(root?.getAttribute('data-revealed')).toBe('false');
+        rerender(<MembershipCard member={member} brand={brand} revealed />);
+        expect(root?.getAttribute('data-revealed')).toBe('true');
+        rerender(<MembershipCard member={member} brand={brand} forPrint />);
+        expect(root?.getAttribute('data-revealed')).toBe('true');
+    });
+
+    it('puts the tenant logo in the badge when there is one', () => {
         const { container } = render(<MembershipCard member={member} brand={{ ...brand, logo_url: '/storage/logo.png' }} />);
-        expect(container.querySelector('img.mc-logo')?.getAttribute('src')).toBe('/storage/logo.png');
+        expect(container.querySelector('.mc-logo img')?.getAttribute('src')).toBe('/storage/logo.png');
+    });
+
+    it('encodes name, shop and number in the QR while the barcode keeps the card code', () => {
+        const { container } = render(<MembershipCard member={member} brand={brand} side="back" />);
+        expect(container.querySelector('.mc-qr')?.getAttribute('data-qr')).toBe('Rahim Uddin|Rahim Store|10000017');
+        expect(container.querySelector('.mc-qr path')?.getAttribute('d')).toBeTruthy();
+        expect(container.querySelector('.mc-barcode div')?.textContent).toBe('MC1000001701');
     });
 
     it('shows the barcode, its code, the CID and the helpline on the back', () => {
@@ -51,8 +69,9 @@ describe('MembershipCard', () => {
     it('uses Bangla digits when the language and the preference say so', async () => {
         await i18n.changeLanguage('bn');
         usePreferencesStore.setState({ bn_digits: true });
-        render(<MembershipCard member={member} brand={brand} />);
-        expect(screen.getByTestId('card-number').textContent).toBe('১০০০ ০০১৭');
+        const { container } = render(<MembershipCard member={member} brand={brand} />);
+        expect(container.querySelector('.mc-num-full')?.textContent).toBe('১০০০ ০০১৭');
+        expect(container.querySelector('.mc-num-masked')?.textContent).toBe('•••• ০০১৭');
     });
 
     it('encodes Code128 bars', () => {

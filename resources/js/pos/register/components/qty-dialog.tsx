@@ -1,3 +1,4 @@
+import { Hash } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { QtyStepper } from '@/components/qty-stepper';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ export function QtyDialog({ line, onClose, ...rest }: Props) {
 
     return (
         <PosDialog
+            icon={Hash}
             open={line !== null}
             onClose={onClose}
             title={t('pos.qty.title', { name: line?.name ?? '' })}

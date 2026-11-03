@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vite-plus/test';
 import type { CardMember } from '@/components/cards/card-face';
-import { cardCode, cid, formatNumber, sinceShort, tierOf } from '@/components/cards/card-face';
+import { cardCode, cid, formatNumber, maskNumber, qrPayload, sinceShort, tierOf } from '@/components/cards/card-face';
 import {
     exportUrl,
     moveCursor,
     printUrl,
     queueAll,
     refreshQueue,
+    selectionView,
     sheetCount,
     sheetMembers,
     toggleQueued,
@@ -71,10 +72,10 @@ describe('A4 sheets', () => {
 
 describe('press URLs', () => {
     it('prints by customer with layout and crop marks', () => {
-        expect(printUrl(['a', 'b'], 'cr80')).toBe('/app/membership-cards/print?customers=a%2Cb&layout=cr80');
-        expect(printUrl(['a'], 'bleed', true)).toBe('/app/membership-cards/print?customers=a&layout=bleed&crop=1');
-        expect(printUrl(['a'], 'a4', false)).toBe('/app/membership-cards/print?customers=a&layout=a4&crop=0');
-        expect(exportUrl(['a', 'b'])).toBe('/app/membership-cards/export.csv?customers=a%2Cb');
+        expect(printUrl([1, 2], 'cr80')).toBe('/app/membership-cards/print?ids=1%2C2&layout=cr80');
+        expect(printUrl([1], 'bleed', true)).toBe('/app/membership-cards/print?ids=1&layout=bleed&crop=1');
+        expect(printUrl([1], 'a4', false)).toBe('/app/membership-cards/print?ids=1&layout=a4&crop=0');
+        expect(exportUrl([1, 2])).toBe('/app/membership-cards/export.csv?ids=1%2C2');
     });
 });
 
@@ -92,5 +93,38 @@ describe('card face rules', () => {
         expect(cardCode(member(1, { card: { id: 1, code: 'MC1000001703', status: 'active', issue_no: 3, print_count: 0, printed_at: null } }))).toBe('MC1000001703');
         // A lost card is never reused: the next print issues the next number.
         expect(cardCode(member(1, { card: { id: 1, code: 'MC1000001701', status: 'lost', issue_no: 1, print_count: 0, printed_at: null } }))).toBe('MC1000001702');
+    });
+});
+
+describe('selection view', () => {
+    it('falls back to the picked member when nothing is selected', () => {
+        const a = member(1);
+        expect(selectionView([], a)).toEqual({ mode: 'single', member: a });
+        expect(selectionView([], null)).toEqual({ mode: 'single', member: null });
+    });
+
+    it('shows one selected member as the single flip card', () => {
+        const a = member(1);
+        expect(selectionView([a], member(2))).toEqual({ mode: 'single', member: a });
+    });
+
+    it('shows several selected members (or all) as a gallery in selection order', () => {
+        const [a, b, c] = [member(1), member(2), member(3)];
+        expect(selectionView([c, a, b], null)).toEqual({ mode: 'gallery', members: [c, a, b] });
+    });
+});
+
+describe('masked number and QR payload', () => {
+    it('masks all but the last four digits, keeping the grouping', () => {
+        expect(maskNumber('1000 0017')).toBe('•••• 0017');
+        expect(maskNumber('10009231')).toBe('•••• 9231');
+        expect(maskNumber('123')).toBe('123');
+    });
+
+    it('encodes name|shop|number, with separators and line breaks removed from the fields', () => {
+        expect(qrPayload({ name: 'Rahim Uddin', shop_name: 'Rahim Store', customer_no: '1000 0017' })).toBe(
+            'Rahim Uddin|Rahim Store|10000017',
+        );
+        expect(qrPayload({ name: ' A|B\nC ', shop_name: null, customer_no: '1000 0017' })).toBe('A B C||10000017');
     });
 });

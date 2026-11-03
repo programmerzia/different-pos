@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use Spatie\Permission\PermissionRegistrar;
 
 final class HandleInertiaRequests extends Middleware
 {
@@ -48,6 +49,7 @@ final class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
                 // Lazy: the tenant context is set by route middleware that runs after this one.
                 'permissions' => fn (): array => $this->permissions($request, $context),
+                'roles' => fn (): array => $this->roles($request, $context),
                 'branches' => fn (): array => $this->branches($request, $context),
                 'branch_id' => fn (): ?int => $context->hasBranch() ? $context->branchId() : null,
             ],
@@ -69,6 +71,18 @@ final class HandleInertiaRequests extends Middleware
         }
 
         return array_values($user->getAllPermissions()->map(static fn ($permission): string => (string) $permission->name)->values()->all());
+    }
+
+    /** @return list<string> */
+    private function roles(Request $request, TenantContext $context): array
+    {
+        $user = $request->user();
+        if (! $user instanceof User || ! $context->hasTenant() || $user->tenant_id !== $context->tenantId()) {
+            return [];
+        }
+        app(PermissionRegistrar::class)->setPermissionsTeamId($context->tenantId());
+
+        return array_values($user->roles()->orderBy('roles.id')->pluck('roles.name')->map(static fn ($n): string => (string) $n)->all());
     }
 
     /** @return list<array{id: int, name: string}> */

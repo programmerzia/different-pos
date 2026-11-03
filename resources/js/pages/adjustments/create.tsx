@@ -21,7 +21,21 @@ type Line = {
     qty: number;
 };
 
-export default function AdjustmentCreate({ reasons }: { reasons: string[] }) {
+type Prefill = {
+    id: number;
+    name: string;
+    variant_label: string | null;
+    sku: string;
+};
+
+export default function AdjustmentCreate({
+    reasons,
+    prefill = null,
+}: {
+    reasons: string[];
+    /** The stock list's row "Adjust" opens this page with that product as the first line. */
+    prefill?: Prefill | null;
+}) {
     const { t } = useT();
     const { submit, processing, errors } = useFormSubmit();
     const scan = useRef<HTMLInputElement>(null);
@@ -29,7 +43,21 @@ export default function AdjustmentCreate({ reasons }: { reasons: string[] }) {
         reasons.includes('correction') ? 'correction' : (reasons[0] ?? ''),
     );
     const [note, setNote] = useState('');
-    const [lines, setLines] = useState<Line[]>([]);
+    const [lines, setLines] = useState<Line[]>(() =>
+        prefill
+            ? [
+                  {
+                      product_id: prefill.id,
+                      name: prefill.variant_label
+                          ? `${prefill.name} · ${prefill.variant_label}`
+                          : prefill.name,
+                      sku: prefill.sku,
+                      direction: 1,
+                      qty: 1000,
+                  },
+              ]
+            : [],
+    );
 
     const onPick = (p: ScanProduct) =>
         setLines((prev) => {

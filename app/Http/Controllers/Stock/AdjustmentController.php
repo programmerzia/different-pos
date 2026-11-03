@@ -9,6 +9,7 @@ use App\Enums\AdjustmentReason;
 use App\Http\Controllers\Concerns\TranslatesDomainErrors;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Stock\AdjustStockRequest;
+use App\Models\Product;
 use App\Models\StockAdjustment;
 use App\Models\User;
 use App\Support\Catalog\ProductLookup;
@@ -55,12 +56,21 @@ final class AdjustmentController extends Controller
         ]);
     }
 
-    public function create(): Response
+    /** `?product={uuid}` (the stock list's row "Adjust") starts the adjustment with that product as its first line. */
+    public function create(Request $request): Response
     {
         $this->authorize('create', StockAdjustment::class);
+        $uuid = $request->query('product');
+        $product = is_string($uuid) && $uuid !== '' ? Product::query()->where('uuid', $uuid)->where('track_stock', true)->first() : null;
 
         return Inertia::render('adjustments/create', [
             'reasons' => array_map(static fn (AdjustmentReason $r): string => $r->value, AdjustmentReason::cases()),
+            'prefill' => $product instanceof Product ? [
+                'id' => $product->id,
+                'name' => $product->name,
+                'variant_label' => $product->variant_label,
+                'sku' => $product->sku,
+            ] : null,
         ]);
     }
 

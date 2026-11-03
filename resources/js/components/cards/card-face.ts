@@ -72,3 +72,27 @@ export function sinceShort(date: string | null | undefined): string {
 
     return m ? `${m[2]}/${(m[1] as string).slice(2)}` : '--/--';
 }
+
+/**
+ * The on-screen masked number: every digit but the last four becomes a bullet, grouping kept
+ * (`1000 0017` → `•••• 0017`). Print views always show the full number.
+ */
+export function maskNumber(customerNo: string): string {
+    const shown = formatNumber(customerNo);
+    const total = rawNumber(shown).length;
+    let seen = 0;
+
+    return shown.replace(/\d/g, (d) => (++seen > total - 4 ? d : '•'));
+}
+
+/** A QR field: no separator or line break inside, trimmed. */
+const qrField = (value: string | null | undefined): string =>
+    (value ?? '').replace(/[|\r\n]+/g, ' ').trim();
+
+/**
+ * The QR payload on the back: `name|shop|number` (member name, the member's shop name or empty, the
+ * 8-digit card number). Same rule as CardRenderer::qrPayload(); the barcode keeps the card code only.
+ */
+export function qrPayload(member: Pick<CardMember, 'name' | 'shop_name' | 'customer_no'>): string {
+    return [qrField(member.name), qrField(member.shop_name), rawNumber(member.customer_no)].join('|');
+}

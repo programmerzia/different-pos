@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react';
+import { Layers, Trash2 } from 'lucide-react';
 import { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useDigits } from '@/hooks/use-digits';
@@ -39,6 +39,7 @@ export function HeldDialog({
 
     return (
         <PosDialog
+            icon={Layers}
             open={open}
             onClose={onClose}
             title={t('pos.held.title')}

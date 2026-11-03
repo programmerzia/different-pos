@@ -9,9 +9,33 @@ export type CustomerRow = {
     group: string | null;
     /** Paisa; positive = the customer owes. */
     balance: number;
+    /** Paisa; effective limit (own, else the tenant default); null = none. */
+    credit_limit: number | null;
+    area: string | null;
+    address_line: string | null;
+    post_code: string | null;
     last_purchase_at: string | null;
     card_status: string | null;
     is_active: boolean;
+};
+
+/** Sums over the whole filtered list (not just the page). */
+export type CustomerTotals = {
+    count: number;
+    balance: number;
+    credit_limit: number;
+};
+
+/** Profile KPI tiles (server-side aggregates). Sales figures are null without `sales.view`. */
+export type CustomerKpis = {
+    lifetime_spend: number | null;
+    visits: number | null;
+    last_visit_at: string | null;
+    returns: number | null;
+    due: number;
+    credit_limit: number | null;
+    credit_used: number;
+    credit_available: number | null;
 };
 
 export type CustomerDetail = {
@@ -25,11 +49,14 @@ export type CustomerDetail = {
     email: string | null;
     customer_group_id: number | null;
     group: string | null;
+    /** Active group's discount in basis points (1000 = 10%). */
+    group_discount_bp: number;
     credit_limit: number | null;
     balance: number;
     address_line: string | null;
     area: string | null;
     post_code: string | null;
+    location_verified: boolean;
     dob: string | null;
     anniversary_date: string | null;
     notes: string | null;
@@ -70,4 +97,4 @@ export type TableMetaProp = {
     lastPage: number;
 };
 
-export type GroupOption = { id: number; name: string };
+export type GroupOption = { id: number; name: string; discount_bp: number };

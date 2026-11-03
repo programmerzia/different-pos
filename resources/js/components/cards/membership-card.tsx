@@ -8,6 +8,8 @@ import {
     cardCode,
     cid,
     formatNumber,
+    maskNumber,
+    qrPayload,
     sinceShort,
     tierOf,
     type CardBrand,
@@ -82,10 +84,14 @@ function Qr({ value }: { value: string }) {
 }
 
 /**
- * The membership card (CR80, ISO/IEC 7810 ID-1), the baseline mockup's teal card one-to-one plus a
- * small tenant logo. The artwork lives in resources/css/membership-card.css, shared with the print
+ * The membership card (CR80, ISO/IEC 7810 ID-1), the baseline mockup's teal card one-to-one plus the
+ * tenant logo badge. The artwork lives in resources/css/membership-card.css, shared with the print
  * views (resources/views/cards/_front|_back.blade.php), so the preview and the printed card match.
  * Size it with `width` (any CSS length; 85.6mm = 1:1, the mockup's 340px by default).
+ *
+ * On screen the number is masked (`•••• 0017`) and shows in full while the card is hovered, while the
+ * focusable wrapper around it (a button) has keyboard focus, or when `revealed` is set; `forPrint`
+ * always shows it in full.
  */
 export function MembershipCard({
     member,
@@ -93,6 +99,7 @@ export function MembershipCard({
     side = 'front',
     forPrint = false,
     width = '340px',
+    revealed = false,
     className,
 }: {
     member: CardMember;
@@ -100,6 +107,7 @@ export function MembershipCard({
     side?: CardSide;
     forPrint?: boolean;
     width?: string;
+    revealed?: boolean;
     className?: string;
 }) {
     const { t } = useT();
@@ -111,18 +119,21 @@ export function MembershipCard({
         <div
             className={cn('mc', forPrint && 'mc-print', className)}
             data-side={side}
+            data-revealed={forPrint || revealed ? 'true' : 'false'}
             data-testid="membership-card"
             style={{ '--mc-width': width } as CSSProperties}
         >
             {side === 'front' ? (
                 <div className="mc-face mc-front">
                     <div className="mc-sheen" />
+                    {brand.logo_url ? (
+                        <div className="mc-logo">
+                            <img src={brand.logo_url} alt="" />
+                        </div>
+                    ) : null}
                     <div className="mc-top">
                         <div>
-                            <div className="mc-brand">
-                                {brand.logo_url ? <img src={brand.logo_url} alt="" className="mc-logo" /> : null}
-                                <div className="mc-tenant">{brand.name}</div>
-                            </div>
+                            <div className="mc-tenant">{brand.name}</div>
                             <div className="mc-tagline">{t('cards.face.tagline')}</div>
                         </div>
                         <div className="mc-marks">
@@ -132,7 +143,8 @@ export function MembershipCard({
                     </div>
                     <div className="mc-bottom">
                         <div className="mc-number" data-testid="card-number">
-                            {digits.n(formatNumber(member.customer_no))}
+                            <span className="mc-num-full">{digits.n(formatNumber(member.customer_no))}</span>
+                            <span className="mc-num-masked">{digits.n(maskNumber(member.customer_no))}</span>
                         </div>
                         <div className="mc-holder">
                             <div>
@@ -166,8 +178,8 @@ export function MembershipCard({
                                 <Barcode value={code} />
                                 <div>{code}</div>
                             </div>
-                            <div className="mc-qr">
-                                <Qr value={code} />
+                            <div className="mc-qr" data-qr={qrPayload(member)}>
+                                <Qr value={qrPayload(member)} />
                                 <span>SCAN</span>
                             </div>
                         </div>

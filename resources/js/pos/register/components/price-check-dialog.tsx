@@ -1,3 +1,4 @@
+import { Tag } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { useDigits } from '@/hooks/use-digits';
@@ -20,6 +21,7 @@ export function PriceCheckDialog({
 
     return (
         <PosDialog
+            icon={Tag}
             open={open}
             onClose={onClose}
             title={t('pos.price.title')}

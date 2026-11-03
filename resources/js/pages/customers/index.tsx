@@ -1,7 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { CreditCard, Plus, ScrollText, Users } from 'lucide-react';
+import { CreditCard, Eye, IdCard, Plus, Users } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { CustomerDialog } from '@/components/customers/customer-dialog';
 import { MergeDialog } from '@/components/customers/merge-dialog';
 import {
     ColumnChooser,
@@ -10,16 +11,38 @@ import {
     type BulkAction,
     type DataColumn,
 } from '@/components/data-table/data-table';
-import { useServerTable } from '@/components/data-table/server-table';
+import {
+    buildTableQuery,
+    useServerTable,
+} from '@/components/data-table/server-table';
 import { EmptyState } from '@/components/empty-state';
-import { Page, PageHeader, PrintButton } from '@/components/page-header';
+import { NativeSelect } from '@/components/native-select';
+import {
+    ExportMenu,
+    Page,
+    PageHeader,
+    PrintButton,
+} from '@/components/page-header';
+import { StatusBadge } from '@/components/status-badge';
 import { TableToolbar } from '@/components/table-toolbar';
 import { Button } from '@/components/ui/button';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
 import { useDigits } from '@/hooks/use-digits';
-import { useHotkeys } from '@/hotkeys/use-hotkeys';
+import { useHotkeyScope, useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useT } from '@/i18n';
+import { cardPrintUrl, customersExportUrl } from '@/command/customer-actions';
+import { displayPhone } from '@/lib/phone';
+import { cn } from '@/lib/utils';
 import type {
     CustomerRow,
+    CustomerTotals,
     GroupOption,
     TableMetaProp,
 } from '@/types/customers';
@@ -27,36 +50,76 @@ import type {
 type Props = {
     customers: CustomerRow[];
     meta: TableMetaProp;
+    totals: CustomerTotals;
     groups: GroupOption[];
     can: Record<string, boolean>;
+    /** `create` = opened as /app/customers/create (deep link). */
+    dialog: 'create' | null;
 };
 
 /** Up to this many customer groups show as chips (mockup); more fall back to a select. */
 const GROUP_CHIPS_MAX = 6;
 
+/** "More filters" keys (the drawer); View, Date and group chips sit in the toolbar. */
+const MORE_FILTERS = ['balance', 'card'] as const;
+
+/**
+ * Customers & Members (baseline mockup, render_customers_messaging.py "SCREEN 6"): the 10 mockup
+ * columns, View / Date / group chips / More filters, Columns · Export · Print, totals row and rows per
+ * page. Add and edit open the customer dialog in place.
+ */
 export default function CustomersIndex({
     customers,
     meta,
+    totals,
     groups,
     can,
+    dialog,
 }: Props) {
     const { t } = useT();
     const digits = useDigits();
-    const table = useServerTable({ only: ['customers', 'meta'] });
+    const table = useServerTable({ only: ['customers', 'meta', 'totals'] });
     const searchRef = useRef<HTMLInputElement>(null);
     const [deactivating, setDeactivating] = useState<CustomerRow | null>(null);
     const [merging, setMerging] = useState<CustomerRow | null>(null);
+    const [adding, setAdding] = useState(dialog === 'create');
+    const [moreOpen, setMoreOpen] = useState(false);
+    const filters = table.state.filters;
+    const discountByGroup = useMemo(
+        () => new Map(groups.map((g) => [g.name, g.discount_bp])),
+        [groups],
+    );
+
+    const openAdd = () => {
+        if (can['create']) {
+            setAdding(true);
+        }
+    };
+    const closeAdd = () => {
+        setAdding(false);
+        if (dialog === 'create') {
+            // Leave the deep link so a reload does not reopen the dialog.
+            router.get('/app/customers', buildTableQuery(table.state), {
+                replace: true,
+                preserveState: true,
+                preserveScroll: true,
+            });
+        }
+    };
+    // The drawer is a modal surface: the list keys pause while it is open.
+    useHotkeyScope('dialog', moreOpen);
+
+    const exportCsv = () =>
+        window.location.assign(
+            customersExportUrl(buildTableQuery(table.state)),
+        );
 
     useHotkeys('list', [
         {
             id: 'list.new',
             keys: 'n',
             labelKey: 'hotkeys.new',
-            handler: () => {
-                if (can['create']) {
-                    router.visit('/app/customers/create');
-                }
-            },
+            handler: openAdd,
         },
         {
             id: 'list.search',
@@ -66,6 +129,18 @@ export default function CustomersIndex({
                 event.preventDefault();
                 searchRef.current?.focus();
             },
+        },
+        {
+            id: 'customers.export',
+            keys: 'shift+e',
+            labelKey: 'customers.export_csv',
+            handler: exportCsv,
+        },
+        {
+            id: 'customers.more_filters',
+            keys: 'shift+f',
+            labelKey: 'table.more_filters',
+            handler: () => setMoreOpen(true),
         },
     ]);
 
@@ -105,9 +180,8 @@ export default function CustomersIndex({
             id: 'customer_no',
             headerKey: 'customers.col.no',
             sortKey: 'customer_no',
-            numeric: true,
             cell: (r) => (
-                <span className="num">
+                <span className="num font-mono font-semibold text-primary">
                     {r.customer_no ? digits.n(r.customer_no) : '-'}
                 </span>
             ),
@@ -119,65 +193,182 @@ export default function CustomersIndex({
             required: true,
             mobile: 'title',
             cell: (r) => (
-                <Link
-                    href={`/app/customers/${r.uuid}`}
-                    className="font-medium hover:underline"
-                >
-                    {r.name}
+                <div className="min-w-0">
+                    <Link
+                        href={`/app/customers/${r.uuid}`}
+                        className="font-semibold text-foreground hover:underline"
+                    >
+                        {r.name}
+                    </Link>
                     {r.name_bn ? (
-                        <span className="ml-2 text-muted-foreground">
+                        <div
+                            lang="bn"
+                            className="text-[10px] text-muted-foreground"
+                        >
                             {r.name_bn}
-                        </span>
+                        </div>
                     ) : null}
-                </Link>
+                    {r.shop_name ? (
+                        <div className="max-w-56 truncate text-[10px] text-muted-foreground">
+                            {r.shop_name}
+                        </div>
+                    ) : null}
+                </div>
             ),
-        },
-        {
-            id: 'shop_name',
-            headerKey: 'customers.col.shop',
-            cell: (r) => r.shop_name ?? '-',
         },
         {
             id: 'phone',
             headerKey: 'customers.col.phone',
+            sortKey: 'phone',
             cell: (r) => (
-                <span className="num">{r.phone ? digits.n(r.phone) : '-'}</span>
+                <span className="num font-mono text-muted-foreground">
+                    {r.phone ? digits.n(displayPhone(r.phone)) : '-'}
+                </span>
             ),
+        },
+        {
+            id: 'location',
+            headerKey: 'customers.col.location',
+            sortKey: 'area',
+            cell: (r) => {
+                const line = r.address_line || r.area;
+                const sub = [
+                    r.address_line ? r.area : null,
+                    r.post_code ? digits.n(r.post_code) : null,
+                ]
+                    .filter(Boolean)
+                    .join(' · ');
+
+                return line || sub ? (
+                    <div className="min-w-0">
+                        <div className="max-w-50 truncate font-medium text-foreground">
+                            {line || '-'}
+                        </div>
+                        {sub ? (
+                            <div className="max-w-50 truncate text-[10px] text-muted-foreground">
+                                {sub}
+                            </div>
+                        ) : null}
+                    </div>
+                ) : (
+                    <span className="text-muted-foreground">-</span>
+                );
+            },
         },
         {
             id: 'group',
             headerKey: 'customers.col.group',
-            cell: (r) => r.group ?? '-',
+            cell: (r) =>
+                r.group ? (
+                    <StatusBadge
+                        status="group"
+                        label={r.group}
+                        tone={
+                            (discountByGroup.get(r.group) ?? 0) > 0
+                                ? 'accent'
+                                : 'neutral'
+                        }
+                    />
+                ) : (
+                    <span className="text-muted-foreground">-</span>
+                ),
         },
         {
             id: 'balance',
             headerKey: 'customers.col.balance',
             sortKey: 'balance',
             numeric: true,
-            cell: (r) =>
-                r.balance > 0 ? (
-                    <span className="font-medium text-destructive">
-                        {digits.money(r.balance)}
-                    </span>
-                ) : (
-                    digits.money(r.balance)
-                ),
+            cell: (r) => (
+                <span
+                    className={cn(
+                        'font-bold',
+                        r.balance > 0 ? 'text-destructive' : 'text-success',
+                    )}
+                >
+                    {digits.money(r.balance)}
+                </span>
+            ),
+        },
+        {
+            id: 'credit_limit',
+            headerKey: 'customers.col.credit_limit',
+            sortKey: 'credit_limit',
+            numeric: true,
+            cell: (r) => (
+                <span className="font-semibold text-muted-foreground">
+                    {r.credit_limit === null
+                        ? '-'
+                        : digits.money(r.credit_limit)}
+                </span>
+            ),
+        },
+        {
+            id: 'card',
+            headerKey: 'customers.col.card',
+            cell: (r) => (
+                <StatusBadge
+                    shape="tag"
+                    status={
+                        r.card_status === 'active'
+                            ? 'active'
+                            : r.card_status === 'lost'
+                              ? 'lost'
+                              : 'none'
+                    }
+                    tone={r.card_status === 'active' ? 'success' : 'neutral'}
+                    label={
+                        r.card_status
+                            ? t(`cards.status.${r.card_status}`)
+                            : t('status.none')
+                    }
+                />
+            ),
+        },
+        {
+            id: 'pin',
+            headerKey: 'customers.col.pin',
+            // PIN set-up comes with the register's member flow; nobody has one yet.
+            cell: () => <StatusBadge shape="tag" status="not_set" />,
         },
         {
             id: 'last_purchase_at',
             headerKey: 'customers.col.last_purchase',
             sortKey: 'last_purchase_at',
+            hidden: true,
             cell: (r) =>
                 r.last_purchase_at
                     ? digits.n(r.last_purchase_at.slice(0, 10))
                     : t('customers.never'),
         },
         {
-            id: 'card',
-            headerKey: 'customers.col.card',
-            hidden: true,
-            cell: (r) =>
-                r.card_status ? t(`cards.status.${r.card_status}`) : '-',
+            id: 'actions',
+            headerKey: 'common.actions',
+            required: true,
+            mobile: 'hidden',
+            cell: (r) => (
+                <div className="flex items-center justify-end gap-1">
+                    {can['issue_card'] && r.card_status === 'active' ? (
+                        <a
+                            href={cardPrintUrl(r.uuid)}
+                            target="_blank"
+                            rel="noopener"
+                            title={t('customers.actions.print_card')}
+                            aria-label={`${t('customers.actions.print_card')}: ${r.name}`}
+                            className="flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:bg-surface-sunken hover:text-primary [@media(pointer:coarse)]:size-11"
+                        >
+                            <IdCard className="size-3.5" aria-hidden="true" />
+                        </a>
+                    ) : null}
+                    <Link
+                        href={`/app/customers/${r.uuid}`}
+                        title={t('customers.actions.view_profile')}
+                        aria-label={`${t('customers.actions.view_profile')}: ${r.name}`}
+                        className="flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:bg-surface-sunken hover:text-foreground [@media(pointer:coarse)]:size-11"
+                    >
+                        <Eye className="size-3.5" aria-hidden="true" />
+                    </Link>
+                </div>
+            ),
         },
     ];
 
@@ -194,33 +385,51 @@ export default function CustomersIndex({
           ]
         : [];
 
+    const view =
+        filters['view'] ??
+        (filters['status'] === 'inactive'
+            ? 'inactive'
+            : filters['due']
+              ? 'overdue'
+              : '');
+    const moreCount = MORE_FILTERS.filter((k) => filters[k]).length;
+    const groupOptions = groups.map((g) => ({
+        value: String(g.id),
+        label: g.name,
+    }));
+
+    const addButton = can['create'] ? (
+        <Button type="button" onClick={openAdd}>
+            <Plus aria-hidden="true" />
+            {t('customers.new')}
+        </Button>
+    ) : null;
+
     return (
         <>
-            <Head title={t('customers.title')} />
+            <Head title={t('customers.page_title')} />
             <Page fill>
                 <PageHeader
-                    title={t('customers.title')}
+                    title={t('customers.page_title')}
                     count={meta.total}
+                    subtitle={t('customers.subtitle')}
                     actions={
                         <>
-                            {can['create'] ? (
-                                <Button asChild>
-                                    <Link href="/app/customers/create">
-                                        <Plus aria-hidden="true" />
-                                        {t('customers.new')}
-                                    </Link>
-                                </Button>
-                            ) : null}
-                            <Button asChild variant="outline">
-                                <Link href="/app/customers/statement">
-                                    <ScrollText aria-hidden="true" />
-                                    {t('customers.statement.title')}
-                                </Link>
-                            </Button>
+                            {addButton}
                             <ColumnChooser
                                 columns={columns}
                                 visibility={columnState.visibility}
                                 onChange={columnState.setVisibility}
+                            />
+                            <ExportMenu
+                                items={[
+                                    {
+                                        id: 'csv',
+                                        kind: 'csv',
+                                        label: t('customers.export_csv'),
+                                        onSelect: exportCsv,
+                                    },
+                                ]}
                             />
                             <PrintButton />
                         </>
@@ -232,13 +441,43 @@ export default function CustomersIndex({
                     onSearch={table.setSearch}
                     placeholderKey="customers.search"
                     inputRef={searchRef}
+                    view={{
+                        value: view,
+                        options: [
+                            { value: '', label: t('customers.view.default') },
+                            {
+                                value: 'overdue',
+                                label: t('customers.view.overdue'),
+                            },
+                            {
+                                value: 'inactive',
+                                label: t('customers.view.inactive'),
+                            },
+                        ],
+                        onChange: (v) => table.setFilter('view', v),
+                    }}
+                    date={{
+                        value: filters['date'] ?? '',
+                        options: [
+                            { value: '', label: t('customers.date.all') },
+                            {
+                                value: 'today',
+                                label: t('customers.date.today'),
+                            },
+                            { value: '7d', label: t('customers.date.7d') },
+                            { value: '30d', label: t('customers.date.30d') },
+                            { value: '90d', label: t('customers.date.90d') },
+                            { value: 'year', label: t('customers.date.year') },
+                        ],
+                        onChange: (v) => table.setFilter('date', v),
+                    }}
                     chips={
                         groups.length > 0 && groups.length <= GROUP_CHIPS_MAX
                             ? [
                                   {
                                       key: 'group',
                                       label: t('customers.filter.group'),
-                                      value: table.state.filters['group'] ?? '',
+                                      value: filters['group'] ?? '',
                                       options: [
                                           {
                                               value: '',
@@ -246,10 +485,7 @@ export default function CustomersIndex({
                                                   'customers.filter.all_groups',
                                               ),
                                           },
-                                          ...groups.map((g) => ({
-                                              value: String(g.id),
-                                              label: g.name,
-                                          })),
+                                          ...groupOptions,
                                       ],
                                       onChange: (v) =>
                                           table.setFilter('group', v),
@@ -257,68 +493,29 @@ export default function CustomersIndex({
                               ]
                             : []
                     }
-                    filters={[
-                        ...(groups.length > GROUP_CHIPS_MAX
+                    filters={
+                        groups.length > GROUP_CHIPS_MAX
                             ? [
                                   {
                                       key: 'group',
                                       labelKey: 'customers.filter.all_groups',
-                                      value: table.state.filters['group'] ?? '',
-                                      options: groups.map((g) => ({
-                                          value: String(g.id),
-                                          label: g.name,
-                                      })),
+                                      value: filters['group'] ?? '',
+                                      options: groupOptions,
                                       onChange: (v: string) =>
                                           table.setFilter('group', v),
                                   },
                               ]
-                            : []),
-                        {
-                            key: 'card',
-                            labelKey: 'customers.filter.card_any',
-                            value: table.state.filters['card'] ?? '',
-                            options: [
-                                {
-                                    value: 'yes',
-                                    label: t('customers.filter.card_yes'),
-                                },
-                                {
-                                    value: 'no',
-                                    label: t('customers.filter.card_no'),
-                                },
-                            ],
-                            onChange: (v) => table.setFilter('card', v),
-                        },
-                        {
-                            key: 'due',
-                            labelKey: 'customers.filter.balance_any',
-                            value: table.state.filters['due'] ?? '',
-                            options: [
-                                {
-                                    value: '1',
-                                    label: t('customers.filter.balance_due'),
-                                },
-                            ],
-                            onChange: (v) => table.setFilter('due', v),
-                        },
-                        {
-                            key: 'status',
-                            labelKey: 'customers.filter.active',
-                            value: table.state.filters['status'] ?? '',
-                            options: [
-                                {
-                                    value: 'inactive',
-                                    label: t('customers.filter.inactive'),
-                                },
-                            ],
-                            onChange: (v) => table.setFilter('status', v),
-                        },
-                    ]}
+                            : []
+                    }
+                    moreFilters={{
+                        count: moreCount,
+                        onOpen: () => setMoreOpen(true),
+                    }}
                 />
 
                 <DataTable<CustomerRow>
                     entity="customer"
-                    caption={t('customers.title')}
+                    caption={t('customers.page_title')}
                     rows={customers}
                     columns={columns}
                     meta={meta}
@@ -334,26 +531,137 @@ export default function CustomersIndex({
                     visibility={columnState.visibility}
                     onVisibilityChange={columnState.setVisibility}
                     onPerPage={table.setPerPage}
+                    totals={{
+                        label: t('table.total', { n: digits.n(totals.count) }),
+                        cells: {
+                            balance: (
+                                <span
+                                    className={cn(
+                                        totals.balance > 0
+                                            ? 'text-destructive'
+                                            : 'text-success',
+                                    )}
+                                >
+                                    {digits.money(totals.balance)}
+                                </span>
+                            ),
+                            credit_limit: digits.money(totals.credit_limit),
+                        },
+                    }}
                     fill
                     empty={
                         <EmptyState
                             icon={Users}
                             title={t('customers.empty')}
                             description={t('customers.empty_hint')}
-                            action={
-                                can['create'] ? (
-                                    <Button asChild>
-                                        <Link href="/app/customers/create">
-                                            {t('customers.new')}
-                                        </Link>
-                                    </Button>
-                                ) : undefined
-                            }
+                            action={addButton ?? undefined}
                         />
                     }
                 />
             </Page>
 
+            <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+                <SheetContent
+                    side="right"
+                    className="flex flex-col gap-0 p-0 text-xs"
+                >
+                    <SheetHeader className="border-b bg-surface-sunken p-3.5">
+                        <SheetTitle className="text-sm font-bold">
+                            {t('customers.more.title')}
+                        </SheetTitle>
+                        <SheetDescription className="text-[11px]">
+                            {t('customers.more.subtitle')}
+                        </SheetDescription>
+                    </SheetHeader>
+                    <div className="flex-1 space-y-4 overflow-y-auto p-4">
+                        <MoreSelect
+                            id="more-balance"
+                            label={t('customers.more.balance')}
+                            value={filters['balance'] ?? ''}
+                            onChange={(v) => table.setFilter('balance', v)}
+                            options={[
+                                {
+                                    value: '',
+                                    label: t('customers.more.balance_all'),
+                                },
+                                {
+                                    value: 'due',
+                                    label: t('customers.more.balance_due'),
+                                },
+                                {
+                                    value: 'zero',
+                                    label: t('customers.more.balance_zero'),
+                                },
+                                {
+                                    value: 'advance',
+                                    label: t('customers.more.balance_advance'),
+                                },
+                            ]}
+                        />
+                        <MoreSelect
+                            id="more-card"
+                            label={t('customers.more.card')}
+                            value={filters['card'] ?? ''}
+                            onChange={(v) => table.setFilter('card', v)}
+                            options={[
+                                {
+                                    value: '',
+                                    label: t('customers.more.card_all'),
+                                },
+                                {
+                                    value: 'yes',
+                                    label: t('customers.filter.card_yes'),
+                                },
+                                {
+                                    value: 'no',
+                                    label: t('customers.filter.card_no'),
+                                },
+                            ]}
+                        />
+                    </div>
+                    <SheetFooter className="flex-row items-center justify-between border-t p-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                                router.get(
+                                    '/app/customers',
+                                    buildTableQuery({
+                                        ...table.state,
+                                        page: 1,
+                                        filters: {
+                                            ...filters,
+                                            balance: '',
+                                            card: '',
+                                        },
+                                    }),
+                                    {
+                                        preserveState: true,
+                                        preserveScroll: true,
+                                        replace: true,
+                                        only: ['customers', 'meta', 'totals'],
+                                    },
+                                )
+                            }
+                        >
+                            {t('customers.more.clear')}
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={() => setMoreOpen(false)}
+                        >
+                            {t('customers.more.apply')}
+                        </Button>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
+
+            <CustomerDialog
+                open={adding}
+                customer={null}
+                groups={groups}
+                onClose={closeAdd}
+            />
             <ConfirmDialog
                 open={deactivating !== null}
                 onOpenChange={(open) => !open && setDeactivating(null)}
@@ -371,5 +679,41 @@ export default function CustomersIndex({
             />
             <MergeDialog customer={merging} onClose={() => setMerging(null)} />
         </>
+    );
+}
+
+function MoreSelect({
+    id,
+    label,
+    value,
+    options,
+    onChange,
+}: {
+    id: string;
+    label: string;
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (value: string) => void;
+}) {
+    return (
+        <div className="space-y-1.5">
+            <label
+                htmlFor={id}
+                className="block text-xs font-semibold text-foreground"
+            >
+                {label}
+            </label>
+            <NativeSelect
+                id={id}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+            >
+                {options.map((o) => (
+                    <option key={o.value} value={o.value}>
+                        {o.label}
+                    </option>
+                ))}
+            </NativeSelect>
+        </div>
     );
 }

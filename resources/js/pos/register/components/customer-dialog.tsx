@@ -1,4 +1,4 @@
-import { Search, UserX } from 'lucide-react';
+import { Search, UserRound, UserX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Kbd } from '@/components/kbd';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ export function CustomerDialog({ open, onClose, ...rest }: Props) {
             onClose={onClose}
             title={t('pos.customer.title')}
             description={t('pos.customer.hint')}
+            icon={UserRound}
             className="sm:max-w-xl"
         >
             <CustomerSearchBody onClose={onClose} {...rest} />
@@ -106,7 +107,7 @@ function CustomerSearchBody({
                     onChange={(e) => setQ(e.target.value)}
                     placeholder={t('pos.customer.placeholder')}
                     aria-label={t('pos.customer.placeholder')}
-                    className="h-11 pl-9"
+                    className="h-10 rounded-lg pl-9 text-xs"
                     onKeyDown={(e) => {
                         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
                             e.preventDefault();
@@ -137,7 +138,7 @@ function CustomerSearchBody({
             <ul
                 ref={listRef}
                 aria-label={t('pos.customer.results')}
-                className="max-h-[50svh] divide-y overflow-y-auto rounded-md border empty:hidden"
+                className="max-h-[50svh] divide-y overflow-y-auto empty:hidden"
             >
                 {hits.map((hit, i) => (
                     <li key={hit.id}>
@@ -146,34 +147,34 @@ function CustomerSearchBody({
                             tabIndex={-1}
                             aria-current={i === index ? 'true' : undefined}
                             className={cn(
-                                'flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent',
-                                i === index && 'bg-primary-soft',
+                                'flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-xs hover:bg-surface-sunken',
+                                i === index &&
+                                    'bg-primary-soft hover:bg-primary-soft',
                             )}
                             onMouseEnter={() => setIndex(i)}
                             onClick={() => void pick(hit)}
                         >
                             <span className="min-w-0 flex-1">
-                                <span className="block truncate font-semibold">
+                                <span className="block truncate text-sm font-semibold">
                                     {hit.name}
                                 </span>
-                                {hit.shop_name && (
-                                    <span className="block truncate text-xs text-muted-foreground">
-                                        {hit.shop_name}
-                                    </span>
-                                )}
+                                <span className="num flex items-center gap-1.5 truncate text-[11px] text-muted-foreground">
+                                    {hit.phone && <span>{d.n(hit.phone)}</span>}
+                                    {hit.phone && hit.number && (
+                                        <span aria-hidden="true">·</span>
+                                    )}
+                                    {hit.number && (
+                                        <span className="font-mono">
+                                            #{d.n(hit.number)}
+                                        </span>
+                                    )}
+                                </span>
                             </span>
-                            <span className="num text-right text-xs text-muted-foreground">
-                                {hit.number && (
-                                    <span className="block font-mono">
-                                        #{d.n(hit.number)}
-                                    </span>
-                                )}
-                                {hit.phone && (
-                                    <span className="block">
-                                        {d.n(hit.phone)}
-                                    </span>
-                                )}
-                            </span>
+                            {hit.shop_name && (
+                                <span className="max-w-[40%] truncate rounded border bg-surface px-1.5 py-0.5 text-[10px] font-semibold">
+                                    {hit.shop_name}
+                                </span>
+                            )}
                         </button>
                     </li>
                 ))}

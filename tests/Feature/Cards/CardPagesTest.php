@@ -99,7 +99,7 @@ it('filters members by group and card status', function (): void {
     $this->get('/app/membership-cards?filter[status]=bogus')->assertInertia(fn (Assert $p) => $p->has('members', 3));
 });
 
-it('issues a card on demand when printing or exporting by customer', function (): void {
+it('issues a card on demand only through POST prepare; the GET endpoints never issue', function (): void {
     [$user, $tenant, $customer, $card] = cardWorld();
     $fresh = member($tenant, 2, ['name' => 'Fresh Member']);
     $lostOwner = member($tenant, 3, ['name' => 'Lost Member']);
@@ -107,34 +107,45 @@ it('issues a card on demand when printing or exporting by customer', function ()
     app(ReportCardLost::class)->handle($user, $lost);
 
     $this->actingAs($user);
-    $html = $this->get("/app/membership-cards/print?customers={$customer->uuid},{$fresh->uuid},{$lostOwner->uuid}")->assertOk()->getContent();
+    // A GET by customer prints nothing and issues nothing.
+    $this->get("/app/membership-cards/print?customers={$fresh->uuid}")->assertNotFound();
+    $this->get("/app/membership-cards/export.csv?customers={$fresh->uuid}")->assertNotFound();
+    expect(MembershipCard::query()->where('customer_id', $fresh->id)->exists())->toBeFalse();
+
+    $ids = $this->postJson('/app/membership-cards/prepare', ['customers' => [$customer->uuid, $fresh->uuid, $lostOwner->uuid]])
+        ->assertOk()->json('card_ids');
 
     $freshCard = MembershipCard::query()->where('customer_id', $fresh->id)->where('status', CardStatus::Active)->sole();
     $reissued = MembershipCard::query()->where('customer_id', $lostOwner->id)->where('status', CardStatus::Active)->sole();
-    expect($freshCard->card_code)->toBe('MC'.$fresh->customer_no.'01')
+    expect($ids)->toBe([$card->id, $freshCard->id, $reissued->id])
+        ->and($freshCard->card_code)->toBe('MC'.$fresh->customer_no.'01')
         ->and($reissued->issue_no)->toBe(2)
         ->and($reissued->id)->not->toBe($lost->id)
-        ->and(MembershipCard::query()->where('customer_id', $customer->id)->count())->toBe(1)
-        ->and(substr_count((string) $html, 'class="card front '))->toBe(3)
-        ->and((string) $html)->toContain($card->card_code)->toContain($freshCard->card_code)->toContain($reissued->card_code)->not->toContain($lost->card_code);
+        ->and(MembershipCard::query()->where('customer_id', $customer->id)->count())->toBe(1);
 
-    // A second print and the CSV reuse the cards just issued.
-    $this->get("/app/membership-cards/export.csv?customers={$fresh->uuid}")->assertOk()->assertSee($freshCard->card_code);
-    $this->post('/app/membership-cards/printed', ['customers' => [$fresh->uuid], 'layout' => 'a4'])->assertRedirect();
+    $html = (string) $this->get('/app/membership-cards/print?ids='.implode(',', $ids))->assertOk()->getContent();
+    expect(substr_count($html, 'class="card front '))->toBe(3)
+        ->and($html)->toContain($card->card_code)->toContain($freshCard->card_code)->toContain($reissued->card_code)->not->toContain($lost->card_code);
+
+    // Preparing again reuses the cards; the CSV and the print record take the ids.
+    $this->postJson('/app/membership-cards/prepare', ['customers' => [$fresh->uuid]])->assertOk()->assertExactJson(['card_ids' => [$freshCard->id]]);
+    $this->get("/app/membership-cards/export.csv?ids={$freshCard->id}")->assertOk()->assertSee($freshCard->card_code);
+    $this->post('/app/membership-cards/printed', ['ids' => [$freshCard->id], 'layout' => 'a4'])->assertRedirect();
     expect(MembershipCard::query()->where('customer_id', $fresh->id)->count())->toBe(1)
         ->and($freshCard->refresh()->print_count)->toBe(1)
         ->and($freshCard->last_print_layout?->value)->toBe('a4_10');
 });
 
-it('skips customers that cannot hold a card and 404s when nothing is printable', function (): void {
+it('prepare skips customers that cannot hold a card and 404s when nothing is printable', function (): void {
     [$user, $tenant, $customer] = cardWorld();
     $walkIn = member($tenant, 2, ['is_walk_in' => true]);
 
     $this->actingAs($user);
-    $this->get("/app/membership-cards/print?customers={$walkIn->uuid}")->assertNotFound();
-    $this->get("/app/membership-cards/print?customers={$walkIn->uuid},{$customer->uuid}")->assertOk()->assertSee('1000 0017');
+    $this->postJson('/app/membership-cards/prepare', ['customers' => [$walkIn->uuid]])->assertNotFound();
+    $this->postJson('/app/membership-cards/prepare', ['customers' => [$walkIn->uuid, $customer->uuid]])->assertOk()->assertJsonCount(1, 'card_ids');
     expect(MembershipCard::query()->where('customer_id', $walkIn->id)->exists())->toBeFalse();
-    $this->getJson('/app/membership-cards/print?customers=not-a-uuid')->assertStatus(422)->assertJsonValidationErrors('customers.0');
+    $this->postJson('/app/membership-cards/prepare', ['customers' => ['not-a-uuid']])->assertStatus(422)->assertJsonValidationErrors('customers.0');
+    $this->postJson('/app/membership-cards/prepare', [])->assertStatus(422);
 });
 
 it('renders the A4 10-up sheet: ten cards a sheet, fronts then mirrored backs, crop marks', function (): void {
@@ -145,7 +156,8 @@ it('renders the A4 10-up sheet: ten cards a sheet, fronts then mirrored backs, c
     }
 
     $this->actingAs($user);
-    $html = (string) $this->get('/app/membership-cards/print?layout=a4&customers='.implode(',', $uuids))->assertOk()
+    $ids = $this->postJson('/app/membership-cards/prepare', ['customers' => $uuids])->assertOk()->json('card_ids');
+    $html = (string) $this->get('/app/membership-cards/print?layout=a4&ids='.implode(',', $ids))->assertOk()
         ->assertSee('size: 210mm 297mm', false)->getContent();
 
     expect(substr_count($html, 'class="sheet front"'))->toBe(2)
@@ -160,7 +172,7 @@ it('renders the A4 10-up sheet: ten cards a sheet, fronts then mirrored backs, c
     preg_match('/class="sheet back".*?class="slot" style="left: ([\d.]+)mm; top: 13.5mm">.*?data-card="(MC\d+)"/s', $html, $m);
     expect($m[1] ?? null)->toBe('19.4');
 
-    $plain = (string) $this->get('/app/membership-cards/print?layout=a4&crop=0&customers='.$customer->uuid)->getContent();
+    $plain = (string) $this->get('/app/membership-cards/print?layout=a4&crop=0&ids='.$ids[0])->getContent();
     expect($plain)->not->toContain('class="mark ');
 });
 

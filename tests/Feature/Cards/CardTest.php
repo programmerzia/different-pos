@@ -152,6 +152,31 @@ it('renders CR80 front/back html and the bleed variant', function (): void {
         ->and($bleed)->toContain('size: 91.6mm 60mm');
 });
 
+it('encodes name|shop|number in the printed QR, keeps the card code in the barcode and prints the full number', function (): void {
+    $card = app(IssueCard::class)->handle($this->user, $this->customer);
+    $html = app(CardRenderer::class)->html(MembershipCard::query()->with('customer')->get());
+
+    expect($html)->toContain('data-qr="Rahim|Rahim Store|10000017"')
+        ->and($html)->toContain('<div class="mc-barcode"><svg')
+        ->and($html)->toContain('<div>'.$card->card_code.'</div>')
+        ->and($html)->toContain('<span class="mc-num-full">1000 0017</span>')
+        ->and($html)->not->toContain('class="mc-num-masked"')
+        ->and($html)->not->toContain('class="mc-logo"');
+});
+
+it('builds the QR payload without separators or line breaks inside a field', function (): void {
+    expect(CardRenderer::qrPayload('Rahim Uddin', 'Rahim Store', '1000 0017'))->toBe('Rahim Uddin|Rahim Store|10000017')
+        ->and(CardRenderer::qrPayload(" A|B\nC ", null, '10000017'))->toBe('A B C||10000017');
+});
+
+it('puts the tenant logo in the badge on the printed front', function (): void {
+    $this->world->tenant->forceFill(['branding' => ['logo_path' => 'logos/df.png']])->save();
+    app(IssueCard::class)->handle($this->user, $this->customer);
+    $html = app(CardRenderer::class)->html(MembershipCard::query()->with('customer')->get());
+
+    expect($html)->toMatch('#<div class="mc-logo"><img src="[^"]*logos/df\.png" alt=""></div>#');
+});
+
 it('fails clearly when mPDF is not installed', function (): void {
     if (class_exists(Mpdf\Mpdf::class)) {
         $this->markTestSkipped('mPDF is installed.');

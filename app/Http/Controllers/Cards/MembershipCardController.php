@@ -27,6 +27,7 @@ use App\Support\Http\TableQuery;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -38,7 +39,7 @@ use Inertia\Response as InertiaResponse;
  * Membership card studio: every customer is a member (the card number is the customer number), so the
  * index lists members with their card; issue, lost/reissue, and the press hand-off (print-ready HTML
  * for the browser's print dialog: CR80, bleed with crop marks, A4 10-up; variable-data CSV; print
- * recording). Only active cards are printed or exported; printing by customer issues a missing card.
+ * recording). Only active cards are printed or exported; `cards.prepare` (POST) issues a missing card first.
  */
 final class MembershipCardController extends Controller
 {
@@ -100,6 +101,17 @@ final class MembershipCardController extends Controller
         }
 
         return $errors === [] ? back() : back()->withErrors(['form' => implode(' ', $errors)]);
+    }
+
+    /**
+     * POST: issues what is missing (a customer without an active card gets one now) and answers with the
+     * ids of the printable cards; the GET print/export endpoints then take those ids and never write.
+     */
+    public function prepare(CardIdsRequest $request): JsonResponse
+    {
+        Gate::authorize('create', MembershipCard::class);
+
+        return response()->json(['card_ids' => $this->resolve($request)->pluck('id')->map(intval(...))->values()->all()]);
     }
 
     /** GET: print-ready HTML (front and back pages with @page); the browser's print dialog saves the PDF. */
@@ -184,12 +196,26 @@ final class MembershipCardController extends Controller
     }
 
     /**
+     * Active cards for the requested card ids only; never issues (GET endpoints and the print record).
+     *
+     * @return Collection<int, MembershipCard>
+     */
+    private function printable(CardIdsRequest $request): Collection
+    {
+        $cards = $request->cardIds() === [] ? new Collection : MembershipCard::query()->whereIn('id', $request->cardIds())
+            ->where('status', CardStatus::Active)->with('customer.customerGroup')->orderBy('id')->get();
+        abort_if($cards->isEmpty(), 404);
+
+        return $cards;
+    }
+
+    /**
      * Active cards for the requested card ids, then for the requested customers in request order
      * (a customer without an active card gets one now; one that cannot have one is skipped).
      *
      * @return Collection<int, MembershipCard>
      */
-    private function printable(CardIdsRequest $request): Collection
+    private function resolve(CardIdsRequest $request): Collection
     {
         $cards = new Collection;
         if ($request->cardIds() !== []) {

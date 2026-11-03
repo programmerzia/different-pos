@@ -5,6 +5,8 @@ import {
     ChevronLeft,
     ChevronRight,
     Download,
+    Eye,
+    EyeOff,
     Printer,
     RefreshCw,
     Search,
@@ -54,9 +56,10 @@ import {
     exportUrl,
     moveCursor,
     PER_SHEET,
+    prepareCards,
     printUrl,
-    queueAll,
     refreshQueue,
+    selectionView,
     sheetCount,
     sheetMembers,
     toggleQueued,
@@ -93,15 +96,36 @@ const primaryButton =
 const focusRing =
     'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50';
 
-/** Opens the print-ready page (the browser's print dialog saves the PDF) and records the print. */
-function press(uuids: string[], layout: PrintLayout, crop: boolean) {
+/** Issues what is missing (POST cards.prepare), then answers with the card ids; [] when nothing is printable. */
+async function prepared(uuids: string[]): Promise<number[]> {
     if (uuids.length === 0) {
+        return [];
+    }
+    try {
+        return await prepareCards(uuids);
+    } catch {
+        return [];
+    }
+}
+
+/** Prepares the cards, then downloads the press CSV for them. */
+async function exportMembers(uuids: string[]) {
+    const ids = await prepared(uuids);
+    if (ids.length > 0) {
+        window.location.assign(exportUrl(ids));
+    }
+}
+
+/** Opens the print-ready page (the browser's print dialog saves the PDF) and records the print. */
+async function press(uuids: string[], layout: PrintLayout, crop: boolean) {
+    const ids = await prepared(uuids);
+    if (ids.length === 0) {
         return;
     }
-    window.open(printUrl(uuids, layout, crop), '_blank', 'noopener');
+    window.open(printUrl(ids, layout, crop), '_blank', 'noopener');
     router.post(
         '/app/membership-cards/printed',
-        { customers: uuids, layout },
+        { ids, layout },
         {
             preserveScroll: true,
             preserveState: true,
@@ -134,7 +158,10 @@ export default function CardsIndex({
     const [current, setCurrent] = useState<CardMember | null>(
         members[0] ?? null,
     );
+    /** The selection is the print queue: one member shows the flip card, several (or All members) the gallery. */
     const [queue, setQueue] = useState<CardMember[]>([]);
+    const [allMode, setAllMode] = useState(false);
+    const [revealed, setRevealed] = useState(false);
     const [pickerOpen, setPickerOpen] = useState(false);
     const [cursor, setCursor] = useState(0);
     const [sheet, setSheet] = useState(0);
@@ -150,7 +177,7 @@ export default function CardsIndex({
     const [seen, setSeen] = useState(members);
     if (seen !== members) {
         setSeen(members);
-        setQueue((q) => refreshQueue(q, members));
+        setQueue((q) => (allMode ? members : refreshQueue(q, members)));
         setCursor(0);
         const fresh = current
             ? members.find((m) => m.uuid === current.uuid)
@@ -163,6 +190,37 @@ export default function CardsIndex({
     }
 
     const queued = (m: CardMember) => queue.some((q) => q.uuid === m.uuid);
+    /** Ticks or unticks one member (leaves All members mode). */
+    const toggleMember = (m: CardMember) => {
+        setAllMode(false);
+        setQueue((q) => toggleQueued(q, m));
+    };
+    /** All members: every listed member (search and filters applied), kept in sync on reloads. */
+    const toggleAll = () => {
+        if (allMode) {
+            setAllMode(false);
+            setQueue([]);
+        } else {
+            setAllMode(true);
+            setQueue(members);
+        }
+    };
+    const clearSelection = () => {
+        setAllMode(false);
+        setQueue([]);
+    };
+    const view = selectionView(queue, current);
+    const shown = view.mode === 'single' ? view.member : null;
+    /** The member Report Lost acts on: the single card, else the one marked in the gallery. */
+    const target = shown ?? current;
+    const toggleReveal = () => setRevealed((r) => !r);
+    /** Queue row → the member's card: marked in the gallery and scrolled into view. */
+    const showInGallery = (m: CardMember) => {
+        setCurrent(m);
+        document
+            .querySelector<HTMLElement>(`[data-gallery="${m.uuid}"]`)
+            ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    };
     const flip = () => setSide((s) => (s === 'front' ? 'back' : 'front'));
     const sideLabel = t(`cards.studio.side_${side}`);
 
@@ -189,14 +247,8 @@ export default function CardsIndex({
               )
             : press(batch(), 'cr80', false);
     const pressPdf = () => press(batch(), 'bleed', crop);
-    const pressCsv = () => {
-        const uuids = batch();
-        if (uuids.length > 0) {
-            window.location.assign(exportUrl(uuids));
-        }
-    };
-    const toggleCurrent = () =>
-        current && setQueue((q) => toggleQueued(q, current));
+    const pressCsv = () => exportMembers(batch());
+    const toggleCurrent = () => current && toggleMember(current);
     const openPicker = () => {
         setPickerOpen(true);
         requestAnimationFrame(() => searchRef.current?.focus());
@@ -236,6 +288,12 @@ export default function CardsIndex({
             labelKey: 'cards.studio.queue_toggle',
             handler: toggleCurrent,
         },
+        {
+            id: 'cards.reveal',
+            keys: 'r',
+            labelKey: 'cards.studio.reveal',
+            handler: toggleReveal,
+        },
         ...(can.issue
             ? [
                   {
@@ -261,6 +319,7 @@ export default function CardsIndex({
         pressCsv,
         flip,
         toggleCurrent,
+        toggleReveal,
         openPicker,
     });
     useEffect(() => {
@@ -270,6 +329,7 @@ export default function CardsIndex({
             pressCsv,
             flip,
             toggleCurrent,
+            toggleReveal,
             openPicker,
         };
     });
@@ -304,6 +364,14 @@ export default function CardsIndex({
                 icon: RefreshCw,
                 keys: 'f',
                 run: () => latest.current.flip(),
+            },
+            {
+                id: 'page.cards.reveal',
+                entity: null,
+                labelKey: 'cards.studio.reveal',
+                icon: Eye,
+                keys: 'r',
+                run: () => latest.current.toggleReveal(),
             },
             {
                 id: 'page.cards.queue',
@@ -346,14 +414,16 @@ export default function CardsIndex({
 
     const handlers = useMemo(
         () => ({
-            'member_card.queue': (m: CardMember) =>
-                setQueue((q) => toggleQueued(q, m)),
+            'member_card.queue': (m: CardMember) => {
+                setAllMode(false);
+                setQueue((q) => toggleQueued(q, m));
+            },
             ...(can.issue
                 ? {
                       'member_card.print': (m: CardMember) =>
                           press([m.uuid], 'cr80', false),
                       'member_card.export': (m: CardMember) =>
-                          window.location.assign(exportUrl([m.uuid])),
+                          exportMembers([m.uuid]),
                       'member_card.reissue': (m: CardMember) => setReissuing(m),
                   }
                 : {}),
@@ -394,8 +464,11 @@ export default function CardsIndex({
             }
         });
 
+    /** Enter / click on a member: select only that member (the single flip card). */
     const pick = (m: CardMember) => {
         setCurrent(m);
+        setAllMode(false);
+        setQueue([m]);
         setPickerOpen(false);
         pickerButton.current?.focus();
     };
@@ -408,18 +481,23 @@ export default function CardsIndex({
         const inSearch = e.target === searchRef.current;
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             e.preventDefault();
-            const next =
-                inSearch && e.key === 'ArrowDown'
-                    ? 0
-                    : moveCursor(
-                          cursor,
-                          e.key === 'ArrowDown' ? 1 : -1,
-                          members.length,
-                      );
-            if (next >= 0) {
-                setCursor(next);
-                focusMember(next);
+            // Row -1 is "All members", above the first member.
+            let next: number;
+            if (inSearch && e.key === 'ArrowDown') {
+                next = members.length > 0 ? 0 : -1;
+            } else if (e.key === 'ArrowUp' && cursor <= 0) {
+                next = -1;
+            } else if (e.key === 'ArrowDown' && cursor === -1) {
+                next = members.length > 0 ? 0 : -1;
+            } else {
+                next = moveCursor(
+                    cursor,
+                    e.key === 'ArrowDown' ? 1 : -1,
+                    members.length,
+                );
             }
+            setCursor(next);
+            focusMember(next);
         } else if (e.key === 'Enter' && inSearch) {
             e.preventDefault();
             const m = members[cursor] ?? members[0];
@@ -428,9 +506,14 @@ export default function CardsIndex({
             }
         } else if (e.key === ' ' && !inSearch) {
             e.preventDefault();
+            if (cursor === -1) {
+                toggleAll();
+
+                return;
+            }
             const m = members[cursor];
             if (m) {
-                setQueue((q) => toggleQueued(q, m));
+                toggleMember(m);
             }
         }
     };
@@ -481,12 +564,12 @@ export default function CardsIndex({
                             <button
                                 type="button"
                                 disabled={
-                                    !current?.card ||
+                                    !target?.card ||
                                     !['active', 'lost'].includes(
-                                        current.card.status,
+                                        target.card.status,
                                     )
                                 }
-                                onClick={() => current && setReissuing(current)}
+                                onClick={() => target && setReissuing(target)}
                                 className={cn(
                                     'flex min-h-11 items-center gap-1.5 rounded-lg bg-warning-soft px-3 text-xs font-bold text-warning transition-colors hover:bg-warning hover:text-primary-foreground disabled:opacity-50 md:min-h-8',
                                     focusRing,
@@ -660,9 +743,17 @@ export default function CardsIndex({
                                     )}
                                 >
                                     <span className="truncate">
-                                        {current
-                                            ? memberLabel(current)
-                                            : t('cards.studio.no_member')}
+                                        {allMode
+                                            ? `${t('cards.studio.all_members')} (${digits.n(queue.length)})`
+                                            : queue.length > 1
+                                              ? t('cards.studio.selected', {
+                                                    count: digits.n(
+                                                        queue.length,
+                                                    ),
+                                                })
+                                              : shown
+                                                ? memberLabel(shown)
+                                                : t('cards.studio.no_member')}
                                     </span>
                                     <ChevronDown
                                         className="size-3.5 shrink-0"
@@ -773,6 +864,52 @@ export default function CardsIndex({
                                     aria-busy={table.loading}
                                     className="max-h-80 overflow-y-auto p-1"
                                 >
+                                    {members.length > 0 ? (
+                                        <li
+                                            data-active={
+                                                cursor === -1 ? '' : undefined
+                                            }
+                                            className="flex min-h-11 items-center gap-2 rounded-md border-b px-2 text-xs focus-within:bg-accent hover:bg-accent md:min-h-8"
+                                        >
+                                            <button
+                                                type="button"
+                                                data-member={-1}
+                                                aria-pressed={allMode}
+                                                onFocus={() => setCursor(-1)}
+                                                onClick={toggleAll}
+                                                className="flex min-h-9 min-w-0 flex-1 items-center gap-2 rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-ring md:min-h-7"
+                                            >
+                                                <span
+                                                    aria-hidden="true"
+                                                    className={cn(
+                                                        'flex size-5 shrink-0 items-center justify-center rounded border',
+                                                        allMode
+                                                            ? 'border-primary bg-primary text-primary-foreground'
+                                                            : 'bg-background',
+                                                    )}
+                                                >
+                                                    {allMode ? (
+                                                        <Check className="size-3" />
+                                                    ) : null}
+                                                </span>
+                                                <span className="font-semibold">
+                                                    {t(
+                                                        'cards.studio.all_members',
+                                                    )}
+                                                </span>
+                                                <span className="truncate text-muted-foreground">
+                                                    {t(
+                                                        'cards.studio.all_members_hint',
+                                                        {
+                                                            count: digits.n(
+                                                                members.length,
+                                                            ),
+                                                        },
+                                                    )}
+                                                </span>
+                                            </button>
+                                        </li>
+                                    ) : null}
                                     {members.length === 0 ? (
                                         <li
                                             role="presentation"
@@ -800,9 +937,7 @@ export default function CardsIndex({
                                                         { name: m.name },
                                                     )}
                                                     onClick={() =>
-                                                        setQueue((q) =>
-                                                            toggleQueued(q, m),
-                                                        )
+                                                        toggleMember(m)
                                                     }
                                                     className={cn(
                                                         'flex size-5 shrink-0 items-center justify-center rounded border',
@@ -844,20 +979,11 @@ export default function CardsIndex({
                                     )}
                                 </ul>
                                 <div className="flex items-center justify-between gap-2 border-t p-2 text-xs">
-                                    <button
-                                        type="button"
-                                        className={toolButton}
-                                        onClick={() =>
-                                            setQueue((q) =>
-                                                queueAll(q, members),
-                                            )
-                                        }
-                                        disabled={members.length === 0}
-                                    >
-                                        {t('cards.studio.queue_page', {
-                                            count: digits.n(members.length),
+                                    <span className="text-muted-foreground">
+                                        {t('cards.studio.selected', {
+                                            count: digits.n(queue.length),
                                         })}
-                                    </button>
+                                    </span>
                                     <div className="flex items-center gap-1">
                                         <span className="text-muted-foreground">
                                             {t('cards.studio.page_of', {
@@ -932,17 +1058,80 @@ export default function CardsIndex({
                 {/* CR80: the interactive preview and the bulk print queue */}
                 {layout === 'cr80' ? (
                     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-                        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border bg-card p-6 shadow-xs">
+                        <div
+                            className={cn(
+                                'flex flex-col items-center justify-center gap-4 rounded-2xl border bg-card p-6 shadow-xs',
+                                view.mode === 'gallery' && 'lg:col-span-2',
+                            )}
+                        >
                             <div className="flex w-full items-center justify-between text-xs font-bold tracking-wider text-muted-foreground uppercase">
-                                <span>{t('cards.studio.simulation')}</span>
+                                <span>
+                                    {view.mode === 'gallery'
+                                        ? t('cards.studio.gallery_title', {
+                                              count: digits.n(
+                                                  view.members.length,
+                                              ),
+                                          })
+                                        : t('cards.studio.simulation')}
+                                </span>
                                 <span className="font-mono text-[10px]">
                                     ISO/IEC 7810 ID-1 (85.6 × 54mm)
                                 </span>
                             </div>
-                            {current ? (
+                            {view.mode === 'gallery' ? (
+                                <ul
+                                    aria-label={t('cards.studio.gallery_title', {
+                                        count: digits.n(view.members.length),
+                                    })}
+                                    data-testid="card-gallery"
+                                    className="grid w-full grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-4"
+                                >
+                                    {view.members.map((m) => (
+                                        <li key={m.uuid}>
+                                            <RowContextMenu
+                                                entity="member_card"
+                                                row={m}
+                                                handlers={handlers}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    data-gallery={m.uuid}
+                                                    aria-current={
+                                                        current?.uuid === m.uuid
+                                                            ? 'true'
+                                                            : undefined
+                                                    }
+                                                    onClick={() =>
+                                                        setCurrent(m)
+                                                    }
+                                                    aria-label={t(
+                                                        'cards.studio.gallery_card',
+                                                        {
+                                                            name: m.name,
+                                                            side: sideLabel,
+                                                        },
+                                                    )}
+                                                    className={cn(
+                                                        'block w-full rounded-2xl aria-[current]:ring-2 aria-[current]:ring-primary/60',
+                                                        focusRing,
+                                                    )}
+                                                >
+                                                    <MembershipCard
+                                                        member={m}
+                                                        brand={brand}
+                                                        side={side}
+                                                        width="100%"
+                                                        revealed={revealed}
+                                                    />
+                                                </button>
+                                            </RowContextMenu>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : shown ? (
                                 <RowContextMenu
                                     entity="member_card"
-                                    row={current}
+                                    row={shown}
                                     handlers={handlers}
                                 >
                                     <button
@@ -951,7 +1140,7 @@ export default function CardsIndex({
                                         aria-label={t(
                                             'cards.studio.card_preview',
                                             {
-                                                name: current.name,
+                                                name: shown.name,
                                                 side: sideLabel,
                                             },
                                         )}
@@ -961,9 +1150,10 @@ export default function CardsIndex({
                                         )}
                                     >
                                         <MembershipCard
-                                            member={current}
+                                            member={shown}
                                             brand={brand}
                                             side={side}
+                                            revealed={revealed}
                                         />
                                     </button>
                                 </RowContextMenu>
@@ -972,24 +1162,50 @@ export default function CardsIndex({
                                     {t('cards.studio.empty')}
                                 </p>
                             )}
-                            <button
-                                type="button"
-                                onClick={flip}
-                                className={cn(
-                                    'flex items-center gap-1 rounded text-xs font-semibold text-primary hover:underline',
-                                    focusRing,
-                                )}
-                            >
-                                <RefreshCw
-                                    className="size-3"
-                                    aria-hidden="true"
-                                />
-                                <span>
-                                    {t('cards.studio.click_flip', {
-                                        side: sideLabel,
-                                    })}
-                                </span>
-                            </button>
+                            <div className="flex flex-wrap items-center justify-center gap-4">
+                                <button
+                                    type="button"
+                                    onClick={flip}
+                                    className={cn(
+                                        'flex min-h-11 items-center gap-1 rounded text-xs font-semibold text-primary hover:underline md:min-h-7',
+                                        focusRing,
+                                    )}
+                                >
+                                    <RefreshCw
+                                        className="size-3"
+                                        aria-hidden="true"
+                                    />
+                                    <span>
+                                        {t('cards.studio.click_flip', {
+                                            side: sideLabel,
+                                        })}
+                                    </span>
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-pressed={revealed}
+                                    aria-keyshortcuts="R"
+                                    onClick={toggleReveal}
+                                    className={cn(
+                                        'flex min-h-11 items-center gap-1 rounded text-xs font-semibold text-muted-foreground hover:text-foreground aria-pressed:text-primary md:min-h-7',
+                                        focusRing,
+                                    )}
+                                >
+                                    {revealed ? (
+                                        <EyeOff
+                                            className="size-3"
+                                            aria-hidden="true"
+                                        />
+                                    ) : (
+                                        <Eye
+                                            className="size-3"
+                                            aria-hidden="true"
+                                        />
+                                    )}
+                                    <span>{t('cards.studio.reveal')}</span>
+                                    <Kbd keys="r" />
+                                </button>
+                            </div>
                         </div>
 
                         <section
@@ -1074,26 +1290,24 @@ export default function CardsIndex({
                                                                     : undefined
                                                             }
                                                             onClick={() =>
-                                                                setCurrent(m)
+                                                                showInGallery(
+                                                                    m,
+                                                                )
                                                             }
                                                             onKeyDown={(e) => {
                                                                 if (
                                                                     e.key ===
                                                                     'Enter'
                                                                 ) {
-                                                                    setCurrent(
+                                                                    showInGallery(
                                                                         m,
                                                                     );
                                                                 } else if (
                                                                     e.key ===
                                                                     'Delete'
                                                                 ) {
-                                                                    setQueue(
-                                                                        (q) =>
-                                                                            toggleQueued(
-                                                                                q,
-                                                                                m,
-                                                                            ),
+                                                                    toggleMember(
+                                                                        m,
                                                                     );
                                                                 }
                                                             }}
@@ -1171,7 +1385,7 @@ export default function CardsIndex({
                                         toolButton,
                                         'font-medium text-muted-foreground',
                                     )}
-                                    onClick={() => setQueue([])}
+                                    onClick={clearSelection}
                                     disabled={queue.length === 0}
                                 >
                                     {t('cards.studio.clear')}

@@ -1,4 +1,4 @@
-import { Printer } from 'lucide-react';
+import { Clock, Printer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { KpiTile } from '@/components/kpi-tile';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ export function TodayDialog({
 
     return (
         <PosDialog
+            icon={Clock}
             open={open}
             onClose={onClose}
             title={t('pos.today.title')}

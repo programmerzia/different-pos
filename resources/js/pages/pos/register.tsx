@@ -1,15 +1,16 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    Banknote,
     CircleCheck,
-    Clock,
+    Layers,
     Pause,
     Percent,
     Printer,
     RotateCcw,
-    ScanLine,
+    Search,
     ShieldCheck,
     Tag,
-    UserPlus,
+    Trash2,
     UserRound,
 } from 'lucide-react';
 import {
@@ -26,13 +27,11 @@ import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Kbd } from '@/components/kbd';
 import { RowContextMenu } from '@/components/row-context-menu';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { QTY_SCALE } from '@/engine/quantity';
 import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useCan } from '@/hooks/use-can';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
-import { cn } from '@/lib/utils';
 import {
     saleBody,
     searchProducts,
@@ -45,6 +44,7 @@ import {
     emptyCart,
     exceedsCap,
     newClientUuid,
+    NO_DISCOUNT,
     totalQty,
 } from '@/pos/register/cart';
 import { CustomerDialog } from '@/pos/register/components/customer-dialog';
@@ -54,6 +54,16 @@ import { ManagerDialog } from '@/pos/register/components/manager-dialog';
 import { PaymentDialog } from '@/pos/register/components/payment-dialog';
 import { PriceCheckDialog } from '@/pos/register/components/price-check-dialog';
 import { QtyDialog } from '@/pos/register/components/qty-dialog';
+import {
+    BillLine,
+    Breakdown,
+    CatalogTile,
+    CategoryPill,
+    CustomerStrip,
+    EmptyBill,
+    FnButton,
+    PayBar,
+} from '@/pos/register/components/register-parts';
 import { TodayDialog } from '@/pos/register/components/today-dialog';
 import { VariantPicker } from '@/pos/register/components/variant-picker';
 import {
@@ -104,11 +114,15 @@ type DialogName =
     | 'qty'
     | 'clear';
 
-const POS_SPECS = posHotkeySpecs((command) =>
+// An Esc that a closing dialog already consumed (Radix prevents its default) is not "clear the bill".
+const POS_SPECS = posHotkeySpecs((command, event) => {
+    if (command === 'cancel' && event.defaultPrevented) {
+        return;
+    }
     window.dispatchEvent(
         new CustomEvent(POS_COMMAND_EVENT, { detail: command }),
-    ),
-);
+    );
+});
 
 const registerStorageKey = (branchId: number) => `pos.register.${branchId}`;
 
@@ -160,7 +174,7 @@ export default function Register(props: Props) {
     );
     const scanRef = useRef<HTMLInputElement>(null);
     const gridRef = useRef<HTMLDivElement>(null);
-    const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
+    const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
 
     const storageKey = heldKey(props.branch.id, registerId);
     const updateHeld = (next: HeldCart[]) => {
@@ -605,6 +619,36 @@ export default function Register(props: Props) {
         }
     };
 
+    /** Scan field keys: Enter scans; with an empty field ↑↓ pick a bill line and Delete removes it. */
+    const scanKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            void scan();
+
+            return;
+        }
+        if (query === '') {
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                dispatch({ type: 'move', delta: e.key === 'ArrowUp' ? -1 : 1 });
+            }
+            if (e.key === 'Delete' && selectedLine) {
+                e.preventDefault();
+                dispatch({ type: 'remove', key: selectedLine.key });
+            }
+
+            return;
+        }
+        if (e.key === 'ArrowDown' && items.length > 0) {
+            e.preventDefault();
+            const target = Math.max(0, highlight);
+            setHighlight(target);
+            (
+                gridRef.current?.children[target] as HTMLElement | undefined
+            )?.focus();
+        }
+    };
+
     const customer = cart.customer;
     const name = (item: { name: string; name_bn: string | null }) =>
         locale === 'bn' && item.name_bn ? item.name_bn : item.name;
@@ -615,151 +659,161 @@ export default function Register(props: Props) {
         totals.order.subtotal -
         totals.order.line_discount_total -
         totals.order.group_discount;
+    const pcs = d.qty(totalQty(cart.lines));
+    const hasLines = cart.lines.length > 0;
+    const canReturn = can(['returns.view', 'returns.create']);
+    const collectDue =
+        customer && can('customers.view')
+            ? () => router.visit(`/app/dues/${customer.uuid}`)
+            : null;
+    const orderDiscountLabel =
+        cart.orderDiscount.type === 'percent_bp'
+            ? `${d.n(cart.orderDiscount.value / 100)}%`
+            : null;
+
+    /** − / + on a bill line; more than the stock is refused unless negative stock is allowed. */
+    const stepLine = (line: CartLine, delta: number) => {
+        const qty = line.qty + delta;
+        if (
+            delta > 0 &&
+            !settings.allow_negative_stock &&
+            line.stock !== null &&
+            qty > line.stock
+        ) {
+            toast.warning(
+                t('pos.stock.not_enough', {
+                    name: line.name,
+                    qty: d.qty(Math.max(line.stock, 0)),
+                }),
+            );
+
+            return;
+        }
+        dispatch({ type: 'qty', key: line.key, qty });
+    };
+    const selectLine = (index: number) => dispatch({ type: 'select', index });
 
     return (
         <>
             <Head title={t('pos.title')} />
-            <div className="flex min-h-0 flex-col md:h-[calc(100svh-var(--topbar-h)-var(--statusbar-h))] md:flex-row">
-                {/* Left: scan, categories, catalogue / completion */}
+            <div className="flex min-h-0 flex-col overflow-hidden md:h-[calc(100svh-var(--topbar-h)-var(--statusbar-h))] lg:flex-row">
+                {/* Left: scan bar, category pills, catalogue grid / completion, function bar */}
                 <section
-                    className="flex min-w-0 flex-1 flex-col"
+                    className="flex min-w-0 flex-1 flex-col overflow-hidden border-r"
                     aria-label={t('pos.catalog.label')}
                 >
-                    <div className="flex items-center gap-2 border-b bg-card p-2">
-                        <div className="relative flex-1">
-                            <ScanLine
-                                className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-muted-foreground"
-                                aria-hidden="true"
-                            />
-                            <Input
-                                ref={scanRef}
-                                value={query}
-                                onChange={(e) => {
-                                    setQuery(e.target.value);
-                                    if (completed && e.target.value !== '') {
-                                        setCompleted(null);
-                                    }
-                                }}
-                                placeholder={t('pos.scan.placeholder')}
-                                aria-label={t('pos.scan.placeholder')}
-                                autoComplete="off"
-                                className="h-12 pl-10 text-base"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        void scan();
-
-                                        return;
-                                    }
-                                    if (query === '') {
-                                        // Empty field: arrows pick a bill line, Delete removes it.
+                    <div className="shrink-0 space-y-2 border-b bg-surface p-2">
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                                <Search
+                                    className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+                                    aria-hidden="true"
+                                />
+                                <input
+                                    ref={scanRef}
+                                    id="pos-barcode-input"
+                                    value={query}
+                                    onChange={(e) => {
+                                        setQuery(e.target.value);
                                         if (
-                                            e.key === 'ArrowUp' ||
-                                            e.key === 'ArrowDown'
+                                            completed &&
+                                            e.target.value !== ''
                                         ) {
-                                            e.preventDefault();
-                                            dispatch({
-                                                type: 'move',
-                                                delta:
-                                                    e.key === 'ArrowUp'
-                                                        ? -1
-                                                        : 1,
-                                            });
+                                            setCompleted(null);
                                         }
-                                        if (
-                                            e.key === 'Delete' &&
-                                            selectedLine
-                                        ) {
-                                            e.preventDefault();
-                                            dispatch({
-                                                type: 'remove',
-                                                key: selectedLine.key,
-                                            });
-                                        }
-
-                                        return;
-                                    }
-                                    if (
-                                        e.key === 'ArrowDown' &&
-                                        items.length > 0
-                                    ) {
-                                        e.preventDefault();
-                                        const target = Math.max(0, highlight);
-                                        setHighlight(target);
-                                        (
-                                            gridRef.current?.children[
-                                                target
-                                            ] as HTMLElement | undefined
-                                        )?.focus();
-                                    }
-                                }}
-                            />
-                        </div>
-                        {props.registers.length > 1 && (
-                            <select
-                                className="h-12 rounded-md border border-input bg-background px-2 text-sm"
-                                aria-label={t('pos.register_select')}
-                                value={registerId ?? ''}
-                                onChange={(e) => {
-                                    const id = Number(e.target.value);
-                                    setRegisterId(id);
-                                    setHeld(
-                                        loadHeld(
-                                            window.localStorage,
-                                            heldKey(props.branch.id, id),
-                                        ),
-                                    );
-                                    window.localStorage.setItem(
-                                        registerStorageKey(props.branch.id),
-                                        String(id),
-                                    );
-                                }}
-                            >
-                                {props.registers.map((r) => (
-                                    <option key={r.id} value={r.id}>
-                                        {r.name}
-                                    </option>
-                                ))}
-                            </select>
-                        )}
-                        {can(['returns.view', 'returns.create']) && (
-                            <Button
+                                    }}
+                                    placeholder={t('pos.scan.placeholder')}
+                                    aria-label={t('pos.scan.placeholder')}
+                                    autoComplete="off"
+                                    className="touch-target h-9 w-full rounded-lg border bg-surface-sunken pr-12 pl-8 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/40 focus:outline-none"
+                                    onKeyDown={scanKeys}
+                                />
+                                <Kbd
+                                    keys="f2"
+                                    className="absolute top-1/2 right-2 -translate-y-1/2 text-[10px]"
+                                />
+                            </div>
+                            {props.registers.length > 1 && (
+                                <select
+                                    className="touch-target h-9 rounded-lg border bg-surface-sunken px-2 text-xs"
+                                    aria-label={t('pos.register_select')}
+                                    value={registerId ?? ''}
+                                    onChange={(e) => {
+                                        const id = Number(e.target.value);
+                                        setRegisterId(id);
+                                        setHeld(
+                                            loadHeld(
+                                                window.localStorage,
+                                                heldKey(props.branch.id, id),
+                                            ),
+                                        );
+                                        window.localStorage.setItem(
+                                            registerStorageKey(props.branch.id),
+                                            String(id),
+                                        );
+                                    }}
+                                >
+                                    {props.registers.map((r) => (
+                                        <option key={r.id} value={r.id}>
+                                            {r.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                            <button
                                 type="button"
-                                variant="outline"
-                                className="h-12 border-warning text-warning"
-                                onClick={() => run('returns')}
+                                onClick={() => run('price_check')}
+                                className="touch-target flex h-9 items-center gap-1 rounded-lg border bg-surface-sunken px-2.5 text-xs font-medium text-muted-foreground hover:border-primary"
+                                title={t('pos.keys.price_check')}
                             >
-                                <RotateCcw aria-hidden="true" />{' '}
-                                {t('pos.returns')} <Kbd keys="f11" onButton />
-                            </Button>
+                                <Tag className="size-3.5" aria-hidden="true" />
+                                <span className="hidden sm:inline">
+                                    {t('pos.price_check')}
+                                </span>
+                                <Kbd keys="f5" className="text-[10px]" />
+                            </button>
+                            {canReturn && (
+                                <button
+                                    type="button"
+                                    onClick={() => run('returns')}
+                                    className="touch-target flex h-9 items-center gap-1.5 rounded-lg border border-warning/30 bg-warning-soft px-3 text-xs font-semibold text-warning"
+                                    title={t('pos.keys.returns')}
+                                >
+                                    <RotateCcw
+                                        className="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                    {t('pos.return_key')}
+                                </button>
+                            )}
+                        </div>
+
+                        {props.categories.length > 0 && (
+                            <div
+                                className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-1 select-none"
+                                role="toolbar"
+                                aria-label={t('pos.catalog.categories')}
+                            >
+                                <CategoryPill
+                                    active={category === null}
+                                    onClick={() => setCategory(null)}
+                                >
+                                    {t('pos.catalog.all_items')}
+                                </CategoryPill>
+                                {props.categories.map((c) => (
+                                    <CategoryPill
+                                        key={c.id}
+                                        active={category === c.id}
+                                        onClick={() => setCategory(c.id)}
+                                    >
+                                        {name(c)}
+                                    </CategoryPill>
+                                ))}
+                            </div>
                         )}
                     </div>
 
-                    {props.categories.length > 0 && (
-                        <div
-                            className="flex gap-1.5 overflow-x-auto border-b px-2 py-1.5"
-                            role="toolbar"
-                            aria-label={t('pos.catalog.categories')}
-                        >
-                            <CategoryChip
-                                active={category === null}
-                                onClick={() => setCategory(null)}
-                            >
-                                {t('pos.catalog.all')}
-                            </CategoryChip>
-                            {props.categories.map((c) => (
-                                <CategoryChip
-                                    key={c.id}
-                                    active={category === c.id}
-                                    onClick={() => setCategory(c.id)}
-                                >
-                                    {name(c)}
-                                </CategoryChip>
-                            ))}
-                        </div>
-                    )}
-
-                    <div className="min-h-0 flex-1 overflow-y-auto p-2">
+                    <div className="min-h-0 flex-1 overflow-y-auto p-3">
                         {completed ? (
                             <Completed
                                 sale={completed}
@@ -771,7 +825,7 @@ export default function Register(props: Props) {
                                 onNew={newSale}
                             />
                         ) : items.length === 0 && !loading ? (
-                            <p className="p-6 text-center text-muted-foreground">
+                            <p className="p-6 text-center text-xs text-muted-foreground">
                                 {query === ''
                                     ? t('pos.catalog.empty')
                                     : t('pos.scan.none')}
@@ -780,330 +834,182 @@ export default function Register(props: Props) {
                             <div
                                 ref={gridRef}
                                 aria-label={t('pos.catalog.results')}
-                                className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4"
+                                className="grid auto-rows-max grid-cols-2 content-start items-start gap-2.5 sm:grid-cols-3 xl:grid-cols-4"
                             >
                                 {items.map((item, i) => (
-                                    <button
+                                    <CatalogTile
                                         key={item.key}
-                                        type="button"
-                                        aria-current={
-                                            i === highlight ? 'true' : undefined
-                                        }
+                                        item={item}
+                                        highlighted={i === highlight}
                                         tabIndex={
                                             i === Math.max(0, highlight)
                                                 ? 0
                                                 : -1
                                         }
-                                        className={cn(
-                                            'flex min-h-24 flex-col rounded-lg border bg-card p-2 text-left hover:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
-                                            i === highlight &&
-                                                'border-primary bg-primary-soft',
-                                        )}
-                                        onClick={() => choose(item)}
+                                        onChoose={() => choose(item)}
                                         onFocus={() => setHighlight(i)}
                                         onKeyDown={(e) => gridKeys(e, i)}
-                                    >
-                                        <span className="line-clamp-2 font-semibold">
-                                            {name(item)}
-                                        </span>
-                                        <span className="truncate font-mono text-xs text-muted-foreground">
-                                            {item.code}
-                                        </span>
-                                        <span className="mt-auto flex items-end justify-between gap-2 pt-1">
-                                            <span className="num font-bold text-primary">
-                                                {d.money(item.price)}
-                                            </span>
-                                            <StockBadge
-                                                stock={item.stock}
-                                                variants={
-                                                    item.kind === 'family'
-                                                        ? item.variants.length
-                                                        : 0
-                                                }
-                                            />
-                                        </span>
-                                    </button>
+                                    />
                                 ))}
                             </div>
                         )}
                     </div>
 
-                    <p
-                        className="hidden gap-3 overflow-x-auto border-t bg-muted px-3 py-1 text-xs text-muted-foreground md:flex"
-                        aria-hidden="true"
+                    {/* Function bar (mockup "POS Function Bar"). */}
+                    <div
+                        className="flex shrink-0 items-center justify-between gap-1 overflow-x-auto border-t bg-surface-sunken p-1.5 text-[11px]"
+                        role="toolbar"
+                        aria-label={t('pos.fn.label')}
                     >
-                        {(
-                            [
-                                'search',
-                                'customer',
-                                'price_check',
-                                'line_discount',
-                                'hold',
-                                'pay',
-                                'cancel',
-                            ] as const
-                        ).map((c) => {
-                            const key = POS_KEYS.find((k) => k.command === c);
-
-                            return key ? (
-                                <span
-                                    key={c}
-                                    className="flex shrink-0 items-center gap-1"
-                                >
-                                    <Kbd keys={key.keys} /> {t(key.labelKey)}
-                                </span>
-                            ) : null;
-                        })}
-                    </p>
+                        <FnButton
+                            icon={Pause}
+                            label={t('pos.actions.hold')}
+                            keys="f8"
+                            disabled={!hasLines}
+                            onClick={() => run('hold')}
+                        />
+                        <FnButton
+                            icon={Layers}
+                            label={
+                                held.length > 0
+                                    ? t('pos.fn.held_count', {
+                                          count: held.length,
+                                      })
+                                    : t('pos.fn.held')
+                            }
+                            keys="shift+f8"
+                            onClick={() => run('held')}
+                        />
+                        <FnButton
+                            icon={UserRound}
+                            label={t('pos.fn.customer')}
+                            keys="f4"
+                            onClick={() => run('customer')}
+                        />
+                        <FnButton
+                            icon={Percent}
+                            label={t('pos.fn.line_discount')}
+                            keys="f6"
+                            disabled={!selectedLine}
+                            onClick={() => run('line_discount')}
+                        />
+                        <FnButton
+                            icon={Tag}
+                            label={t('pos.fn.order_discount')}
+                            keys="shift+f6"
+                            disabled={!hasLines}
+                            onClick={() => run('bill_discount')}
+                        />
+                        {collectDue && customer && customer.balance > 0 && (
+                            <FnButton
+                                icon={Banknote}
+                                label={t('pos.fn.collect_due')}
+                                tone="warning"
+                                onClick={collectDue}
+                            />
+                        )}
+                        {canReturn && (
+                            <FnButton
+                                icon={RotateCcw}
+                                label={t('pos.fn.return')}
+                                keys="f11"
+                                tone="warning"
+                                onClick={() => run('returns')}
+                            />
+                        )}
+                        <FnButton
+                            icon={Trash2}
+                            label={t('pos.fn.clear')}
+                            tone="danger"
+                            disabled={!hasLines}
+                            onClick={() => setDialog('clear')}
+                        />
+                    </div>
                 </section>
 
-                {/* Right: customer, bill, totals, pay */}
+                {/* Right: customer, bill lines, payment breakdown, PAY */}
                 <aside
-                    className="flex min-h-0 w-full flex-col border-l bg-card md:w-[26rem] xl:w-[30rem]"
+                    className="flex min-h-0 w-full shrink-0 flex-col overflow-hidden bg-surface lg:w-[420px] xl:w-[470px]"
                     aria-label={t('pos.bill.label')}
                 >
-                    <div className="border-b p-2">
-                        {customer ? (
-                            <button
-                                type="button"
-                                className="flex min-h-11 w-full items-center gap-3 rounded-lg border p-2 text-left hover:bg-accent"
-                                onClick={() => setDialog('customer')}
-                            >
-                                <UserRound
-                                    className="size-5 shrink-0 text-primary"
-                                    aria-hidden="true"
-                                />
-                                <span className="min-w-0 flex-1">
-                                    <span className="block truncate font-semibold">
-                                        {customer.number && (
-                                            <span className="font-mono">
-                                                #{d.n(customer.number)}{' '}
-                                            </span>
-                                        )}
-                                        {name(customer)}
-                                    </span>
-                                    <span className="block truncate text-xs text-muted-foreground">
-                                        {[
-                                            customer.shop_name,
-                                            customer.group?.name,
-                                            customer.phone &&
-                                                d.n(customer.phone),
-                                        ]
-                                            .filter(Boolean)
-                                            .join(' · ')}
-                                    </span>
-                                </span>
-                                <span className="num text-right text-xs">
-                                    {customer.balance > 0 && (
-                                        <span className="block text-warning">
-                                            {t('pos.customer.owes', {
-                                                amount: d.money(
-                                                    customer.balance,
-                                                ),
-                                            })}
-                                        </span>
-                                    )}
-                                    {customer.advance > 0 && (
-                                        <span className="block text-success">
-                                            {t('pos.customer.credit', {
-                                                amount: d.money(
-                                                    customer.advance,
-                                                ),
-                                            })}
-                                        </span>
-                                    )}
-                                </span>
-                                <Kbd keys="f4" />
-                            </button>
-                        ) : (
-                            <button
-                                type="button"
-                                className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border-2 border-warning bg-warning-soft px-3 font-semibold text-warning"
-                                onClick={() => setDialog('customer')}
-                            >
-                                <span className="flex items-center gap-2">
-                                    <UserPlus
-                                        className="size-5"
-                                        aria-hidden="true"
-                                    />{' '}
-                                    {t('pos.customer.attach')}
-                                </span>
-                                <span className="text-xs font-normal">
-                                    {t('pos.customer.walk_in')}
-                                </span>
-                                <Kbd keys="f4" />
-                            </button>
-                        )}
-                    </div>
+                    <CustomerStrip
+                        customer={customer}
+                        onOpen={() => setDialog('customer')}
+                        onCollect={collectDue}
+                        onDetach={() =>
+                            dispatch({ type: 'customer', customer: null })
+                        }
+                    />
 
                     <div className="min-h-0 flex-1 overflow-y-auto">
                         {cart.lines.length === 0 ? (
-                            <p className="p-6 text-center text-sm text-muted-foreground">
-                                {t('pos.bill.empty')}
-                            </p>
+                            <EmptyBill />
                         ) : (
-                            <table className="w-full text-sm">
-                                <thead className="sticky top-0 bg-muted text-xs text-muted-foreground">
-                                    <tr>
-                                        <th
-                                            scope="col"
-                                            className="px-2 py-1 text-left font-medium"
-                                        >
-                                            {t('pos.bill.item')}
-                                        </th>
-                                        <th
-                                            scope="col"
-                                            className="px-2 py-1 text-right font-medium"
-                                        >
-                                            {t('pos.bill.qty')}
-                                        </th>
-                                        <th
-                                            scope="col"
-                                            className="px-2 py-1 text-right font-medium"
-                                        >
-                                            {t('pos.bill.amount')}
-                                        </th>
-                                    </tr>
-                                </thead>
+                            <table
+                                aria-label={t('pos.bill.lines')}
+                                className="w-full border-collapse"
+                            >
                                 <tbody className="divide-y">
-                                    {cart.lines.map((line, i) => {
-                                        const priced = totals.lines[i];
-
-                                        return (
-                                            <RowContextMenu
-                                                key={line.key}
-                                                entity="pos_line"
-                                                row={line}
-                                                handlers={lineHandlers}
-                                            >
-                                                <tr
-                                                    ref={(node) => {
-                                                        rowRefs.current[i] =
-                                                            node;
-                                                    }}
-                                                    tabIndex={0}
-                                                    aria-selected={
-                                                        i === cart.selected
-                                                    }
-                                                    className={cn(
-                                                        'cursor-pointer focus-visible:outline-2 focus-visible:outline-ring',
-                                                        i === cart.selected &&
-                                                            'bg-primary-soft',
-                                                    )}
-                                                    onClick={() =>
-                                                        dispatch({
-                                                            type: 'select',
-                                                            index: i,
-                                                        })
-                                                    }
-                                                    onFocus={() =>
-                                                        dispatch({
-                                                            type: 'select',
-                                                            index: i,
-                                                        })
-                                                    }
-                                                    onDoubleClick={() =>
-                                                        setDialog('qty')
-                                                    }
-                                                >
-                                                    <td className="px-2 py-1.5">
-                                                        <span className="block font-medium">
-                                                            {line.name}
-                                                        </span>
-                                                        <span className="block font-mono text-xs text-muted-foreground">
-                                                            {line.sku} ·{' '}
-                                                            {d.money(
-                                                                line.unitPrice,
-                                                            )}
-                                                        </span>
-                                                    </td>
-                                                    <td className="num px-2 py-1.5 text-right">
-                                                        {d.qty(line.qty)}
-                                                    </td>
-                                                    <td className="num px-2 py-1.5 text-right">
-                                                        <span className="block font-semibold">
-                                                            {d.money(
-                                                                (priced?.gross ??
-                                                                    0) -
-                                                                    (priced?.line_discount ??
-                                                                        0),
-                                                            )}
-                                                        </span>
-                                                        {(priced?.line_discount ??
-                                                            0) > 0 && (
-                                                            <span className="block text-xs text-success">
-                                                                −
-                                                                {d.money(
-                                                                    priced?.line_discount ??
-                                                                        0,
-                                                                )}
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            </RowContextMenu>
-                                        );
-                                    })}
+                                    {cart.lines.map((line, i) => (
+                                        <RowContextMenu
+                                            key={line.key}
+                                            entity="pos_line"
+                                            row={line}
+                                            handlers={lineHandlers}
+                                        >
+                                            <BillLine
+                                                ref={(node) => {
+                                                    rowRefs.current[i] = node;
+                                                }}
+                                                index={i}
+                                                line={line}
+                                                priced={totals.lines[i]}
+                                                selected={i === cart.selected}
+                                                onSelect={() => selectLine(i)}
+                                                onQty={() => {
+                                                    selectLine(i);
+                                                    setDialog('qty');
+                                                }}
+                                                onStep={(delta) =>
+                                                    stepLine(line, delta)
+                                                }
+                                                onDiscount={() => {
+                                                    selectLine(i);
+                                                    setDialog('line_discount');
+                                                }}
+                                                onRemove={() =>
+                                                    dispatch({
+                                                        type: 'remove',
+                                                        key: line.key,
+                                                    })
+                                                }
+                                            />
+                                        </RowContextMenu>
+                                    ))}
                                 </tbody>
                             </table>
                         )}
                     </div>
 
-                    <dl
-                        className="num grid grid-cols-2 gap-x-3 border-t px-3 py-2 text-sm"
-                        aria-live="polite"
-                    >
-                        <dt className="text-muted-foreground">
-                            {t('pos.totals.subtotal', {
-                                count: d.qty(totalQty(cart.lines)),
-                            })}
-                        </dt>
-                        <dd className="text-right">
-                            {d.money(totals.order.subtotal)}
-                        </dd>
-                        {totals.order.discount_total > 0 && (
-                            <>
-                                <dt className="text-muted-foreground">
-                                    {t('pos.totals.discount')}
-                                </dt>
-                                <dd className="text-right text-success">
-                                    −{d.money(totals.order.discount_total)}
-                                </dd>
-                            </>
-                        )}
-                        {totals.order.tax > 0 && (
-                            <>
-                                <dt className="text-muted-foreground">
-                                    {settings.tax_inclusive
-                                        ? t('pos.totals.vat_included')
-                                        : t('pos.totals.vat')}
-                                </dt>
-                                <dd className="text-right">
-                                    {d.money(totals.order.tax)}
-                                </dd>
-                            </>
-                        )}
-                        {totals.order.rounding !== 0 && (
-                            <>
-                                <dt className="text-muted-foreground">
-                                    {t('pos.totals.rounding')}
-                                </dt>
-                                <dd className="text-right">
-                                    {d.money(totals.order.rounding)}
-                                </dd>
-                            </>
-                        )}
-                        <dt className="pt-1 text-lg font-bold uppercase">
-                            {t('pos.totals.total')}
-                        </dt>
-                        <dd className="pt-1 text-right text-2xl font-bold">
-                            {d.money(total)}
-                        </dd>
-                    </dl>
+                    <Breakdown
+                        totals={totals}
+                        pcs={pcs}
+                        taxInclusive={settings.tax_inclusive}
+                        groupName={customer?.group?.name ?? null}
+                        orderDiscountLabel={orderDiscountLabel}
+                        canDiscount={hasLines}
+                        onOrderDiscount={() => run('bill_discount')}
+                        onRemoveOrderDiscount={() =>
+                            dispatch({
+                                type: 'order_discount',
+                                discount: NO_DISCOUNT,
+                            })
+                        }
+                    />
                     {approval && (
-                        <p className="flex items-center gap-1 px-3 pb-1 text-xs text-success">
+                        <p className="flex items-center gap-1 bg-surface-sunken px-3 pb-1 text-[11px] text-success">
                             <ShieldCheck
-                                className="size-4"
+                                className="size-3.5"
                                 aria-hidden="true"
                             />{' '}
                             {t('pos.manager.approved_by', {
@@ -1111,56 +1017,12 @@ export default function Register(props: Props) {
                             })}
                         </p>
                     )}
-
-                    <div className="grid grid-cols-4 gap-1.5 px-2 pb-1.5">
-                        <ActionButton
-                            label={t('pos.actions.discount')}
-                            keys="f6"
-                            icon={Percent}
-                            disabled={!selectedLine}
-                            onClick={() => run('line_discount')}
-                        />
-                        <ActionButton
-                            label={t('pos.actions.bill_discount')}
-                            keys="shift+f6"
-                            icon={Percent}
-                            disabled={cart.lines.length === 0}
-                            onClick={() => run('bill_discount')}
-                        />
-                        <ActionButton
-                            label={
-                                held.length > 0
-                                    ? t('pos.actions.hold_count', {
-                                          count: held.length,
-                                      })
-                                    : t('pos.actions.hold')
-                            }
-                            keys="f8"
-                            icon={Pause}
-                            onClick={() =>
-                                cart.lines.length > 0
-                                    ? run('hold')
-                                    : run('held')
-                            }
-                        />
-                        <ActionButton
-                            label={t('pos.actions.today')}
-                            keys="f7"
-                            icon={Clock}
-                            onClick={() => run('today')}
-                        />
-                    </div>
-                    <div className="p-2 pt-0">
-                        <Button
-                            type="button"
-                            className="h-14 w-full text-lg font-bold"
-                            disabled={cart.lines.length === 0}
-                            onClick={() => run('pay')}
-                        >
-                            {t('pos.actions.pay', { amount: d.money(total) })}{' '}
-                            <Kbd keys="f9" onButton />
-                        </Button>
-                    </div>
+                    <PayBar
+                        total={total}
+                        pcs={pcs}
+                        disabled={!hasLines}
+                        onPay={() => run('pay')}
+                    />
                 </aside>
             </div>
 
@@ -1244,6 +1106,7 @@ export default function Register(props: Props) {
                 approval={approval}
                 onSubmit={pay}
                 onNeedApproval={setApprovalFor}
+                onAttachCustomer={() => setDialog('customer')}
                 onClose={closeDialog}
             />
             <ManagerDialog
@@ -1294,92 +1157,6 @@ export default function Register(props: Props) {
     );
 }
 
-function CategoryChip({
-    active,
-    onClick,
-    children,
-}: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-}) {
-    return (
-        <button
-            type="button"
-            aria-pressed={active}
-            onClick={onClick}
-            className={cn(
-                'min-h-11 shrink-0 rounded-full border px-3 text-sm whitespace-nowrap',
-                active
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'bg-card hover:bg-accent',
-            )}
-        >
-            {children}
-        </button>
-    );
-}
-
-function StockBadge({
-    stock,
-    variants,
-}: {
-    stock: number | null;
-    variants: number;
-}) {
-    const { t } = useT();
-    const d = useDigits();
-    if (stock === null) {
-        return null;
-    }
-
-    return (
-        <span
-            className={cn(
-                'rounded px-1.5 text-xs',
-                stock <= 0
-                    ? 'bg-danger-soft text-danger'
-                    : 'bg-muted text-muted-foreground',
-            )}
-        >
-            {variants > 1
-                ? t('pos.stock.variants', {
-                      count: variants,
-                      qty: d.qty(stock),
-                  })
-                : d.qty(stock)}
-        </span>
-    );
-}
-
-function ActionButton({
-    label,
-    keys,
-    icon: Icon,
-    disabled,
-    onClick,
-}: {
-    label: string;
-    keys: string;
-    icon: typeof Percent;
-    disabled?: boolean;
-    onClick: () => void;
-}) {
-    return (
-        <Button
-            type="button"
-            variant="outline"
-            className="flex h-auto min-h-11 flex-col gap-0.5 px-1 py-1 text-xs"
-            disabled={disabled}
-            onClick={onClick}
-        >
-            <Icon className="size-4" aria-hidden="true" />
-            <span className="truncate">{label}</span>
-            <Kbd keys={keys} className="text-[10px]" />
-        </Button>
-    );
-}
-
 function Completed({
     sale,
     canPrint,
@@ -1396,7 +1173,7 @@ function Completed({
 
     return (
         <div
-            className="mx-auto mt-8 max-w-md rounded-xl border bg-card p-6 text-center"
+            className="mx-auto mt-8 max-w-md rounded-xl border bg-surface p-6 text-center shadow-sm"
             aria-live="polite"
         >
             <CircleCheck
@@ -1405,7 +1182,7 @@ function Completed({
             />
             <h2 className="mt-2 text-xl font-bold">{t('pos.done.title')}</h2>
             <p className="font-mono text-muted-foreground">{sale.number}</p>
-            <dl className="num mt-4 grid grid-cols-2 gap-y-1 text-left">
+            <dl className="num mt-4 grid grid-cols-2 gap-y-1 text-left text-sm">
                 <dt>{t('pos.totals.total')}</dt>
                 <dd className="text-right font-semibold">
                     {d.money(sale.total)}

@@ -7,12 +7,7 @@ import {
     SearchX,
     X,
 } from 'lucide-react';
-import {
-    type KeyboardEvent,
-    type ReactNode,
-    useRef,
-    useState,
-} from 'react';
+import { type KeyboardEvent, type ReactNode, useRef, useState } from 'react';
 import { EmptyState } from '@/components/empty-state';
 import { RowContextMenu } from '@/components/row-context-menu';
 import { Button } from '@/components/ui/button';
@@ -37,6 +32,10 @@ export type DataColumn<Row> = {
     id: string;
     /** i18n key for the header. */
     headerKey: string;
+    /** Literal header text (data-driven labels such as a branch name); wins over `headerKey`. */
+    header?: string;
+    /** Mockup quantity columns are centred; default is left (numeric columns right). */
+    align?: 'center';
     cell: (row: Row) => ReactNode;
     /** Numbers/money: right-aligned, tabular. */
     numeric?: boolean;
@@ -110,7 +109,9 @@ const PER_PAGE_OPTIONS = [25, 50, 100];
 const initialVisibility = <Row,>(
     columns: DataColumn<Row>[],
 ): ColumnVisibility =>
-    Object.fromEntries(columns.filter((c) => c.hidden).map((c) => [c.id, false]));
+    Object.fromEntries(
+        columns.filter((c) => c.hidden).map((c) => [c.id, false]),
+    );
 
 /** Column visibility state for a table whose chooser sits in the page header. */
 export function useColumnVisibility<Row>(columns: DataColumn<Row>[]) {
@@ -141,7 +142,10 @@ export function ColumnChooser<Row>({
                     <span className="max-sm:sr-only">{t('table.columns')}</span>
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 rounded-xl p-2 text-xs">
+            <DropdownMenuContent
+                align="end"
+                className="w-52 rounded-xl p-2 text-xs"
+            >
                 <div className="mb-1 flex items-center justify-between border-b px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
                     <span>{t('table.visible_columns')}</span>
                     <button
@@ -164,7 +168,7 @@ export function ColumnChooser<Row>({
                             }
                             onSelect={(e) => e.preventDefault()}
                         >
-                            {t(c.headerKey)}
+                            {c.header ?? t(c.headerKey)}
                         </DropdownMenuCheckboxItem>
                     ))}
             </DropdownMenuContent>
@@ -261,8 +265,8 @@ export function DataTable<Row extends Record<string, unknown>>({
     const digits = useDigits();
     const mobile = useIsMobile();
     const [nav, setNav] = useState<NavState>(INITIAL_NAV);
-    const [ownVisibility, setOwnVisibility] = useState<ColumnVisibility>(
-        () => initialVisibility(columns),
+    const [ownVisibility, setOwnVisibility] = useState<ColumnVisibility>(() =>
+        initialVisibility(columns),
     );
     const visibility = controlledVisibility ?? ownVisibility;
     const setVisibility = (
@@ -557,7 +561,8 @@ export function DataTable<Row extends Record<string, unknown>>({
                                                       className="flex justify-between gap-3"
                                                   >
                                                       <span className="text-muted-foreground">
-                                                          {t(c.headerKey)}
+                                                          {c.header ??
+                                                              t(c.headerKey)}
                                                       </span>
                                                       <span
                                                           className={cn(
@@ -654,8 +659,12 @@ export function DataTable<Row extends Record<string, unknown>>({
                                         aria-sort={sortState(c)}
                                         className={cn(
                                             cell,
-                                            'font-semibold whitespace-nowrap',
+                                            'font-semibold',
                                             c.numeric && 'text-right',
+                                            // Centred (quantity) headers may wrap, as the mockup's "Stock (Main)".
+                                            c.align === 'center'
+                                                ? 'text-center'
+                                                : 'whitespace-nowrap',
                                             c.sortKey &&
                                                 'hover:bg-surface hover:text-foreground',
                                         )}
@@ -668,7 +677,9 @@ export function DataTable<Row extends Record<string, unknown>>({
                                                     onSort(c.sortKey as string)
                                                 }
                                             >
-                                                <span>{t(c.headerKey)}</span>
+                                                <span>
+                                                    {c.header ?? t(c.headerKey)}
+                                                </span>
                                                 <span
                                                     aria-hidden="true"
                                                     className="text-[10px]"
@@ -686,7 +697,7 @@ export function DataTable<Row extends Record<string, unknown>>({
                                                 </span>
                                             </button>
                                         ) : (
-                                            t(c.headerKey)
+                                            (c.header ?? t(c.headerKey))
                                         )}
                                     </th>
                                 ))}
@@ -723,7 +734,7 @@ export function DataTable<Row extends Record<string, unknown>>({
                                               <tr
                                                   {...rowProps(row, index)}
                                                   className={cn(
-                                                      'transition-colors hover:bg-surface-sunken focus-visible:bg-surface-sunken focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-inset',
+                                                      'transition-colors hover:bg-surface-sunken focus-visible:bg-surface-sunken focus-visible:ring-1 focus-visible:ring-primary focus-visible:outline-none focus-visible:ring-inset',
                                                       selected &&
                                                           'bg-primary-soft/25 hover:bg-primary-soft/40',
                                                   )}
@@ -732,7 +743,12 @@ export function DataTable<Row extends Record<string, unknown>>({
                                                   }}
                                               >
                                                   {selectable ? (
-                                                      <td className={cn(cell, 'w-8')}>
+                                                      <td
+                                                          className={cn(
+                                                              cell,
+                                                              'w-8',
+                                                          )}
+                                                      >
                                                           <Checkbox
                                                               className="align-middle"
                                                               aria-label={t(
@@ -777,6 +793,9 @@ export function DataTable<Row extends Record<string, unknown>>({
                                                               cell,
                                                               c.numeric &&
                                                                   'num text-right',
+                                                              c.align ===
+                                                                  'center' &&
+                                                                  'text-center',
                                                           )}
                                                       >
                                                           {c.cell(row)}
@@ -791,7 +810,10 @@ export function DataTable<Row extends Record<string, unknown>>({
                             <tfoot className="sticky bottom-0 z-10 border-t-2 bg-surface-sunken text-xs font-bold select-none">
                                 <tr>
                                     {selectable ? (
-                                        <td className={cell} aria-hidden="true" />
+                                        <td
+                                            className={cell}
+                                            aria-hidden="true"
+                                        />
                                     ) : null}
                                     {visibleColumns.map((c, i) => (
                                         <td
@@ -799,6 +821,8 @@ export function DataTable<Row extends Record<string, unknown>>({
                                             className={cn(
                                                 cell,
                                                 c.numeric && 'num text-right',
+                                                c.align === 'center' &&
+                                                    'text-center',
                                                 i === 0 &&
                                                     totals.cells[c.id] ===
                                                         undefined &&

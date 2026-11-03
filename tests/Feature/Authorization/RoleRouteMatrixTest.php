@@ -49,7 +49,7 @@ function routePermissions(): array
         'stock.index' => ['stock.view'], 'stock.movements' => ['stock.view', 'products.view'],
         'adjustments.index' => ['stock.view'], 'adjustments.create' => ['stock.adjust'], 'adjustments.lookup' => ['stock.adjust'],
 
-        'customers.index' => $customers, 'customers.create' => ['customers.create'], 'customers.show' => $customers,
+        'customers.index' => $customers, 'customers.export' => $customers, 'customers.create' => ['customers.create'], 'customers.show' => $customers,
         'customers.edit' => ['customers.update'], 'customers.search' => $customers, 'customers.check-phone' => $customers,
         'customers.statement.index' => $customers, 'customers.statement' => $customers,
         'dues.index' => $customers, 'dues.show' => $customers,

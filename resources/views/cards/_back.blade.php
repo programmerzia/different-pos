@@ -9,7 +9,7 @@
             </div>
             <div class="mc-codes">
                 <div class="mc-barcode">{!! $card['barcode'] !!}<div>{{ $card['card_code'] }}</div></div>
-                <div class="mc-qr">{!! $card['qr'] !!}<span>SCAN</span></div>
+                <div class="mc-qr" data-qr="{{ $card['qr_payload'] }}">{!! $card['qr'] !!}<span>SCAN</span></div>
             </div>
             <div class="mc-terms">
                 @if ($phone)

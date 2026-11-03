@@ -9,6 +9,7 @@ use App\Actions\Customers\MergeCustomers;
 use App\Actions\Customers\SaveCustomer;
 use App\Enums\CardStatus;
 use App\Enums\PartyType;
+use App\Enums\SaleStatus;
 use App\Exceptions\Domain\DuplicateCustomerPhone;
 use App\Exceptions\Domain\InvalidPartyData;
 use App\Http\Controllers\Controller;
@@ -27,7 +28,12 @@ use App\Support\Customers\CustomerNumber;
 use App\Support\Customers\CustomerSearch;
 use App\Support\Customers\CustomerSearchResult;
 use App\Support\Http\TableQuery;
+use App\Support\Money\Money;
 use App\Support\Phone\BdPhone;
+use App\Support\Sales\CustomerAccounts;
+use App\Support\Tenancy\BranchScope;
+use App\Support\Tenancy\TenantContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -35,6 +41,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Customers: list, create/edit, profile (card panel + history tabs), deactivate, merge and the two
@@ -49,47 +56,43 @@ final class CustomerController extends Controller
     public function index(Request $request): Response
     {
         Gate::authorize('viewAny', Customer::class);
-        $table = TableQuery::fromRequest(
-            $request,
-            ['name', 'customer_no', 'balance', 'last_purchase_at'],
-            ['group', 'card', 'status', 'due'],
-            'name',
-        );
 
-        $query = Customer::query()->where('is_walk_in', false)->with(['customerGroup', 'membershipCards']);
-        $query->where('is_active', ($table->filters['status'] ?? 'active') !== 'inactive');
-        if (isset($table->filters['group'])) {
-            $query->where('customer_group_id', (int) $table->filters['group']);
-        }
-        if (isset($table->filters['card'])) {
-            $table->filters['card'] === 'yes'
-                ? $query->whereHas('membershipCards', fn (Builder $q) => $q->where('status', CardStatus::Active))
-                : $query->whereDoesntHave('membershipCards', fn (Builder $q) => $q->where('status', CardStatus::Active));
-        }
-        if (isset($table->filters['due'])) {
-            $query->where('balance', '>', 0);
-        }
-        if ($table->search !== '') {
-            $this->applySearch($query, $table->search);
-        }
-
-        $page = $table->paginate($query);
-        /** @var list<Customer> $items */
-        $items = $page->items();
-
-        return Inertia::render('customers/index', [
-            'customers' => array_map($this->row(...), $items),
-            'meta' => ['page' => $page->currentPage(), 'perPage' => $page->perPage(), 'total' => $page->total(), 'lastPage' => $page->lastPage()],
-            'groups' => $this->groups(),
-            'can' => $this->abilities($request),
-        ]);
+        return Inertia::render('customers/index', [...$this->listProps($request), 'dialog' => null]);
     }
 
-    public function create(): Response
+    /** The list with the add-customer dialog open (deep link: /app/customers/create). */
+    public function create(Request $request): Response
     {
         Gate::authorize('create', Customer::class);
 
-        return Inertia::render('customers/form', ['customer' => null, 'groups' => $this->groups()]);
+        return Inertia::render('customers/index', [...$this->listProps($request), 'dialog' => 'create']);
+    }
+
+    /** GET /app/customers/export.csv: the filtered list (same query string as the page) as CSV. */
+    public function export(Request $request): StreamedResponse
+    {
+        Gate::authorize('viewAny', Customer::class);
+        $query = $this->listQuery($this->table($request))->with(['customerGroup', 'membershipCards'])->orderBy('name')->orderBy('id');
+
+        return response()->streamDownload(function () use ($query): void {
+            $out = fopen('php://output', 'wb');
+            if ($out === false) {
+                return;
+            }
+            fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM so Excel reads Bangla names
+            fputcsv($out, ['Customer No', 'Name', 'Name BN', 'Shop', 'Phone', 'Area', 'Address', 'Post code', 'Group', 'Balance', 'Credit limit', 'Card status', 'Last purchase'], ',', '"', '');
+            foreach ($query->lazy(500) as $c) {
+                /** @var Customer $c */
+                $row = $this->row($c);
+                fputcsv($out, [
+                    (string) $row['customer_no'], $c->name, (string) $c->name_bn, (string) $c->shop_name, (string) $c->phone,
+                    (string) $c->area, (string) $c->address_line, (string) $c->post_code, (string) $row['group'],
+                    $c->balance->toDecimalString(), is_int($row['credit_limit']) ? Money::ofPaisa($row['credit_limit'])->toDecimalString() : '', (string) $row['card_status'],
+                    $c->last_purchase_at?->toDateString() ?? '',
+                ], ',', '"', '');
+            }
+            fclose($out);
+        }, 'customers-'.now()->format('Ymd-His').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function store(SaveCustomerRequest $request, SaveCustomer $save): RedirectResponse|JsonResponse
@@ -112,29 +115,17 @@ final class CustomerController extends Controller
     {
         $model = $this->find($customer);
         Gate::authorize('view', $model);
-        $user = $this->actor($request);
-        $model->load(['customerGroup', 'membershipCards']);
 
-        $card = $model->membershipCards->sortByDesc('issue_no')->first();
-
-        return Inertia::render('customers/show', [
-            'customer' => $this->detail($model),
-            'card' => $card instanceof MembershipCard ? $this->cardData($card, $model) : null,
-            'brand' => app(CardBrand::class)->toArray(),
-            'sales' => $user->can('viewAny', Sale::class) ? $this->sales($model) : [],
-            'returns' => $user->can('viewAny', SaleReturn::class) ? $this->returns($model) : [],
-            'payments' => $user->can('viewAny', Payment::class) ? $this->payments($model) : [],
-            'messages' => $user->can('viewAny', Message::class) ? $this->messages($model) : [],
-            'can' => $this->abilities($request),
-        ]);
+        return Inertia::render('customers/show', [...$this->showProps($request, $model), 'editing' => false]);
     }
 
-    public function edit(string $customer): Response
+    /** The profile with the edit dialog open (deep link: /app/customers/{uuid}/edit). */
+    public function edit(Request $request, string $customer): Response
     {
         $model = $this->find($customer);
         Gate::authorize('update', $model);
 
-        return Inertia::render('customers/form', ['customer' => $this->detail($model), 'groups' => $this->groups()]);
+        return Inertia::render('customers/show', [...$this->showProps($request, $model), 'editing' => true]);
     }
 
     public function update(SaveCustomerRequest $request, string $customer, SaveCustomer $save): RedirectResponse|JsonResponse
@@ -229,6 +220,156 @@ final class CustomerController extends Controller
         return $user;
     }
 
+    private function table(Request $request): TableQuery
+    {
+        return TableQuery::fromRequest(
+            $request,
+            ['name', 'customer_no', 'phone', 'area', 'balance', 'credit_limit', 'last_purchase_at'],
+            ['group', 'card', 'status', 'due', 'view', 'balance', 'date'],
+            'name',
+        );
+    }
+
+    /**
+     * The list query for the page, its totals and the CSV. Filters: `view` (overdue | inactive),
+     * `group`, `card` (yes | no), `balance` (due | zero | advance), `date` (last purchase: today | 7d |
+     * 30d | 90d | year), `status=inactive` and `due=1` (older links).
+     *
+     * @return Builder<Customer>
+     */
+    private function listQuery(TableQuery $table): Builder
+    {
+        $f = $table->filters;
+        $query = Customer::query()->where('is_walk_in', false);
+        $inactive = ($f['status'] ?? null) === 'inactive' || ($f['view'] ?? null) === 'inactive';
+        $query->where('is_active', ! $inactive);
+        if (isset($f['group'])) {
+            $query->where('customer_group_id', (int) $f['group']);
+        }
+        if (isset($f['card'])) {
+            $f['card'] === 'yes'
+                ? $query->whereHas('membershipCards', fn (Builder $q) => $q->where('status', CardStatus::Active))
+                : $query->whereDoesntHave('membershipCards', fn (Builder $q) => $q->where('status', CardStatus::Active));
+        }
+        $balance = $f['balance'] ?? ((isset($f['due']) || ($f['view'] ?? null) === 'overdue') ? 'due' : null);
+        match ($balance) {
+            'due' => $query->where('balance', '>', 0),
+            'zero' => $query->where('balance', 0),
+            'advance' => $query->where('balance', '<', 0),
+            default => null,
+        };
+        $since = match ($f['date'] ?? null) {
+            'today' => CarbonImmutable::today(),
+            '7d' => CarbonImmutable::today()->subDays(6),
+            '30d' => CarbonImmutable::today()->subDays(29),
+            '90d' => CarbonImmutable::today()->subDays(89),
+            'year' => CarbonImmutable::today()->startOfYear(),
+            default => null,
+        };
+        if ($since !== null) {
+            $query->where('last_purchase_at', '>=', $since);
+        }
+        if ($table->search !== '') {
+            $this->applySearch($query, $table->search);
+        }
+
+        return $query;
+    }
+
+    /** @return array<string, mixed> */
+    private function listProps(Request $request): array
+    {
+        $table = $this->table($request);
+        $query = $this->listQuery($table);
+        $sums = (clone $query)->toBase()
+            ->selectRaw('COUNT(*) as n, COALESCE(SUM(balance), 0) as balance, COALESCE(SUM(COALESCE(credit_limit, ?)), 0) as credit_limit', [$this->defaultCreditLimit() ?? 0])
+            ->first();
+
+        $page = $table->paginate($query->with(['customerGroup', 'membershipCards']));
+        /** @var list<Customer> $items */
+        $items = $page->items();
+
+        return [
+            'customers' => array_map($this->row(...), $items),
+            'meta' => ['page' => $page->currentPage(), 'perPage' => $page->perPage(), 'total' => $page->total(), 'lastPage' => $page->lastPage()],
+            'totals' => [
+                'count' => (int) ($sums->n ?? 0),
+                'balance' => (int) ($sums->balance ?? 0),
+                'credit_limit' => (int) ($sums->credit_limit ?? 0),
+            ],
+            'groups' => $this->groups(),
+            'can' => $this->abilities($request),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function showProps(Request $request, Customer $model): array
+    {
+        $user = $this->actor($request);
+        $model->load(['customerGroup', 'membershipCards']);
+        $card = $model->membershipCards->sortByDesc('issue_no')->first();
+
+        return [
+            'customer' => $this->detail($model),
+            'card' => $card instanceof MembershipCard ? $this->cardData($card, $model) : null,
+            'brand' => app(CardBrand::class)->toArray(),
+            'kpis' => $this->kpis($model, $user),
+            'sales' => $user->can('viewAny', Sale::class) ? $this->sales($model) : [],
+            'returns' => $user->can('viewAny', SaleReturn::class) ? $this->returns($model) : [],
+            'payments' => $user->can('viewAny', Payment::class) ? $this->payments($model) : [],
+            'messages' => $user->can('viewAny', Message::class) ? $this->messages($model) : [],
+            'groups' => $this->groups(),
+            'can' => [...$this->abilities($request), 'sms' => $user->can('send', Message::class)],
+        ];
+    }
+
+    /**
+     * Profile KPI tiles, two cheap aggregates: completed sales (count = visits, sum = lifetime spend) less
+     * returns, over the current branch (all branches with `reports.all_branches`, like the statement);
+     * the due and credit figures are the customer's tenant-wide balance and effective limit.
+     *
+     * @return array{lifetime_spend: int|null, visits: int|null, last_visit_at: string|null, returns: int|null, due: int, credit_limit: int|null, credit_used: int, credit_available: int|null}
+     */
+    private function kpis(Customer $c, User $user): array
+    {
+        $spend = $visits = $returns = null;
+        $last = null;
+        if ($user->can('viewAny', Sale::class)) {
+            $sales = Sale::query()->where('customer_id', $c->id)->where('status', SaleStatus::Completed);
+            $back = SaleReturn::query()->where('customer_id', $c->id);
+            if ($user->can('reports.all_branches')) {
+                $sales->withoutGlobalScope(BranchScope::class);
+                $back->withoutGlobalScope(BranchScope::class);
+            }
+            $agg = $sales->toBase()->selectRaw('COUNT(*) as n, COALESCE(SUM(total), 0) as total, MAX(sold_at) as last')->first();
+            $visits = (int) ($agg->n ?? 0);
+            $returns = (int) $back->sum('total');
+            $spend = (int) ($agg->total ?? 0) - $returns;
+            $lastAt = $agg?->last;
+            $last = is_string($lastAt) ? CarbonImmutable::parse($lastAt)->toIso8601String() : null;
+        }
+        $limit = app(CustomerAccounts::class)->creditLimit($c);
+        $used = max(0, $c->balance->paisa);
+
+        return [
+            'lifetime_spend' => $spend,
+            'visits' => $visits,
+            'last_visit_at' => $last,
+            'returns' => $returns,
+            'due' => $c->balance->paisa,
+            'credit_limit' => $limit?->paisa,
+            'credit_used' => $used,
+            'credit_available' => $limit instanceof Money ? max(0, $limit->paisa - $used) : null,
+        ];
+    }
+
+    private function defaultCreditLimit(): ?int
+    {
+        $default = app(TenantContext::class)->tenant()->setting('default_credit_limit');
+
+        return is_int($default) ? $default : null;
+    }
+
     /** Tenant-scoped lookup: another tenant's customer is a 404. */
     private function find(string $uuid): Customer
     {
@@ -252,11 +393,11 @@ final class CustomerController extends Controller
         });
     }
 
-    /** @return array<int, array{id: int, name: string}> */
+    /** @return array<int, array{id: int, name: string, discount_bp: int}> */
     private function groups(): array
     {
         return CustomerGroup::query()->where('is_active', true)->orderBy('name')->get()
-            ->map(static fn (CustomerGroup $g): array => ['id' => $g->id, 'name' => $g->name])->values()->all();
+            ->map(static fn (CustomerGroup $g): array => ['id' => $g->id, 'name' => $g->name, 'discount_bp' => (int) $g->discount_bp])->values()->all();
     }
 
     /** @return array<string, bool> */
@@ -284,6 +425,11 @@ final class CustomerController extends Controller
             ...$this->brief($c),
             'group' => $c->customerGroup?->name,
             'balance' => $c->balance->paisa,
+            // Effective limit: the customer's own, else the tenant default (what the register enforces).
+            'credit_limit' => $c->credit_limit instanceof Money ? $c->credit_limit->paisa : $this->defaultCreditLimit(),
+            'area' => $c->area,
+            'address_line' => $c->address_line,
+            'post_code' => $c->post_code,
             'last_purchase_at' => $c->last_purchase_at?->toIso8601String(),
             'card_status' => $card instanceof MembershipCard ? $card->status->value : null,
             'is_active' => $c->is_active,
@@ -319,11 +465,13 @@ final class CustomerController extends Controller
             'email' => $c->email,
             'customer_group_id' => $c->customer_group_id,
             'group' => $c->customerGroup?->name,
+            'group_discount_bp' => $c->customerGroup?->is_active === true ? (int) $c->customerGroup->discount_bp : 0,
             'credit_limit' => $c->credit_limit?->paisa,
             'balance' => $c->balance->paisa,
             'address_line' => $c->address_line,
             'area' => $c->area,
             'post_code' => $c->post_code,
+            'location_verified' => $c->location_verified,
             'dob' => $c->dob?->toDateString(),
             'anniversary_date' => $c->anniversary_date?->toDateString(),
             'notes' => $c->notes,

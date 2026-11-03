@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Sales;
 use App\Actions\Sales\ShareSaleReceipt;
 use App\Actions\Sales\VoidSale;
 use App\Enums\AllocatableType;
+use App\Enums\MessageStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\SaleStatus;
 use App\Http\Controllers\Concerns\TranslatesDomainErrors;
@@ -14,9 +15,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Sales\Concerns\PresentsSales;
 use App\Http\Requests\Sales\VoidSaleRequest;
 use App\Models\Customer;
+use App\Models\Message;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\PaymentMethod;
+use App\Models\Register;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleItemBatch;
@@ -25,6 +28,8 @@ use App\Models\StockBatch;
 use App\Models\User;
 use App\Support\Http\TableQuery;
 use App\Support\Sales\CustomerAccounts;
+use App\Support\Tenancy\TenantContext;
+use Closure;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -42,17 +47,83 @@ final class SaleController extends Controller
     {
         $this->authorize('viewAny', Sale::class);
 
+        return Inertia::render('sales/index', [...$this->listProps($request), 'detail' => null]);
+    }
+
+    /**
+     * The sale opens as the invoice dialog over the list (deep link): the list keeps the query string,
+     * and a row click reloads only `detail` (the list props are lazy closures).
+     */
+    public function show(Request $request, int $sale): Response
+    {
+        $this->authorize('viewAny', Sale::class);
+        $model = Sale::query()->with(['items', 'soldBy:id,name', 'voidedBy:id,name', 'register:id,name,code', 'customer' => fn ($q) => $q->withTrashed()])->findOrFail($sale);
+        $this->authorize('view', $model);
+
+        return Inertia::render('sales/index', [...$this->listProps($request), 'detail' => fn (): array => $this->detail($request, $model)]);
+    }
+
+    public function void(VoidSaleRequest $request, int $sale, VoidSale $void): RedirectResponse
+    {
+        $model = Sale::query()->findOrFail($sale);
+        $this->authorize('void', $model);
+
+        $voided = $this->guarded(fn (): Sale => $void->handle($this->actor($request), $model, $request->string('reason')->trim()->value()), 'reason');
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('receipts.flash.voided', ['number' => $voided->number])]);
+
+        return to_route('sales.show', $voided->id);
+    }
+
+    public function share(Request $request, int $sale, ShareSaleReceipt $share): JsonResponse
+    {
+        $model = Sale::query()->findOrFail($sale);
+        $this->authorize('view', $model);
+
+        $token = $this->guarded(fn (): string => $share->handle($this->actor($request), $model), 'sale');
+
+        return response()->json(['url' => route('receipts.public', $token)]);
+    }
+
+    /**
+     * The list props, lazy so that a partial reload of `detail` (open / close the invoice dialog) skips them.
+     *
+     * @return array<string, Closure(): mixed>
+     */
+    private function listProps(Request $request): array
+    {
+        $list = null;
+        $load = function () use ($request, &$list): array {
+            return $list ??= $this->listPayload($request);
+        };
+
+        return [
+            'rows' => fn (): mixed => $load()['rows'],
+            'meta' => fn (): mixed => $load()['meta'],
+            'totals' => fn (): mixed => $load()['totals'],
+            'filters' => fn (): mixed => $load()['filters'],
+            'customer' => fn (): mixed => $load()['customer'],
+            'cashiers' => fn (): array => array_values(User::inCurrentTenant()->orderBy('name')->get(['id', 'name'])
+                ->map(static fn (User $u): array => ['id' => $u->id, 'name' => $u->name])->all()),
+            'branch' => function (): array {
+                $branch = app(TenantContext::class)->branch();
+
+                return ['name' => $branch->name, 'code' => $branch->code];
+            },
+            'methods' => $this->moneyMethods(...),
+        ];
+    }
+
+    /** @return array{rows: list<array<string, mixed>>, meta: array<string, int>, totals: array<string, int>, filters: array<string, string>, customer: array<string, mixed>|null} */
+    private function listPayload(Request $request): array
+    {
         $table = TableQuery::fromRequest(
             $request,
             ['number', 'sold_at', 'total', 'paid', 'due'],
-            ['from', 'to', 'status', 'payment_status', 'customer', 'cashier'],
+            ['from', 'to', 'status', 'payment_status', 'customer', 'cashier', 'sync', 'returns'],
             '-sold_at',
         );
 
-        $query = Sale::query()
-            ->whereNotNull('number')
-            ->with(['customer' => fn ($q) => $q->withTrashed(), 'soldBy:id,name'])
-            ->withCount('items');
+        $query = Sale::query()->whereNotNull('number');
 
         $this->dateRange($query, 'sold_at', $table->filters['from'] ?? null, $table->filters['to'] ?? null);
         $status = SaleStatus::tryFrom($table->filters['status'] ?? '');
@@ -69,6 +140,16 @@ final class SaleController extends Controller
         if (isset($table->filters['cashier'])) {
             $query->where('sold_by', (int) $table->filters['cashier']);
         }
+        match ($table->filters['sync'] ?? null) {
+            'flagged' => $query->whereNotNull('sync_flags')->whereNull('sync_flags_ack_at'),
+            'synced' => $query->where(fn ($w) => $w->whereNull('sync_flags')->orWhereNotNull('sync_flags_ack_at')),
+            default => null,
+        };
+        match ($table->filters['returns'] ?? null) {
+            'yes' => $query->where('returned_total', '>', 0),
+            'no' => $query->where('returned_total', 0),
+            default => null,
+        };
         if ($table->search !== '') {
             $prefix = addcslashes($table->search, '\\%_').'%';
             $like = '%'.addcslashes($table->search, '\\%_').'%';
@@ -80,42 +161,61 @@ final class SaleController extends Controller
                     ->when(strlen($digits) >= 4, fn ($c) => $c->orWhere('phone', 'like', '%'.$digits)->orWhere('customer_no', 'like', $digits.'%')))));
         }
 
+        // Totals row: the whole filtered set; money sums skip voided sales (they no longer count).
+        $sums = (clone $query)->toBase()
+            ->selectRaw("COALESCE(SUM(CASE WHEN status = 'completed' THEN item_discount_total + order_discount ELSE 0 END), 0) AS discount")
+            ->selectRaw("COALESCE(SUM(CASE WHEN status = 'completed' THEN tax_total ELSE 0 END), 0) AS vat")
+            ->selectRaw("COALESCE(SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END), 0) AS total")
+            ->selectRaw("COALESCE(SUM(CASE WHEN status = 'completed' THEN paid ELSE 0 END), 0) AS paid")
+            ->selectRaw("COALESCE(SUM(CASE WHEN status = 'completed' THEN due ELSE 0 END), 0) AS due")
+            ->first();
+        $items = SaleItem::query()->whereIn('sale_id', (clone $query)->select('id'))->count();
+
+        $query->with(['customer' => fn ($q) => $q->withTrashed(), 'soldBy:id,name', 'register:id,name,code'])->withCount('items');
         $page = $table->paginate($query);
 
         $customer = isset($table->filters['customer'])
             ? Customer::query()->withTrashed()->find((int) $table->filters['customer'])
             : null;
 
-        return Inertia::render('sales/index', [
+        return [
             'rows' => array_values(array_map(fn (Sale $sale): array => [
                 'id' => $sale->id,
                 'number' => (string) $sale->number,
                 'sold_at' => $this->localTime($sale->sold_at),
                 'customer' => $this->customerSummary($sale->customer),
                 'cashier' => $sale->soldBy?->name,
+                'register' => $sale->register instanceof Register ? ['name' => $sale->register->name, 'code' => $sale->register->code] : null,
                 'items' => (int) $sale->getAttribute('items_count'),
+                'discount' => $sale->item_discount_total->plus($sale->order_discount)->paisa,
+                'vat' => $sale->tax_total->paisa,
                 'total' => $sale->total->paisa,
                 'paid' => $sale->paid->paisa,
                 'due' => $sale->due->paisa,
                 'returned' => $sale->returned_total->paisa,
                 'status' => $sale->status->value,
                 'payment_status' => $sale->payment_status->value,
+                'flags' => $sale->sync_flags_ack_at === null ? ($sale->sync_flags ?? []) : [],
                 'voidable' => $this->voidable($sale),
                 'exchange' => $sale->exchange_return_id !== null,
             ], $page->items())),
             'meta' => ['page' => $page->currentPage(), 'perPage' => $page->perPage(), 'total' => $page->total(), 'lastPage' => $page->lastPage()],
+            'totals' => [
+                'items' => $items,
+                'discount' => (int) ($sums->discount ?? 0),
+                'vat' => (int) ($sums->vat ?? 0),
+                'total' => (int) ($sums->total ?? 0),
+                'paid' => (int) ($sums->paid ?? 0),
+                'due' => (int) ($sums->due ?? 0),
+            ],
             'filters' => [...$table->filters, 'q' => $table->search],
-            'cashiers' => array_values(User::inCurrentTenant()->orderBy('name')->get(['id', 'name'])
-                ->map(static fn (User $u): array => ['id' => $u->id, 'name' => $u->name])->all()),
             'customer' => $this->customerSummary($customer),
-            'methods' => $this->moneyMethods(),
-        ]);
+        ];
     }
 
-    public function show(Request $request, int $sale): Response
+    /** @return array<string, mixed> The invoice dialog: the sale, its lines (cost and batches with products.view_cost), payments, returns, SMS and audit. */
+    private function detail(Request $request, Sale $model): array
     {
-        $model = Sale::query()->with(['items', 'soldBy:id,name', 'voidedBy:id,name', 'customer' => fn ($q) => $q->withTrashed()])->findOrFail($sale);
-        $this->authorize('view', $model);
         $actor = $this->actor($request);
         $canCost = $actor->can('products.view_cost');
 
@@ -130,12 +230,13 @@ final class SaleController extends Controller
 
         $returns = SaleReturn::query()->where('sale_id', $model->id)->orderBy('id')->get();
         $exchangeOf = $model->exchange_return_id !== null ? SaleReturn::query()->with('sale:id,number')->find($model->exchange_return_id) : null;
+        $sms = Message::query()->where('related_type', $model->getMorphClass())->where('related_id', $model->id)->latest('id')->first();
 
         $customer = $model->customer;
         $returnable = $model->status === SaleStatus::Completed
             && array_any($items, static fn (SaleItem $i): bool => $i->qty->compareTo($i->qty_returned) > 0);
 
-        return Inertia::render('sales/show', [
+        return [
             'sale' => [
                 'id' => $model->id,
                 'number' => (string) $model->number,
@@ -144,6 +245,7 @@ final class SaleController extends Controller
                 'origin' => $model->origin->value,
                 'sold_at' => $this->localTime($model->sold_at),
                 'cashier' => $model->soldBy?->name,
+                'register' => $model->register instanceof Register ? ['name' => $model->register->name, 'code' => $model->register->code] : null,
                 'note' => $model->note,
                 'courier_name' => $model->courier_name,
                 'courier_tracking' => $model->courier_tracking,
@@ -209,6 +311,12 @@ final class SaleController extends Controller
                 'sale_id' => $exchangeOf->sale_id,
                 'sale_number' => (string) $exchangeOf->sale?->number,
             ] : null,
+            // The receipt SMS (never its body: it can carry the customer's name and dues).
+            'sms' => $sms instanceof Message ? [
+                'id' => $sms->id,
+                'status' => $sms->status->value,
+                'sent_at' => $this->localTime($sms->sent_at ?? $sms->created_at),
+            ] : null,
             'audit' => $this->audit($model, array_values(array_map(intval(...), $returns->modelKeys()))),
             'can' => [
                 'void' => $actor->can('void', $model) && $this->voidable($model),
@@ -216,30 +324,9 @@ final class SaleController extends Controller
                 'return' => $actor->can('create', SaleReturn::class) && $returnable,
                 'exchange' => $actor->can('create', SaleReturn::class) && $actor->can('create', Sale::class) && $returnable,
                 'share' => $model->status === SaleStatus::Completed,
+                'resend_sms' => $sms instanceof Message && $sms->status === MessageStatus::Failed && $actor->can('send', Message::class),
             ],
-            'methods' => $this->moneyMethods(),
-        ]);
-    }
-
-    public function void(VoidSaleRequest $request, int $sale, VoidSale $void): RedirectResponse
-    {
-        $model = Sale::query()->findOrFail($sale);
-        $this->authorize('void', $model);
-
-        $voided = $this->guarded(fn (): Sale => $void->handle($this->actor($request), $model, $request->string('reason')->trim()->value()), 'reason');
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('receipts.flash.voided', ['number' => $voided->number])]);
-
-        return to_route('sales.show', $voided->id);
-    }
-
-    public function share(Request $request, int $sale, ShareSaleReceipt $share): JsonResponse
-    {
-        $model = Sale::query()->findOrFail($sale);
-        $this->authorize('view', $model);
-
-        $token = $this->guarded(fn (): string => $share->handle($this->actor($request), $model), 'sale');
-
-        return response()->json(['url' => route('receipts.public', $token)]);
+        ];
     }
 
     /** @return list<array{id: int, number: string, method: string, amount: int, payment_amount: int, reference: string|null, paid_at: string|null, voided: bool, credit: bool}> */

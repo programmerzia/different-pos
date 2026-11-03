@@ -9,8 +9,10 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\StockAdjustment;
 use App\Models\User;
+use App\Support\Catalog\ProductPresenter;
 use App\Support\Http\TableQuery;
 use App\Support\Quantity\Quantity;
+use App\Support\Stock\BranchStockColumns;
 use App\Support\Stock\StockQueries;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -18,67 +20,114 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** Read side of stock for the current branch: on-hand, low stock, per-product movement history. */
+/** Read side of stock: on-hand per branch (current branch, or every branch with reports.all_branches), low stock, movement history. */
 final class StockController extends Controller
 {
     use AuthorizesRequests;
 
     private const int MOVEMENT_LIMIT = 500;
 
-    public function __construct(private readonly TenantContext $context, private readonly StockQueries $queries) {}
+    public function __construct(
+        private readonly TenantContext $context,
+        private readonly StockQueries $queries,
+        private readonly BranchStockColumns $stockColumns,
+    ) {}
 
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', StockAdjustment::class);
-        $canCost = $this->actor($request)->checkPermissionTo('products.view_cost');
+        $user = $this->actor($request);
+        $canCost = $user->checkPermissionTo('products.view_cost');
         $branch = $this->context->branch();
 
         $table = TableQuery::fromRequest($request, sortable: ['name', 'sku', 'on_hand'], filterable: ['status', 'category'], defaultSort: 'name');
 
-        $query = Product::query()
+        $filtered = Product::query()
             ->leftJoin('branch_stocks', static function ($join) use ($branch): void {
                 $join->on('branch_stocks.product_id', '=', 'products.id')->where('branch_stocks.branch_id', '=', $branch->id);
             })
-            ->where('products.track_stock', true)
-            ->selectRaw('products.*, COALESCE(branch_stocks.qty_on_hand, 0) AS on_hand');
+            ->where('products.track_stock', true);
 
         if ($table->search !== '') {
             $like = '%'.addcslashes($table->search, '\\%_').'%';
-            $query->where(static fn ($q) => $q->where('products.name', 'like', $like)->orWhere('products.sku', 'like', $like)->orWhere('products.barcode', 'like', $like));
+            $filtered->where(static fn ($q) => $q->where('products.name', 'like', $like)->orWhere('products.name_bn', 'like', $like)->orWhere('products.sku', 'like', $like)->orWhere('products.barcode', 'like', $like));
         }
         if (isset($table->filters['category'])) {
-            $query->where('products.category_id', (int) $table->filters['category']);
+            $filtered->where('products.category_id', (int) $table->filters['category']);
         }
+        $onHand = 'COALESCE(branch_stocks.qty_on_hand, 0)';
         match ($table->filters['status'] ?? null) {
-            'low' => $query->where('products.reorder_level', '>', 0)->whereRaw('COALESCE(branch_stocks.qty_on_hand, 0) <= products.reorder_level'),
-            'out' => $query->whereRaw('COALESCE(branch_stocks.qty_on_hand, 0) <= 0'),
+            'low' => $filtered->where('products.reorder_level', '>', 0)->whereRaw("{$onHand} <= products.reorder_level"),
+            'out' => $filtered->whereRaw("{$onHand} <= 0"),
+            'ok' => $filtered->whereRaw("{$onHand} > 0")->where(static fn ($q) => $q->where('products.reorder_level', '<=', 0)->orWhereRaw("{$onHand} > products.reorder_level")),
             default => null,
         };
 
-        $page = $table->paginate($query);
-        $values = $canCost ? $this->queries->valuationByProduct($branch) : [];
+        $page = $table->paginate((clone $filtered)->selectRaw("products.*, {$onHand} AS on_hand")->with('category:id,name'));
+        /** @var list<Product> $items */
+        $items = array_values($page->items());
+
+        $branches = $this->stockColumns->branchesFor($user);
+        $stock = $this->stockColumns->onHand(array_map(static fn (Product $p): int => $p->id, $items), $branches);
+        $branchTotals = $this->stockColumns->totals($filtered, $branches);
+
+        // Stock value at FIFO cost, summed over the branches the user sees.
+        $values = [];
+        $valuation = 0;
+        if ($canCost) {
+            foreach ($branches as $b) {
+                foreach ($this->queries->valuationByProduct($b) as $productId => $money) {
+                    $values[$productId] = ($values[$productId] ?? 0) + $money->paisa;
+                }
+                $valuation += $this->queries->valuation($b)->paisa;
+            }
+        }
+        $costSum = null;
+        $valueSum = null;
+        if ($canCost) {
+            $costSum = (int) (clone $filtered)->toBase()->sum('products.cost_price');
+            $valueSum = 0;
+            foreach ((clone $filtered)->pluck('products.id') as $id) {
+                $valueSum += $values[(int) $id] ?? 0;
+            }
+        }
 
         return Inertia::render('stock/index', [
-            'rows' => collect($page->items())->map(static function (Product $p) use ($values, $canCost): array {
+            'rows' => array_map(static function (Product $p) use ($values, $canCost, $stock): array {
                 $onHand = Quantity::parse((string) $p->getAttribute('on_hand'));
+                $perBranch = $stock[$p->id] ?? [];
 
                 return [
                     'id' => $p->id,
                     'uuid' => $p->uuid,
                     'name' => $p->name,
+                    'name_bn' => $p->name_bn,
                     'variant_label' => $p->variant_label,
                     'sku' => $p->sku,
+                    'barcode' => $p->barcode,
+                    'category' => $p->category?->name,
+                    'image_url' => ProductPresenter::imageUrl($p->image_path),
                     'on_hand' => $onHand->milli,
+                    'stock' => $perBranch,
+                    'total_stock' => array_sum($perBranch),
                     'reorder_level' => $p->reorder_level->milli,
                     'low_stock' => $p->reorder_level->isPositive() && $onHand->compareTo($p->reorder_level) <= 0,
-                    'value' => $canCost ? isset($values[$p->id]) ? $values[$p->id]->paisa : 0 : null,
+                    'cost_price' => $canCost ? $p->cost_price->paisa : null,
+                    'value' => $canCost ? $values[$p->id] ?? 0 : null,
                 ];
-            })->all(),
+            }, $items),
             'meta' => ['page' => $page->currentPage(), 'perPage' => $page->perPage(), 'total' => $page->total(), 'lastPage' => $page->lastPage()],
+            'totals' => [
+                'stock' => $branchTotals,
+                'total_stock' => array_sum($branchTotals),
+                'cost_price' => $costSum,
+                'value' => $valueSum,
+            ],
+            'branches' => $this->stockColumns->present($branches),
             'categories' => Category::query()->orderBy('name')->get(['id', 'name']),
-            'valuation' => $canCost ? $this->queries->valuation($branch)->paisa : null,
+            'valuation' => $canCost ? $valuation : null,
             'branch' => ['id' => $branch->id, 'name' => $branch->name],
-            'canAdjust' => $this->actor($request)->can('create', StockAdjustment::class),
+            'canAdjust' => $user->can('create', StockAdjustment::class),
         ]);
     }
 
