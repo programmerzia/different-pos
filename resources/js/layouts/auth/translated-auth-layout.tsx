@@ -6,16 +6,22 @@ import AuthLayout from '@/layouts/auth-layout';
 export function TranslatedAuthLayout({
     titleKey,
     descriptionKey,
+    titleSrOnly = false,
     children,
 }: {
     titleKey: string;
     descriptionKey: string;
+    titleSrOnly?: boolean;
     children: ReactNode;
 }) {
     const { t } = useT();
 
     return (
-        <AuthLayout title={t(titleKey)} description={t(descriptionKey)}>
+        <AuthLayout
+            title={t(titleKey)}
+            description={t(descriptionKey)}
+            titleSrOnly={titleSrOnly}
+        >
             {children}
         </AuthLayout>
     );

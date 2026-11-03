@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
@@ -92,7 +93,15 @@ final class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($throttleKey)->response(function (Request $request, array $headers): never {
                 RecordLoginActivity::throttled($request);
 
-                throw new ThrottleRequestsException('Too Many Attempts.', null, $headers);
+                if ($request->expectsJson()) {
+                    throw new ThrottleRequestsException('Too Many Attempts.', null, $headers);
+                }
+
+                // The sign-in form gets a field error it can count down from (an Inertia 429 would be a raw error page).
+                $retryAfter = $headers['Retry-After'] ?? 60;
+                $seconds = max(1, is_numeric($retryAfter) ? (int) $retryAfter : 60);
+
+                throw ValidationException::withMessages(['login' => __('auth.throttle', ['seconds' => $seconds])]);
             });
         });
 
@@ -102,19 +111,22 @@ final class FortifyServiceProvider extends ServiceProvider
     }
 
     /**
-     * The business code remembered by the `pos_tenant` cookie, shown with its name for confirmation.
+     * The business code remembered by the `pos_tenant` cookie, shown with its name and logo for confirmation.
+     * The cookie only names a business by code: an unknown or malformed code yields null (no hint either way).
      *
-     * @return array{code: string, name: string}|null
+     * @return array{code: string, name: string, logo_url: string|null, tagline: string|null}|null
      */
     private function rememberedBusiness(Request $request): ?array
     {
         $code = $request->cookie('pos_tenant');
-        if (! is_string($code) || $code === '') {
+        if (! is_string($code) || $code === '' || mb_strlen($code) > 100) {
             return null;
         }
 
         $tenant = Tenant::query()->whereRaw('LOWER(slug) = ?', [mb_strtolower($code)])->first();
 
-        return $tenant instanceof Tenant ? ['code' => $tenant->slug, 'name' => $tenant->name] : null;
+        return $tenant instanceof Tenant
+            ? ['code' => $tenant->slug, 'name' => $tenant->name, 'logo_url' => $tenant->logoUrl(), 'tagline' => null]
+            : null;
     }
 }

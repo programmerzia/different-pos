@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { Page, PageHeader } from '@/components/page-header';
 import { LayoutGrid } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { TrendChart } from '@/components/dashboard/trend-chart';
@@ -84,12 +85,11 @@ export default function Dashboard({
     return (
         <>
             <Head title={t('dashboard.title')} />
-            <div className="flex flex-col gap-4 p-4 md:p-6">
-                <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
-
-                <p className="text-sm text-muted-foreground">
-                    {t('dashboard.today')} - {t('dashboard.vs_yesterday')}
-                </p>
+            <Page>
+                <PageHeader
+                    title={t('dashboard.title')}
+                    subtitle={`${t('dashboard.today')} - ${t('dashboard.vs_yesterday')}`}
+                />
                 <div className="grid grid-cols-2 gap-3 xl:grid-cols-6">
                     {kpi('sales', kpis.sales, digits.money)}
                     {kpi('invoices', kpis.invoices, digits.n)}
@@ -292,7 +292,7 @@ export default function Dashboard({
                         )}
                     </Panel>
                 </div>
-            </div>
+            </Page>
         </>
     );
 }

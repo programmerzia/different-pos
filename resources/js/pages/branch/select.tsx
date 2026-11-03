@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/page-header';
 import { Head, router } from '@inertiajs/react';
 import { Store } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -62,12 +63,10 @@ export default function BranchSelect({
         <>
             <Head title={t('branch.select_title')} />
             <div className="mx-auto flex w-full max-w-md flex-col gap-4 p-4 md:py-12">
-                <h1 className="text-2xl font-bold">
-                    {t('branch.select_title')}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                    {t('branch.select_hint')}
-                </p>
+                <PageHeader
+                    title={t('branch.select_title')}
+                    subtitle={t('branch.select_hint')}
+                />
                 {branches.length === 0 ? (
                     <EmptyState
                         icon={Store}

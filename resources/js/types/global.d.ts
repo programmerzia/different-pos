@@ -12,6 +12,8 @@ declare module '@inertiajs/core' {
         sharedPageProps: {
             name: string;
             auth: Auth;
+            /** The current business inside a tenant context; null for guests and the platform console. */
+            tenant: { name: string; logo_url: string | null } | null;
             preferences: Preferences;
             sidebarOpen: boolean;
             [key: string]: unknown;

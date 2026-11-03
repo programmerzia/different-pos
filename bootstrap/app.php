@@ -47,7 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
             $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: $contextMiddleware);
         }
 
-        $middleware->encryptCookies(except: ['appearance', 'scheme', 'density', 'sidebar_state', 'pos_tenant']);
+        $middleware->encryptCookies(except: ['appearance', 'scheme', 'density', 'sidebar_state', 'pos_tenant', 'locale']);
 
         $middleware->web(append: [
             HandleAppearance::class,

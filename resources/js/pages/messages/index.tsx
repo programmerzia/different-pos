@@ -1,10 +1,8 @@
 import { Head, router } from '@inertiajs/react';
+import { Page, PageHeader } from '@/components/page-header';
 import { MessageSquare, RotateCw, Search } from 'lucide-react';
 import { useEffect, useRef } from 'react';
-import {
-    DataTable,
-    type DataColumn,
-} from '@/components/data-table/data-table';
+import { DataTable, type DataColumn } from '@/components/data-table/data-table';
 import { useServerTable } from '@/components/data-table/server-table';
 import { EmptyState } from '@/components/empty-state';
 import { StatusBadge, type Tone } from '@/components/status-badge';
@@ -50,7 +48,10 @@ export default function MessagesIndex({ rows, meta, canResend }: Props) {
     const table = useServerTable({ only: ['rows', 'meta'] });
     const searchRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => actions.register(resendAction as unknown as AppAction<never>), []);
+    useEffect(
+        () => actions.register(resendAction as unknown as AppAction<never>),
+        [],
+    );
     useEffect(() => {
         if (searchRef.current && document.activeElement !== searchRef.current) {
             searchRef.current.value = table.state.q;
@@ -69,7 +70,11 @@ export default function MessagesIndex({ rows, meta, canResend }: Props) {
     ]);
 
     const resend = (row: MessageRow) =>
-        router.post(`/app/messages/${row.id}/resend`, {}, { preserveScroll: true });
+        router.post(
+            `/app/messages/${row.id}/resend`,
+            {},
+            { preserveScroll: true },
+        );
     const handlers = canResend ? { 'message.resend': resend } : {};
 
     const columns: DataColumn<MessageRow>[] = [
@@ -136,8 +141,8 @@ export default function MessagesIndex({ rows, meta, canResend }: Props) {
     return (
         <>
             <Head title={t('sms.log.title')} />
-            <div className="flex flex-col gap-4 p-4 md:p-6">
-                <h1 className="text-2xl font-bold">{t('sms.log.title')}</h1>
+            <Page>
+                <PageHeader title={t('sms.log.title')} count={meta.total} />
                 <div className="flex flex-wrap items-center gap-2">
                     <div className="relative w-full max-w-sm">
                         <Search
@@ -201,7 +206,7 @@ export default function MessagesIndex({ rows, meta, canResend }: Props) {
                         />
                     }
                 />
-            </div>
+            </Page>
         </>
     );
 }

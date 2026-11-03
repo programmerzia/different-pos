@@ -40,7 +40,7 @@ tenants                                    -- one business (customer of the SaaS
   settings JSON                            -- tax_inclusive, backdate_days, customer_pin_policy(always|credit_only|off),
                                            -- offline_credit_cap (paisa, default 0), offline_login_days (7), lapsed_days, card terms text,
                                            -- default_credit_limit (paisa, null = no limit), return_days (null = no return window)
-  branding JSON NULL                       -- post-MVP white-label: display_name, logo_path, brand_hex (PRD Epic J)
+  branding JSON NULL                       -- white-label (PRD Epic J). Live: logo_path (public disk, tenants/{tenant_id}/logo-{random}.{png|jpg|webp}; Tenant::logoUrl()). Later: display_name, brand_hex
   pin_box_public_key VARCHAR(64)           -- X25519 base64 (sealed-box for offline customer PIN)
   pin_box_secret_key TEXT                  -- encrypted cast
   sync_counter BIGINT UNSIGNED DEFAULT 0   -- source of sync_version values (incremented under lock)

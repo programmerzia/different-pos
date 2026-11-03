@@ -1,4 +1,5 @@
 import { Head, router } from '@inertiajs/react';
+import { Page, PageHeader } from '@/components/page-header';
 import { MessageSquare, Printer } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -106,10 +107,11 @@ export default function Statement({
     return (
         <>
             <Head title={t('customers.statement.title')} />
-            <div className="flex flex-col gap-4 p-4 md:p-6">
-                <h1 className="text-2xl font-bold print:hidden">
-                    {t('customers.statement.title')}
-                </h1>
+            <Page>
+                <PageHeader
+                    className="print:hidden"
+                    title={t('customers.statement.title')}
+                />
 
                 <div className="flex flex-wrap items-end gap-3 print:hidden">
                     <CustomerPicker
@@ -268,26 +270,61 @@ export default function Statement({
                                     </caption>
                                     <thead className="bg-muted text-muted-foreground">
                                         <tr>
-                                            <th scope="col" className="px-3 py-2 font-medium">
-                                                {t('customers.statement.col.date')}
+                                            <th
+                                                scope="col"
+                                                className="px-3 py-2 font-medium"
+                                            >
+                                                {t(
+                                                    'customers.statement.col.date',
+                                                )}
                                             </th>
-                                            <th scope="col" className="px-3 py-2 font-medium">
-                                                {t('customers.statement.col.invoice')}
+                                            <th
+                                                scope="col"
+                                                className="px-3 py-2 font-medium"
+                                            >
+                                                {t(
+                                                    'customers.statement.col.invoice',
+                                                )}
                                             </th>
-                                            <th scope="col" className="px-3 py-2 text-right font-medium">
-                                                {t('customers.statement.col.items')}
+                                            <th
+                                                scope="col"
+                                                className="px-3 py-2 text-right font-medium"
+                                            >
+                                                {t(
+                                                    'customers.statement.col.items',
+                                                )}
                                             </th>
-                                            <th scope="col" className="px-3 py-2 text-right font-medium">
-                                                {t('customers.statement.col.total')}
+                                            <th
+                                                scope="col"
+                                                className="px-3 py-2 text-right font-medium"
+                                            >
+                                                {t(
+                                                    'customers.statement.col.total',
+                                                )}
                                             </th>
-                                            <th scope="col" className="px-3 py-2 text-right font-medium">
-                                                {t('customers.statement.col.paid')}
+                                            <th
+                                                scope="col"
+                                                className="px-3 py-2 text-right font-medium"
+                                            >
+                                                {t(
+                                                    'customers.statement.col.paid',
+                                                )}
                                             </th>
-                                            <th scope="col" className="px-3 py-2 text-right font-medium">
-                                                {t('customers.statement.col.due')}
+                                            <th
+                                                scope="col"
+                                                className="px-3 py-2 text-right font-medium"
+                                            >
+                                                {t(
+                                                    'customers.statement.col.due',
+                                                )}
                                             </th>
-                                            <th scope="col" className="px-3 py-2 font-medium">
-                                                {t('customers.statement.col.status')}
+                                            <th
+                                                scope="col"
+                                                className="px-3 py-2 font-medium"
+                                            >
+                                                {t(
+                                                    'customers.statement.col.status',
+                                                )}
                                             </th>
                                         </tr>
                                     </thead>
@@ -295,10 +332,14 @@ export default function Statement({
                                         {rows.map((r) => (
                                             <tr key={r.id}>
                                                 <td className="num px-3 py-2">
-                                                    {digits.n(r.sold_at.slice(0, 10))}
+                                                    {digits.n(
+                                                        r.sold_at.slice(0, 10),
+                                                    )}
                                                 </td>
                                                 <td className="num px-3 py-2">
-                                                    {r.number ? digits.n(r.number) : '-'}
+                                                    {r.number
+                                                        ? digits.n(r.number)
+                                                        : '-'}
                                                 </td>
                                                 <td className="num px-3 py-2 text-right">
                                                     {digits.n(r.items)}
@@ -312,23 +353,37 @@ export default function Statement({
                                                 <td
                                                     className={cn(
                                                         'num px-3 py-2 text-right',
-                                                        r.due > 0 && 'font-medium text-destructive',
+                                                        r.due > 0 &&
+                                                            'font-medium text-destructive',
                                                     )}
                                                 >
                                                     {digits.money(r.due)}
                                                 </td>
                                                 <td className="px-3 py-2">
-                                                    <StatusBadge status={r.payment_status} />
+                                                    <StatusBadge
+                                                        status={
+                                                            r.payment_status
+                                                        }
+                                                    />
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                     <tfoot className="border-t-2 bg-muted font-semibold">
                                         <tr>
-                                            <th scope="row" colSpan={3} className="px-3 py-2 text-left">
-                                                {t('customers.statement.totals', {
-                                                    n: digits.n(totals.count),
-                                                })}
+                                            <th
+                                                scope="row"
+                                                colSpan={3}
+                                                className="px-3 py-2 text-left"
+                                            >
+                                                {t(
+                                                    'customers.statement.totals',
+                                                    {
+                                                        n: digits.n(
+                                                            totals.count,
+                                                        ),
+                                                    },
+                                                )}
                                             </th>
                                             <td className="num px-3 py-2 text-right">
                                                 {digits.money(totals.total)}
@@ -339,7 +394,11 @@ export default function Statement({
                                             <td className="num px-3 py-2 text-right">
                                                 {digits.money(totals.due)}
                                             </td>
-                                            <td aria-label={t('customers.statement.col.status')} />
+                                            <td
+                                                aria-label={t(
+                                                    'customers.statement.col.status',
+                                                )}
+                                            />
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -353,7 +412,7 @@ export default function Statement({
                         </p>
                     </section>
                 )}
-            </div>
+            </Page>
         </>
     );
 }

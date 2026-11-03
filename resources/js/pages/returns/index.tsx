@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { Page, PageHeader } from '@/components/page-header';
 import { Plus, Undo2 } from 'lucide-react';
 import { useMemo } from 'react';
 import {
@@ -187,24 +188,22 @@ export default function ReturnsIndex({
     return (
         <>
             <Head title={t('returns.title')} />
-            <div className="flex flex-col gap-4 p-4 md:p-6">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                        <h1 className="text-2xl font-bold">
-                            {t('returns.title')}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {t('returns.subtitle')}
-                        </p>
-                    </div>
-                    {can('returns.create') ? (
-                        <Button asChild className="min-h-11">
-                            <Link href={salesUrl.returnCreate()}>
-                                <Plus aria-hidden="true" /> {t('returns.new')}
-                            </Link>
-                        </Button>
-                    ) : null}
-                </div>
+            <Page>
+                <PageHeader
+                    title={t('returns.title')}
+                    count={meta.total}
+                    subtitle={t('returns.subtitle')}
+                    actions={
+                        can('returns.create') ? (
+                            <Button asChild>
+                                <Link href={salesUrl.returnCreate()}>
+                                    <Plus aria-hidden="true" />{' '}
+                                    {t('returns.new')}
+                                </Link>
+                            </Button>
+                        ) : null
+                    }
+                />
                 <TableToolbar
                     search={table.searchText}
                     onSearch={table.setSearch}
@@ -245,7 +244,7 @@ export default function ReturnsIndex({
                         />
                     }
                 />
-            </div>
+            </Page>
         </>
     );
 }

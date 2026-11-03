@@ -10,7 +10,10 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/** Locale = user preference, else tenant default; only en|bn. */
+/**
+ * Locale = user preference, else (guests only) the `locale` cookie set by the sign-in language switch,
+ * else tenant default; only en|bn.
+ */
 final readonly class SetLocale
 {
     public const array SUPPORTED = ['en', 'bn'];
@@ -20,7 +23,7 @@ final readonly class SetLocale
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
-        $preferred = $user instanceof User ? ($user->preferences['locale'] ?? null) : null;
+        $preferred = $user instanceof User ? ($user->preferences['locale'] ?? null) : $request->cookie('locale');
         $tenantLocale = $this->context->hasTenant() ? $this->context->tenant()->locale : null;
 
         foreach ([$preferred, $tenantLocale] as $candidate) {

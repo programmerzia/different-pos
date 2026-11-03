@@ -22,6 +22,8 @@ export type Auth = {
     /** The user's active branches; the branch switcher shows only when there is more than one. */
     branches: AuthBranch[];
     branch_id: number | null;
+    /** Display names of the user's roles in the current tenant (sidebar "Active role" card, status bar); optional until the server shares it. */
+    roles?: string[];
 };
 
 export type Passkey = {

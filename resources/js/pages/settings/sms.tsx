@@ -1,20 +1,21 @@
-import { Head, useForm } from "@inertiajs/react";
-import { FormSection } from "@/components/form-section";
-import InputError from "@/components/input-error";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { PageHeader } from '@/components/page-header';
+import { Head, useForm } from '@inertiajs/react';
+import { FormSection } from '@/components/form-section';
+import InputError from '@/components/input-error';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select";
-import { useHotkeys } from "@/hotkeys/use-hotkeys";
-import { useT } from "@/i18n";
-import type { SmsSettings } from "@/types/messaging";
+} from '@/components/ui/select';
+import { useHotkeys } from '@/hotkeys/use-hotkeys';
+import { useT } from '@/i18n';
+import type { SmsSettings } from '@/types/messaging';
 
 type Props = { drivers: string[]; sms: SmsSettings };
 
@@ -27,7 +28,7 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
         sender_id: sms.sender_id,
         sid: sms.sid,
         base_url: sms.base_url,
-        api_token: "",
+        api_token: '',
         clear_token: false,
         templates: Object.fromEntries(
             sms.templates.map((tpl) => [
@@ -36,18 +37,18 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
             ]),
         ) as TemplateData,
     });
-    const test = useForm({ phone: "" });
-    const real = form.data.driver === "ssl_wireless";
+    const test = useForm({ phone: '' });
+    const real = form.data.driver === 'ssl_wireless';
 
-    const save = () => form.put("/app/settings/sms", { preserveScroll: true });
+    const save = () => form.put('/app/settings/sms', { preserveScroll: true });
     const sendTest = () =>
-        test.post("/app/settings/sms/test", { preserveScroll: true });
+        test.post('/app/settings/sms/test', { preserveScroll: true });
 
-    useHotkeys("form", [
+    useHotkeys('form', [
         {
-            id: "form.save",
-            keys: "mod+s",
-            labelKey: "sms.save",
+            id: 'form.save',
+            keys: 'mod+s',
+            labelKey: 'sms.save',
             allowInInput: true,
             handler: (event) => {
                 event.preventDefault();
@@ -60,23 +61,19 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
         key: string,
         patch: Partial<{ enabled: boolean; body: string }>,
     ) =>
-        form.setData("templates", {
+        form.setData('templates', {
             ...form.data.templates,
             [key]: { ...form.data.templates[key]!, ...patch },
         });
 
     return (
         <>
-            <Head title={t("sms.settings.title")} />
+            <Head title={t('sms.settings.title')} />
             <div className="space-y-8">
-                <div>
-                    <h1 className="text-2xl font-bold">
-                        {t("sms.settings.title")}
-                    </h1>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        {t("sms.settings.subtitle")}
-                    </p>
-                </div>
+                <PageHeader
+                    title={t('sms.settings.title')}
+                    subtitle={t('sms.settings.subtitle')}
+                />
 
                 <form
                     className="space-y-8"
@@ -86,16 +83,16 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                     }}
                 >
                     <FormSection
-                        title={t("sms.provider.title")}
-                        description={t("sms.provider.hint")}
+                        title={t('sms.provider.title')}
+                        description={t('sms.provider.hint')}
                     >
                         <div className="grid gap-1.5">
                             <Label htmlFor="driver">
-                                {t("sms.provider.label")}
+                                {t('sms.provider.label')}
                             </Label>
                             <Select
                                 value={form.data.driver}
-                                onValueChange={(v) => form.setData("driver", v)}
+                                onValueChange={(v) => form.setData('driver', v)}
                             >
                                 <SelectTrigger
                                     id="driver"
@@ -118,21 +115,21 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                             <>
                                 <div className="grid gap-1.5">
                                     <Label htmlFor="sid">
-                                        {t("sms.provider.sid")}
+                                        {t('sms.provider.sid')}
                                     </Label>
                                     <Input
                                         id="sid"
                                         className="min-h-11 md:min-h-9"
                                         value={form.data.sid}
                                         onChange={(e) =>
-                                            form.setData("sid", e.target.value)
+                                            form.setData('sid', e.target.value)
                                         }
                                     />
                                     <InputError message={form.errors.sid} />
                                 </div>
                                 <div className="grid gap-1.5">
                                     <Label htmlFor="api_token">
-                                        {t("sms.provider.token")}
+                                        {t('sms.provider.token')}
                                     </Label>
                                     <Input
                                         id="api_token"
@@ -142,12 +139,12 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                                         value={form.data.api_token}
                                         placeholder={
                                             sms.has_token
-                                                ? t("sms.provider.token_kept")
-                                                : ""
+                                                ? t('sms.provider.token_kept')
+                                                : ''
                                         }
                                         onChange={(e) =>
                                             form.setData(
-                                                "api_token",
+                                                'api_token',
                                                 e.target.value,
                                             )
                                         }
@@ -161,18 +158,18 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                                                 checked={form.data.clear_token}
                                                 onCheckedChange={(v) =>
                                                     form.setData(
-                                                        "clear_token",
+                                                        'clear_token',
                                                         v === true,
                                                     )
                                                 }
                                             />
-                                            {t("sms.provider.token_clear")}
+                                            {t('sms.provider.token_clear')}
                                         </label>
                                     ) : null}
                                 </div>
                                 <div className="grid gap-1.5">
                                     <Label htmlFor="base_url">
-                                        {t("sms.provider.base_url")}
+                                        {t('sms.provider.base_url')}
                                     </Label>
                                     <Input
                                         id="base_url"
@@ -182,7 +179,7 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                                         placeholder="https://smsplus.sslwireless.com"
                                         onChange={(e) =>
                                             form.setData(
-                                                "base_url",
+                                                'base_url',
                                                 e.target.value,
                                             )
                                         }
@@ -196,14 +193,14 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
 
                         <div className="grid gap-1.5">
                             <Label htmlFor="sender_id">
-                                {t("sms.provider.sender")}
+                                {t('sms.provider.sender')}
                             </Label>
                             <Input
                                 id="sender_id"
                                 className="min-h-11 md:min-h-9"
                                 value={form.data.sender_id}
                                 onChange={(e) =>
-                                    form.setData("sender_id", e.target.value)
+                                    form.setData('sender_id', e.target.value)
                                 }
                             />
                             <InputError message={form.errors.sender_id} />
@@ -213,10 +210,10 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                     <section className="max-w-180 space-y-4">
                         <div>
                             <h2 className="text-xl font-semibold">
-                                {t("sms.templates.title")}
+                                {t('sms.templates.title')}
                             </h2>
                             <p className="mt-1 text-sm text-muted-foreground">
-                                {t("sms.templates.hint")}
+                                {t('sms.templates.hint')}
                             </p>
                         </div>
                         {sms.templates.map((tpl) => {
@@ -243,7 +240,7 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                                                     })
                                                 }
                                             />
-                                            {t("sms.templates.enabled")}
+                                            {t('sms.templates.enabled')}
                                         </label>
                                     </div>
                                     <textarea
@@ -267,7 +264,7 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                                     />
                                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                         <span>
-                                            {t("sms.templates.placeholders")}
+                                            {t('sms.templates.placeholders')}
                                         </span>
                                         {tpl.placeholders.map((p) => (
                                             <code
@@ -286,7 +283,7 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                                                 })
                                             }
                                         >
-                                            {t("sms.templates.reset")}
+                                            {t('sms.templates.reset')}
                                         </Button>
                                     </div>
                                 </div>
@@ -299,17 +296,17 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                         disabled={form.processing}
                         className="min-h-11 md:min-h-9"
                     >
-                        {t("sms.save")}
+                        {t('sms.save')}
                     </Button>
                 </form>
 
                 <FormSection
-                    title={t("sms.test.title")}
-                    description={t("sms.test.hint")}
+                    title={t('sms.test.title')}
+                    description={t('sms.test.hint')}
                 >
                     <div className="grid gap-1.5">
                         <Label htmlFor="test-phone">
-                            {t("sms.test.phone")}
+                            {t('sms.test.phone')}
                         </Label>
                         <Input
                             id="test-phone"
@@ -320,10 +317,10 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                             value={test.data.phone}
                             placeholder="01XXXXXXXXX"
                             onChange={(e) =>
-                                test.setData("phone", e.target.value)
+                                test.setData('phone', e.target.value)
                             }
                             onKeyDown={(e) => {
-                                if (e.key === "Enter") {
+                                if (e.key === 'Enter') {
                                     e.preventDefault();
                                     sendTest();
                                 }
@@ -335,11 +332,11 @@ export default function SmsSettingsPage({ drivers, sms }: Props) {
                         <Button
                             type="button"
                             variant="outline"
-                            disabled={test.processing || test.data.phone === ""}
+                            disabled={test.processing || test.data.phone === ''}
                             className="min-h-11 md:min-h-9"
                             onClick={sendTest}
                         >
-                            {t("sms.test.send")}
+                            {t('sms.test.send')}
                         </Button>
                     </div>
                 </FormSection>

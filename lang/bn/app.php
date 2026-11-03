@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 return [
     'saved' => 'সংরক্ষিত হয়েছে।',
+    'logo_saved' => 'লোগো সংরক্ষিত হয়েছে।',
+    'logo_removed' => 'লোগো সরানো হয়েছে।',
     'password_changed' => 'পাসওয়ার্ড পরিবর্তন হয়েছে।',
     'created' => 'তৈরি হয়েছে।',
     'updated' => 'হালনাগাদ হয়েছে।',

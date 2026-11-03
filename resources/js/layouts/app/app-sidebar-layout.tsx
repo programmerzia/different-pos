@@ -37,7 +37,7 @@ export default function AppSidebarLayout({
                 <AppSidebar />
                 <AppContent
                     variant="sidebar"
-                    className="min-w-0 overflow-x-clip bg-background"
+                    className="min-w-0 overflow-hidden bg-background"
                 >
                     {breadcrumbs.length > 0 && (
                         <div className="flex h-10 shrink-0 items-center border-b px-4">
@@ -47,7 +47,8 @@ export default function AppSidebarLayout({
                     <div
                         id="main"
                         tabIndex={-1}
-                        className="min-w-0 flex-1 outline-none"
+                        scroll-region=""
+                        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-clip overflow-y-auto outline-none"
                     >
                         {children}
                     </div>

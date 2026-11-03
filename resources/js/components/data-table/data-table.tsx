@@ -1,14 +1,5 @@
+import { type RowSelectionState } from '@tanstack/react-table';
 import {
-    columnVisibilityFeature,
-    rowSelectionFeature,
-    tableFeatures,
-    useTable,
-    type ColumnDef,
-    type RowSelectionState,
-} from '@tanstack/react-table';
-import {
-    ArrowDown,
-    ArrowUp,
     ChevronLeft,
     ChevronRight,
     Columns3,
@@ -19,7 +10,6 @@ import {
 import {
     type KeyboardEvent,
     type ReactNode,
-    useMemo,
     useRef,
     useState,
 } from 'react';
@@ -42,11 +32,6 @@ import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { INITIAL_NAV, reduceNavKey, type NavState } from './table-nav';
-
-const features = tableFeatures({
-    columnVisibilityFeature,
-    rowSelectionFeature,
-});
 
 export type DataColumn<Row> = {
     id: string;
@@ -98,9 +83,94 @@ type Props<Row> = {
     empty?: ReactNode;
     selectable?: boolean;
     caption: string;
+    /** Opt-in totals row (mockup `tfoot`): cells keyed by column id; the first visible column shows `label` (default "Total (n)"). */
+    totals?: TableTotals;
+    /** Opt-in "Rows per page" select in the footer (pair with `useServerTable().setPerPage`). */
+    onPerPage?: (perPage: number) => void;
+    perPageOptions?: number[];
+    /** Where the column chooser lives: above the table (default) or nowhere (render `<ColumnChooser>` in the page header). */
+    chooser?: 'inline' | 'none';
+    /** Controlled column visibility (from `useColumnVisibility`), so a header `<ColumnChooser>` drives this table. */
+    visibility?: ColumnVisibility;
+    onVisibilityChange?: (next: ColumnVisibility) => void;
+    /** Fill the remaining page height and scroll inside the card (the mockup list layout; use inside `<Page fill>`). */
+    fill?: boolean;
+};
+
+export type ColumnVisibility = Record<string, boolean>;
+
+export type TableTotals = {
+    label?: ReactNode;
+    cells: Record<string, ReactNode>;
 };
 
 const SKELETON_ROWS = 8;
+const PER_PAGE_OPTIONS = [25, 50, 100];
+
+const initialVisibility = <Row,>(
+    columns: DataColumn<Row>[],
+): ColumnVisibility =>
+    Object.fromEntries(columns.filter((c) => c.hidden).map((c) => [c.id, false]));
+
+/** Column visibility state for a table whose chooser sits in the page header. */
+export function useColumnVisibility<Row>(columns: DataColumn<Row>[]) {
+    const [visibility, setVisibility] = useState<ColumnVisibility>(() =>
+        initialVisibility(columns),
+    );
+
+    return { visibility, setVisibility };
+}
+
+/** The mockup "Columns" button + checklist. Use with `useColumnVisibility` and `<DataTable chooser="none" …>`. */
+export function ColumnChooser<Row>({
+    columns,
+    visibility,
+    onChange,
+}: {
+    columns: DataColumn<Row>[];
+    visibility: ColumnVisibility;
+    onChange: (next: ColumnVisibility) => void;
+}) {
+    const { t } = useT();
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline">
+                    <Columns3 aria-hidden="true" />
+                    <span className="max-sm:sr-only">{t('table.columns')}</span>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 rounded-xl p-2 text-xs">
+                <div className="mb-1 flex items-center justify-between border-b px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                    <span>{t('table.visible_columns')}</span>
+                    <button
+                        type="button"
+                        className="text-[10px] text-primary hover:underline"
+                        onClick={() => onChange({})}
+                    >
+                        {t('table.reset_columns')}
+                    </button>
+                </div>
+                {columns
+                    .filter((c) => !c.required)
+                    .map((c) => (
+                        <DropdownMenuCheckboxItem
+                            key={c.id}
+                            className="rounded-md py-1 text-[11px]"
+                            checked={visibility[c.id] !== false}
+                            onCheckedChange={(checked) =>
+                                onChange({ ...visibility, [c.id]: checked })
+                            }
+                            onSelect={(e) => e.preventDefault()}
+                        >
+                            {t(c.headerKey)}
+                        </DropdownMenuCheckboxItem>
+                    ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+}
 
 const noop = () => undefined;
 /** Listed in the `?` overlay (the table handles the keys itself, on the focused row). */
@@ -179,16 +249,32 @@ export function DataTable<Row extends Record<string, unknown>>({
     empty,
     selectable = true,
     caption,
+    totals,
+    onPerPage,
+    perPageOptions = PER_PAGE_OPTIONS,
+    chooser = 'inline',
+    visibility: controlledVisibility,
+    onVisibilityChange,
+    fill = false,
 }: Props<Row>) {
     const { t } = useT();
     const digits = useDigits();
     const mobile = useIsMobile();
     const [nav, setNav] = useState<NavState>(INITIAL_NAV);
-    const [visibility, setVisibility] = useState<Record<string, boolean>>(() =>
-        Object.fromEntries(
-            columns.filter((c) => c.hidden).map((c) => [c.id, false]),
-        ),
+    const [ownVisibility, setOwnVisibility] = useState<ColumnVisibility>(
+        () => initialVisibility(columns),
     );
+    const visibility = controlledVisibility ?? ownVisibility;
+    const setVisibility = (
+        next: ColumnVisibility | ((old: ColumnVisibility) => ColumnVisibility),
+    ) => {
+        const value = typeof next === 'function' ? next(visibility) : next;
+        if (onVisibilityChange) {
+            onVisibilityChange(value);
+        } else {
+            setOwnVisibility(value);
+        }
+    };
     const [selection, setSelection] = useState<RowSelectionState>({});
     const rowRefs = useRef<(HTMLElement | null)[]>([]);
     useHotkeys('list', LIST_KEYS);
@@ -201,28 +287,6 @@ export function DataTable<Row extends Record<string, unknown>>({
         setNav(INITIAL_NAV);
         setSelection({});
     }
-
-    const columnDefs = useMemo<ColumnDef<typeof features, Row>[]>(
-        () =>
-            columns.map((c) => ({
-                id: c.id,
-                header: c.headerKey,
-                accessorFn: () => null,
-                enableHiding: !c.required,
-            })),
-        [columns],
-    );
-
-    const table = useTable({
-        features,
-        columns: columnDefs,
-        data: rows,
-        getRowId,
-        state: { columnVisibility: visibility, rowSelection: selection },
-        onColumnVisibilityChange: setVisibility,
-        onRowSelectionChange: setSelection,
-        enableRowSelection: selectable,
-    });
 
     const visibleColumns = columns.filter((c) => visibility[c.id] !== false);
     const selectedRows = rows.filter((r) => selection[getRowId(r)] === true);
@@ -317,7 +381,12 @@ export function DataTable<Row extends Record<string, unknown>>({
 
     if (!loading && rows.length === 0) {
         return (
-            <div className="rounded-lg border bg-card">
+            <div
+                className={cn(
+                    'rounded-xl border bg-surface shadow-xs',
+                    fill && 'min-h-0 flex-1',
+                )}
+            >
                 {empty ?? (
                     <EmptyState
                         icon={SearchX}
@@ -329,115 +398,119 @@ export function DataTable<Row extends Record<string, unknown>>({
         );
     }
 
+    // Mockup bulk bar: raised, primary border, count bubble, primary actions.
     const bulkBar =
         selectedRows.length > 0 ? (
             <div
                 role="toolbar"
                 aria-label={t('table.bulk')}
-                className="flex flex-wrap items-center gap-2 rounded-lg border bg-primary-soft px-3 py-2 text-sm"
+                className="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-primary bg-surface-raised px-4 py-2.5 text-xs shadow-2xl"
             >
-                <span className="font-medium">
-                    {t('table.selected', {
-                        count: selectedRows.length,
-                        n: digits.n(selectedRows.length),
-                    })}
-                </span>
-                {bulkActions.map((a) => (
-                    <Button
-                        key={a.id}
+                <div className="flex items-center gap-3">
+                    <span className="flex size-6 items-center justify-center rounded-full bg-primary font-mono text-[11px] font-bold text-primary-foreground">
+                        {digits.n(selectedRows.length)}
+                    </span>
+                    <span className="font-semibold text-foreground">
+                        {t('table.selected', {
+                            count: selectedRows.length,
+                            n: digits.n(selectedRows.length),
+                        })}
+                    </span>
+                    <button
                         type="button"
-                        size="sm"
-                        variant={a.destructive ? 'destructive' : 'outline'}
-                        className="min-h-11 md:min-h-8"
-                        onClick={() => a.run(selectedRows)}
+                        className="ml-1 text-[11px] text-muted-foreground hover:text-destructive hover:underline [@media(pointer:coarse)]:min-h-11"
+                        onClick={clearSelection}
                     >
-                        {a.icon ? <a.icon aria-hidden="true" /> : null}
-                        {t(a.labelKey)}
-                    </Button>
-                ))}
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="ml-auto min-h-11 md:min-h-8"
-                    onClick={clearSelection}
-                >
-                    <X aria-hidden="true" />
-                    {t('table.clear_selection')}
-                </Button>
+                        <X className="mr-1 inline size-3" aria-hidden="true" />
+                        {t('table.clear_selection')}
+                    </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    {bulkActions.map((a) => (
+                        <Button
+                            key={a.id}
+                            type="button"
+                            size="sm"
+                            variant={a.destructive ? 'destructive' : 'default'}
+                            onClick={() => a.run(selectedRows)}
+                        >
+                            {a.icon ? <a.icon aria-hidden="true" /> : null}
+                            {t(a.labelKey)}
+                        </Button>
+                    ))}
+                </div>
             </div>
         ) : null;
 
+    const pageButton =
+        'flex size-7 items-center justify-center rounded-lg border bg-surface-sunken text-foreground transition-colors hover:bg-surface disabled:pointer-events-none disabled:opacity-30 [@media(pointer:coarse)]:size-11';
+
+    // Mockup footer: "Rows per page" select left; range, ‹ page / pages › right.
     const pager = (
-        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-            <span className="num">
-                {t('table.showing', {
-                    from: digits.n(from),
-                    to: digits.n(to),
-                    total: digits.n(meta.total),
-                })}
-            </span>
-            <div className="flex items-center gap-1">
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="size-11 md:size-9"
-                    aria-label={t('table.prev')}
-                    disabled={meta.page <= 1}
-                    onClick={() => onPage(meta.page - 1)}
-                >
-                    <ChevronLeft aria-hidden="true" />
-                </Button>
-                <span className="num px-2">
-                    {digits.n(meta.page)} /{' '}
-                    {digits.n(Math.max(1, meta.lastPage))}
+        <div
+            className={cn(
+                'flex shrink-0 flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-xs select-none',
+                !mobile && 'border-t bg-surface',
+            )}
+        >
+            <div className="flex items-center gap-2">
+                {onPerPage ? (
+                    <>
+                        <label
+                            htmlFor={`${entity}-per-page`}
+                            className="text-[11px] text-muted-foreground"
+                        >
+                            {t('table.rows_per_page')}
+                        </label>
+                        <select
+                            id={`${entity}-per-page`}
+                            value={meta.perPage}
+                            onChange={(e) => onPerPage(Number(e.target.value))}
+                            className="h-7 cursor-pointer rounded-lg border bg-surface-sunken px-2 text-xs font-medium text-foreground [@media(pointer:coarse)]:min-h-11"
+                        >
+                            {perPageOptions.map((n) => (
+                                <option key={n} value={n}>
+                                    {digits.n(n)}
+                                </option>
+                            ))}
+                        </select>
+                    </>
+                ) : null}
+            </div>
+            <div className="flex items-center gap-3">
+                <span className="num font-mono text-[11px] text-muted-foreground">
+                    {t('table.showing', {
+                        from: digits.n(from),
+                        to: digits.n(to),
+                        total: digits.n(meta.total),
+                    })}
                 </span>
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="size-11 md:size-9"
-                    aria-label={t('table.next')}
-                    disabled={meta.page >= meta.lastPage}
-                    onClick={() => onPage(meta.page + 1)}
-                >
-                    <ChevronRight aria-hidden="true" />
-                </Button>
+                <div className="flex items-center gap-1">
+                    <button
+                        type="button"
+                        className={pageButton}
+                        aria-label={t('table.prev')}
+                        disabled={meta.page <= 1}
+                        onClick={() => onPage(meta.page - 1)}
+                    >
+                        <ChevronLeft className="size-3.5" aria-hidden="true" />
+                    </button>
+                    <span className="num px-1 font-mono text-[11px] font-semibold text-foreground">
+                        {digits.n(meta.page)} /{' '}
+                        {digits.n(Math.max(1, meta.lastPage))}
+                    </span>
+                    <button
+                        type="button"
+                        className={pageButton}
+                        aria-label={t('table.next')}
+                        disabled={meta.page >= meta.lastPage}
+                        onClick={() => onPage(meta.page + 1)}
+                    >
+                        <ChevronRight className="size-3.5" aria-hidden="true" />
+                    </button>
+                </div>
             </div>
         </div>
-    );
-
-    const chooser = (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="min-h-11 md:min-h-8"
-                >
-                    <Columns3 aria-hidden="true" />
-                    {t('table.columns')}
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                {columns
-                    .filter((c) => !c.required)
-                    .map((c) => (
-                        <DropdownMenuCheckboxItem
-                            key={c.id}
-                            checked={visibility[c.id] !== false}
-                            onCheckedChange={(checked) =>
-                                table.getColumn(c.id)?.toggleVisibility(checked)
-                            }
-                            onSelect={(e) => e.preventDefault()}
-                        >
-                            {t(c.headerKey)}
-                        </DropdownMenuCheckboxItem>
-                    ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
     );
 
     if (mobile) {
@@ -465,10 +538,10 @@ export function DataTable<Row extends Record<string, unknown>>({
                                   >
                                       <article
                                           {...rowProps(row, index)}
-                                          className="flex flex-col gap-1 rounded-lg border bg-card p-3 data-selected:bg-primary-soft"
+                                          className="flex flex-col gap-1 rounded-xl border bg-surface p-3 text-sm data-selected:bg-primary-soft"
                                       >
                                           {titleColumn ? (
-                                              <div className="font-medium">
+                                              <div className="font-semibold">
                                                   {titleColumn.cell(row)}
                                               </div>
                                           ) : null}
@@ -481,7 +554,7 @@ export function DataTable<Row extends Record<string, unknown>>({
                                               .map((c) => (
                                                   <div
                                                       key={c.id}
-                                                      className="flex justify-between gap-3 text-sm"
+                                                      className="flex justify-between gap-3"
                                                   >
                                                       <span className="text-muted-foreground">
                                                           {t(c.headerKey)}
@@ -506,182 +579,251 @@ export function DataTable<Row extends Record<string, unknown>>({
         );
     }
 
+    const colSpan = visibleColumns.length + (selectable ? 1 : 0);
+    const cell = 'px-3 py-cell-y';
+
     return (
-        <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-end">{chooser}</div>
-            {bulkBar}
-            <div className="overflow-x-auto rounded-lg border bg-card">
-                {/* Keyboard grid pattern: the rows (tabindex roving) receive focus, key events bubble here. */}
-                {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
-                <table
-                    aria-label={caption}
-                    aria-busy={loading}
-                    className="w-full border-collapse text-left"
-                    style={{ fontSize: 'var(--table-font)' }}
-                    onKeyDown={onKeyDown}
+        <div className={cn('flex flex-col gap-3', fill && 'min-h-0 flex-1')}>
+            {chooser === 'inline' ? (
+                <div className="flex items-center justify-end">
+                    <ColumnChooser
+                        columns={columns}
+                        visibility={visibility}
+                        onChange={setVisibility}
+                    />
+                </div>
+            ) : null}
+            {/* Mockup table card: rounded-xl, surface, the body scrolls inside, footer pinned. */}
+            <div
+                className={cn(
+                    'flex flex-col overflow-hidden rounded-xl border bg-surface shadow-xs',
+                    fill && 'min-h-0 flex-1',
+                )}
+            >
+                <div
+                    className={cn(
+                        'overflow-x-auto',
+                        fill && 'min-h-0 flex-1 overflow-y-auto',
+                    )}
                 >
-                    <caption className="sr-only">{caption}</caption>
-                    <thead className="sticky top-0 bg-muted text-muted-foreground">
-                        <tr>
-                            {selectable ? (
-                                <th scope="col" className="w-10 px-3">
-                                    <Checkbox
-                                        aria-label={t('table.select_all')}
-                                        checked={
-                                            rows.length > 0 &&
-                                            selectedRows.length === rows.length
-                                                ? true
-                                                : selectedRows.length > 0
-                                                  ? 'indeterminate'
-                                                  : false
-                                        }
-                                        onCheckedChange={(checked) => {
-                                            const next: RowSelectionState = {};
-                                            if (checked === true) {
-                                                rows.forEach(
-                                                    (r) =>
-                                                        (next[getRowId(r)] =
-                                                            true),
-                                                );
+                    {/* Keyboard grid pattern: the rows (tabindex roving) receive focus, key events bubble here. */}
+                    {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
+                    <table
+                        aria-label={caption}
+                        aria-busy={loading}
+                        className="w-full border-collapse text-left"
+                        style={{ fontSize: 'var(--table-font)' }}
+                        onKeyDown={onKeyDown}
+                    >
+                        <caption className="sr-only">{caption}</caption>
+                        <thead className="sticky top-0 z-10 border-b bg-surface-sunken text-[11px] font-semibold text-muted-foreground select-none">
+                            <tr>
+                                {selectable ? (
+                                    <th scope="col" className={cn(cell, 'w-8')}>
+                                        <Checkbox
+                                            className="align-middle"
+                                            aria-label={t('table.select_all')}
+                                            checked={
+                                                rows.length > 0 &&
+                                                selectedRows.length ===
+                                                    rows.length
+                                                    ? true
+                                                    : selectedRows.length > 0
+                                                      ? 'indeterminate'
+                                                      : false
                                             }
-                                            setSelection(next);
-                                        }}
-                                    />
-                                </th>
-                            ) : null}
-                            {visibleColumns.map((c) => (
-                                <th
-                                    key={c.id}
-                                    scope="col"
-                                    aria-sort={sortState(c)}
-                                    className={cn(
-                                        'px-3 font-medium',
-                                        c.numeric && 'text-right',
-                                    )}
-                                    style={{ height: 'var(--row-h)' }}
-                                >
-                                    {c.sortKey ? (
-                                        <button
-                                            type="button"
-                                            className="inline-flex min-h-11 items-center gap-1 rounded-sm hover:text-foreground md:min-h-0"
-                                            onClick={() =>
-                                                onSort(c.sortKey as string)
-                                            }
-                                        >
-                                            {t(c.headerKey)}
-                                            {sort === c.sortKey ? (
-                                                <ArrowUp
-                                                    className="size-3.5"
+                                            onCheckedChange={(checked) => {
+                                                const next: RowSelectionState =
+                                                    {};
+                                                if (checked === true) {
+                                                    rows.forEach(
+                                                        (r) =>
+                                                            (next[getRowId(r)] =
+                                                                true),
+                                                    );
+                                                }
+                                                setSelection(next);
+                                            }}
+                                        />
+                                    </th>
+                                ) : null}
+                                {visibleColumns.map((c) => (
+                                    <th
+                                        key={c.id}
+                                        scope="col"
+                                        aria-sort={sortState(c)}
+                                        className={cn(
+                                            cell,
+                                            'font-semibold whitespace-nowrap',
+                                            c.numeric && 'text-right',
+                                            c.sortKey &&
+                                                'hover:bg-surface hover:text-foreground',
+                                        )}
+                                    >
+                                        {c.sortKey ? (
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center gap-1 rounded-sm [@media(pointer:coarse)]:min-h-11"
+                                                onClick={() =>
+                                                    onSort(c.sortKey as string)
+                                                }
+                                            >
+                                                <span>{t(c.headerKey)}</span>
+                                                <span
                                                     aria-hidden="true"
-                                                />
-                                            ) : sort === `-${c.sortKey}` ? (
-                                                <ArrowDown
-                                                    className="size-3.5"
-                                                    aria-hidden="true"
-                                                />
-                                            ) : null}
-                                        </button>
-                                    ) : (
-                                        t(c.headerKey)
-                                    )}
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading
-                            ? Array.from({ length: SKELETON_ROWS }, (_, i) => (
-                                  <tr key={i} className="border-t">
-                                      <td
-                                          colSpan={
-                                              visibleColumns.length +
-                                              (selectable ? 1 : 0)
-                                          }
-                                          className="px-3 py-1.5"
-                                      >
-                                          <Skeleton className="h-5 w-full" />
-                                      </td>
-                                  </tr>
-                              ))
-                            : rows.map((row, index) => {
-                                  const id = getRowId(row);
-                                  const selected = selection[id] === true;
-
-                                  return (
-                                      <RowContextMenu
-                                          key={id}
-                                          entity={entity}
-                                          row={row}
-                                          href={rowHref?.(row)}
-                                          handlers={handlers}
-                                          selection={selectedRows}
-                                      >
-                                          <tr
-                                              {...rowProps(row, index)}
-                                              className={cn(
-                                                  'border-t hover:bg-muted focus-visible:outline-offset-[-2px] data-selected:bg-primary-soft',
-                                                  selected && 'bg-primary-soft',
-                                              )}
-                                              style={{ height: 'var(--row-h)' }}
-                                          >
-                                              {selectable ? (
-                                                  <td className="px-3">
-                                                      <Checkbox
-                                                          aria-label={t(
-                                                              'table.select_row',
-                                                          )}
-                                                          tabIndex={-1}
-                                                          checked={selected}
-                                                          onCheckedChange={(
-                                                              checked,
-                                                          ) =>
-                                                              setSelection(
-                                                                  (s) => {
-                                                                      const next =
-                                                                          {
-                                                                              ...s,
-                                                                          };
-                                                                      if (
-                                                                          checked ===
-                                                                          true
-                                                                      ) {
-                                                                          next[
-                                                                              id
-                                                                          ] =
-                                                                              true;
-                                                                      } else {
-                                                                          delete next[
-                                                                              id
-                                                                          ];
-                                                                      }
-
-                                                                      return next;
-                                                                  },
-                                                              )
-                                                          }
-                                                      />
-                                                  </td>
-                                              ) : null}
-                                              {visibleColumns.map((c) => (
-                                                  <td
-                                                      key={c.id}
-                                                      className={cn(
-                                                          'px-3',
-                                                          c.numeric &&
-                                                              'num text-right',
-                                                      )}
-                                                  >
-                                                      {c.cell(row)}
-                                                  </td>
-                                              ))}
+                                                    className="text-[10px]"
+                                                >
+                                                    {sort === c.sortKey ? (
+                                                        '▲'
+                                                    ) : sort ===
+                                                      `-${c.sortKey}` ? (
+                                                        '▼'
+                                                    ) : (
+                                                        <span className="font-mono text-muted-foreground/40">
+                                                            ↕
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </button>
+                                        ) : (
+                                            t(c.headerKey)
+                                        )}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                            {loading
+                                ? Array.from(
+                                      { length: SKELETON_ROWS },
+                                      (_, i) => (
+                                          <tr key={i}>
+                                              <td
+                                                  colSpan={colSpan}
+                                                  className="px-3 py-3"
+                                              >
+                                                  <Skeleton className="h-4 w-full" />
+                                              </td>
                                           </tr>
-                                      </RowContextMenu>
-                                  );
-                              })}
-                    </tbody>
-                </table>
+                                      ),
+                                  )
+                                : rows.map((row, index) => {
+                                      const id = getRowId(row);
+                                      const selected = selection[id] === true;
+
+                                      return (
+                                          <RowContextMenu
+                                              key={id}
+                                              entity={entity}
+                                              row={row}
+                                              href={rowHref?.(row)}
+                                              handlers={handlers}
+                                              selection={selectedRows}
+                                          >
+                                              <tr
+                                                  {...rowProps(row, index)}
+                                                  className={cn(
+                                                      'transition-colors hover:bg-surface-sunken focus-visible:bg-surface-sunken focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-inset',
+                                                      selected &&
+                                                          'bg-primary-soft/25 hover:bg-primary-soft/40',
+                                                  )}
+                                                  style={{
+                                                      height: 'var(--row-h)',
+                                                  }}
+                                              >
+                                                  {selectable ? (
+                                                      <td className={cn(cell, 'w-8')}>
+                                                          <Checkbox
+                                                              className="align-middle"
+                                                              aria-label={t(
+                                                                  'table.select_row',
+                                                              )}
+                                                              tabIndex={-1}
+                                                              checked={selected}
+                                                              onCheckedChange={(
+                                                                  checked,
+                                                              ) =>
+                                                                  setSelection(
+                                                                      (s) => {
+                                                                          const next =
+                                                                              {
+                                                                                  ...s,
+                                                                              };
+                                                                          if (
+                                                                              checked ===
+                                                                              true
+                                                                          ) {
+                                                                              next[
+                                                                                  id
+                                                                              ] =
+                                                                                  true;
+                                                                          } else {
+                                                                              delete next[
+                                                                                  id
+                                                                              ];
+                                                                          }
+
+                                                                          return next;
+                                                                      },
+                                                                  )
+                                                              }
+                                                          />
+                                                      </td>
+                                                  ) : null}
+                                                  {visibleColumns.map((c) => (
+                                                      <td
+                                                          key={c.id}
+                                                          className={cn(
+                                                              cell,
+                                                              c.numeric &&
+                                                                  'num text-right',
+                                                          )}
+                                                      >
+                                                          {c.cell(row)}
+                                                      </td>
+                                                  ))}
+                                              </tr>
+                                          </RowContextMenu>
+                                      );
+                                  })}
+                        </tbody>
+                        {totals && !loading ? (
+                            <tfoot className="sticky bottom-0 z-10 border-t-2 bg-surface-sunken text-xs font-bold select-none">
+                                <tr>
+                                    {selectable ? (
+                                        <td className={cell} aria-hidden="true" />
+                                    ) : null}
+                                    {visibleColumns.map((c, i) => (
+                                        <td
+                                            key={c.id}
+                                            className={cn(
+                                                cell,
+                                                c.numeric && 'num text-right',
+                                                i === 0 &&
+                                                    totals.cells[c.id] ===
+                                                        undefined &&
+                                                    'font-semibold whitespace-nowrap',
+                                            )}
+                                        >
+                                            {totals.cells[c.id] ??
+                                                (i === 0
+                                                    ? (totals.label ??
+                                                      t('table.total', {
+                                                          n: digits.n(
+                                                              meta.total,
+                                                          ),
+                                                      }))
+                                                    : null)}
+                                        </td>
+                                    ))}
+                                </tr>
+                            </tfoot>
+                        ) : null}
+                    </table>
+                </div>
+                {pager}
             </div>
-            {pager}
+            {bulkBar}
         </div>
     );
 }

@@ -19,6 +19,8 @@ Route::prefix('settings')->group(function (): void {
     Route::middleware('can:settings.manage')->group(function (): void {
         Route::get('business', [BusinessSettingsController::class, 'edit'])->name('settings.business');
         Route::put('business', [BusinessSettingsController::class, 'update'])->name('settings.business.update');
+        Route::post('business/logo', [BusinessSettingsController::class, 'updateLogo'])->name('settings.business.logo');
+        Route::delete('business/logo', [BusinessSettingsController::class, 'destroyLogo'])->name('settings.business.logo.destroy');
 
         Route::get('branches', [BranchController::class, 'index'])->name('branches.index');
         Route::post('branches', [BranchController::class, 'store'])->name('branches.store');

@@ -1,6 +1,8 @@
+import { Page, PageHeader } from '@/components/page-header';
 import { Head, Link, router } from '@inertiajs/react';
 import { BadgeDollarSign, FileText, Pencil, ShoppingCart } from 'lucide-react';
 import { type ReactNode, useRef, useState } from 'react';
+import type { CardBrand } from '@/components/cards/card-face';
 import { CardPanel } from '@/components/customers/card-panel';
 import { EmptyState } from '@/components/empty-state';
 import { StatusBadge } from '@/components/status-badge';
@@ -49,6 +51,7 @@ type MessageRow = {
 type Props = {
     customer: CustomerDetail;
     card: CustomerCard | null;
+    brand: CardBrand;
     sales: SaleRow[];
     returns: ReturnRow[];
     payments: PaymentRow[];
@@ -62,6 +65,7 @@ type Tab = (typeof TABS)[number];
 export default function CustomerShow({
     customer,
     card,
+    brand,
     sales,
     returns,
     payments,
@@ -122,17 +126,63 @@ export default function CustomerShow({
     return (
         <>
             <Head title={customer.name} />
-            <div className="flex flex-col gap-6 p-4 md:p-6">
-                <header className="flex flex-wrap items-start gap-3">
-                    <div className="mr-auto">
-                        <h1 className="text-2xl font-bold">
+            <Page className="gap-6">
+                <PageHeader
+                    title={
+                        <>
                             {customer.name}
                             {customer.name_bn ? (
                                 <span className="ml-2 text-lg font-normal text-muted-foreground">
                                     {customer.name_bn}
                                 </span>
                             ) : null}
-                        </h1>
+                        </>
+                    }
+                    actions={
+                        <>
+                            {can['sell'] && customer.is_active ? (
+                                <Button asChild>
+                                    <Link
+                                        href={`/app/pos?customer=${customer.uuid}`}
+                                    >
+                                        <ShoppingCart aria-hidden="true" />
+                                        {t('customers.actions.new_sale')}
+                                    </Link>
+                                </Button>
+                            ) : null}
+                            {can['collect'] && owes ? (
+                                <Button asChild variant="outline">
+                                    <Link
+                                        href={`/app/dues?customer=${customer.uuid}`}
+                                    >
+                                        <BadgeDollarSign aria-hidden="true" />
+                                        {t('customers.actions.collect_due')}
+                                    </Link>
+                                </Button>
+                            ) : null}
+                            <Button asChild variant="outline">
+                                <Link
+                                    href={`/app/customers/${customer.uuid}/statement`}
+                                >
+                                    <FileText aria-hidden="true" />
+                                    {t('customers.actions.statement')}
+                                </Link>
+                            </Button>
+                            {can['update'] && !customer.is_walk_in ? (
+                                <Button asChild variant="outline">
+                                    <Link
+                                        href={`/app/customers/${customer.uuid}/edit`}
+                                    >
+                                        <Pencil aria-hidden="true" />
+                                        {t('actions.edit')}
+                                    </Link>
+                                </Button>
+                            ) : null}
+                        </>
+                    }
+                />
+                <header className="flex flex-wrap items-start gap-3">
+                    <div className="mr-auto">
                         <p className="text-muted-foreground">
                             {[customer.shop_name, customer.group]
                                 .filter(Boolean)
@@ -171,54 +221,6 @@ export default function CustomerShow({
                             {digits.money(customer.balance)}
                         </p>
                     </div>
-                    <div className="flex w-full flex-wrap gap-2">
-                        {can['sell'] && customer.is_active ? (
-                            <Button asChild className="min-h-11 md:min-h-9">
-                                <Link href={`/app/pos?customer=${customer.uuid}`}>
-                                    <ShoppingCart aria-hidden="true" />
-                                    {t('customers.actions.new_sale')}
-                                </Link>
-                            </Button>
-                        ) : null}
-                        {can['collect'] && owes ? (
-                            <Button
-                                asChild
-                                variant="outline"
-                                className="min-h-11 md:min-h-9"
-                            >
-                                <Link href={`/app/dues?customer=${customer.uuid}`}>
-                                    <BadgeDollarSign aria-hidden="true" />
-                                    {t('customers.actions.collect_due')}
-                                </Link>
-                            </Button>
-                        ) : null}
-                        <Button
-                            asChild
-                            variant="outline"
-                            className="min-h-11 md:min-h-9"
-                        >
-                            <Link
-                                href={`/app/customers/${customer.uuid}/statement`}
-                            >
-                                <FileText aria-hidden="true" />
-                                {t('customers.actions.statement')}
-                            </Link>
-                        </Button>
-                        {can['update'] && !customer.is_walk_in ? (
-                            <Button
-                                asChild
-                                variant="outline"
-                                className="min-h-11 md:min-h-9"
-                            >
-                                <Link
-                                    href={`/app/customers/${customer.uuid}/edit`}
-                                >
-                                    <Pencil aria-hidden="true" />
-                                    {t('actions.edit')}
-                                </Link>
-                            </Button>
-                        ) : null}
-                    </div>
                 </header>
 
                 <div className="grid gap-6 lg:grid-cols-[22rem_1fr]">
@@ -226,6 +228,8 @@ export default function CustomerShow({
                         <CardPanel
                             customerUuid={customer.uuid}
                             card={card}
+                            customer={customer}
+                            brand={brand}
                             canIssue={can['issue_card'] === true}
                             canViewCards={can['cards'] === true}
                         />
@@ -284,7 +288,7 @@ export default function CustomerShow({
                         </div>
                     </section>
                 </div>
-            </div>
+            </Page>
         </>
     );
 }
@@ -344,7 +348,10 @@ function Details({
 }
 
 const Th = ({ children, num }: { children: ReactNode; num?: boolean }) => (
-    <th scope="col" className={cn('px-3 py-2 font-medium', num && 'text-right')}>
+    <th
+        scope="col"
+        className={cn('px-3 py-2 font-medium', num && 'text-right')}
+    >
         {children}
     </th>
 );
@@ -444,13 +451,7 @@ function ReturnsTab({ rows, digits }: { rows: ReturnRow[]; digits: Digits }) {
     );
 }
 
-function PaymentsTab({
-    rows,
-    digits,
-}: {
-    rows: PaymentRow[];
-    digits: Digits;
-}) {
+function PaymentsTab({ rows, digits }: { rows: PaymentRow[]; digits: Digits }) {
     const { t } = useT();
     if (rows.length === 0) {
         return <Empty />;
@@ -484,13 +485,7 @@ function PaymentsTab({
     );
 }
 
-function MessagesTab({
-    rows,
-    digits,
-}: {
-    rows: MessageRow[];
-    digits: Digits;
-}) {
+function MessagesTab({ rows, digits }: { rows: MessageRow[]; digits: Digits }) {
     const { t } = useT();
     if (rows.length === 0) {
         return <Empty />;
@@ -509,7 +504,11 @@ function MessagesTab({
         >
             {rows.map((r) => (
                 <tr key={r.id}>
-                    <Td>{r.created_at ? digits.n(r.created_at.slice(0, 10)) : '-'}</Td>
+                    <Td>
+                        {r.created_at
+                            ? digits.n(r.created_at.slice(0, 10))
+                            : '-'}
+                    </Td>
                     <Td>{r.event}</Td>
                     <Td>{r.body}</Td>
                     <Td>{r.status}</Td>

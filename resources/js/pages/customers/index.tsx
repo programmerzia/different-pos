@@ -1,24 +1,20 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { CreditCard, Plus, Search, Users } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { CreditCard, Plus, ScrollText, Users } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { MergeDialog } from '@/components/customers/merge-dialog';
 import {
+    ColumnChooser,
     DataTable,
+    useColumnVisibility,
     type BulkAction,
     type DataColumn,
 } from '@/components/data-table/data-table';
 import { useServerTable } from '@/components/data-table/server-table';
 import { EmptyState } from '@/components/empty-state';
+import { Page, PageHeader, PrintButton } from '@/components/page-header';
+import { TableToolbar } from '@/components/table-toolbar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useDigits } from '@/hooks/use-digits';
 import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useT } from '@/i18n';
@@ -35,7 +31,8 @@ type Props = {
     can: Record<string, boolean>;
 };
 
-const ALL = '__all';
+/** Up to this many customer groups show as chips (mockup); more fall back to a select. */
+const GROUP_CHIPS_MAX = 6;
 
 export default function CustomersIndex({
     customers,
@@ -143,7 +140,9 @@ export default function CustomersIndex({
         {
             id: 'phone',
             headerKey: 'customers.col.phone',
-            cell: (r) => <span className="num">{r.phone ? digits.n(r.phone) : '-'}</span>,
+            cell: (r) => (
+                <span className="num">{r.phone ? digits.n(r.phone) : '-'}</span>
+            ),
         },
         {
             id: 'group',
@@ -182,6 +181,8 @@ export default function CustomersIndex({
         },
     ];
 
+    const columnState = useColumnVisibility(columns);
+
     const bulkActions: BulkAction<CustomerRow>[] = can['issue_card']
         ? [
               {
@@ -193,137 +194,127 @@ export default function CustomersIndex({
           ]
         : [];
 
-    // Keep the search box in step with back/forward navigation.
-    useEffect(() => {
-        if (searchRef.current && document.activeElement !== searchRef.current) {
-            searchRef.current.value = table.state.q;
-        }
-    }, [table.state.q]);
-
-    const filter = (key: string, value: string) =>
-        table.setFilter(key, value === ALL ? '' : value);
-
     return (
         <>
             <Head title={t('customers.title')} />
-            <div className="flex flex-col gap-4 p-4 md:p-6">
-                <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="mr-auto text-2xl font-bold">
-                        {t('customers.title')}
-                    </h1>
-                    <Button asChild variant="outline" className="min-h-11 md:min-h-9">
-                        <Link href="/app/customers/statement">
-                            {t('customers.statement.title')}
-                        </Link>
-                    </Button>
-                    {can['create'] ? (
-                        <Button asChild className="min-h-11 md:min-h-9">
-                            <Link href="/app/customers/create">
-                                <Plus aria-hidden="true" />
-                                {t('customers.new')}
-                            </Link>
-                        </Button>
-                    ) : null}
-                </div>
+            <Page fill>
+                <PageHeader
+                    title={t('customers.title')}
+                    count={meta.total}
+                    actions={
+                        <>
+                            {can['create'] ? (
+                                <Button asChild>
+                                    <Link href="/app/customers/create">
+                                        <Plus aria-hidden="true" />
+                                        {t('customers.new')}
+                                    </Link>
+                                </Button>
+                            ) : null}
+                            <Button asChild variant="outline">
+                                <Link href="/app/customers/statement">
+                                    <ScrollText aria-hidden="true" />
+                                    {t('customers.statement.title')}
+                                </Link>
+                            </Button>
+                            <ColumnChooser
+                                columns={columns}
+                                visibility={columnState.visibility}
+                                onChange={columnState.setVisibility}
+                            />
+                            <PrintButton />
+                        </>
+                    }
+                />
 
-                <div className="flex flex-wrap items-center gap-2">
-                    <div className="relative w-full max-w-sm">
-                        <Search
-                            className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted-foreground"
-                            aria-hidden="true"
-                        />
-                        <Input
-                            ref={searchRef}
-                            type="search"
-                            defaultValue={table.state.q}
-                            placeholder={t('customers.search')}
-                            aria-label={t('customers.search')}
-                            className="min-h-11 pl-9 md:min-h-9"
-                            onChange={(e) => table.setSearch(e.target.value)}
-                        />
-                    </div>
-                    <Select
-                        value={table.state.filters['group'] ?? ALL}
-                        onValueChange={(v) => filter('group', v)}
-                    >
-                        <SelectTrigger
-                            className="min-h-11 w-44 md:min-h-9"
-                            aria-label={t('customers.filter.group')}
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value={ALL}>
-                                {t('customers.filter.all_groups')}
-                            </SelectItem>
-                            {groups.map((g) => (
-                                <SelectItem key={g.id} value={String(g.id)}>
-                                    {g.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Select
-                        value={table.state.filters['card'] ?? ALL}
-                        onValueChange={(v) => filter('card', v)}
-                    >
-                        <SelectTrigger
-                            className="min-h-11 w-44 md:min-h-9"
-                            aria-label={t('customers.filter.card')}
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value={ALL}>
-                                {t('customers.filter.card_any')}
-                            </SelectItem>
-                            <SelectItem value="yes">
-                                {t('customers.filter.card_yes')}
-                            </SelectItem>
-                            <SelectItem value="no">
-                                {t('customers.filter.card_no')}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select
-                        value={table.state.filters['due'] ?? ALL}
-                        onValueChange={(v) => filter('due', v)}
-                    >
-                        <SelectTrigger
-                            className="min-h-11 w-44 md:min-h-9"
-                            aria-label={t('customers.filter.balance')}
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value={ALL}>
-                                {t('customers.filter.balance_any')}
-                            </SelectItem>
-                            <SelectItem value="1">
-                                {t('customers.filter.balance_due')}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select
-                        value={table.state.filters['status'] ?? ALL}
-                        onValueChange={(v) => filter('status', v)}
-                    >
-                        <SelectTrigger
-                            className="min-h-11 w-40 md:min-h-9"
-                            aria-label={t('customers.filter.status')}
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value={ALL}>
-                                {t('customers.filter.active')}
-                            </SelectItem>
-                            <SelectItem value="inactive">
-                                {t('customers.filter.inactive')}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                <TableToolbar
+                    search={table.searchText}
+                    onSearch={table.setSearch}
+                    placeholderKey="customers.search"
+                    inputRef={searchRef}
+                    chips={
+                        groups.length > 0 && groups.length <= GROUP_CHIPS_MAX
+                            ? [
+                                  {
+                                      key: 'group',
+                                      label: t('customers.filter.group'),
+                                      value: table.state.filters['group'] ?? '',
+                                      options: [
+                                          {
+                                              value: '',
+                                              label: t(
+                                                  'customers.filter.all_groups',
+                                              ),
+                                          },
+                                          ...groups.map((g) => ({
+                                              value: String(g.id),
+                                              label: g.name,
+                                          })),
+                                      ],
+                                      onChange: (v) =>
+                                          table.setFilter('group', v),
+                                  },
+                              ]
+                            : []
+                    }
+                    filters={[
+                        ...(groups.length > GROUP_CHIPS_MAX
+                            ? [
+                                  {
+                                      key: 'group',
+                                      labelKey: 'customers.filter.all_groups',
+                                      value: table.state.filters['group'] ?? '',
+                                      options: groups.map((g) => ({
+                                          value: String(g.id),
+                                          label: g.name,
+                                      })),
+                                      onChange: (v: string) =>
+                                          table.setFilter('group', v),
+                                  },
+                              ]
+                            : []),
+                        {
+                            key: 'card',
+                            labelKey: 'customers.filter.card_any',
+                            value: table.state.filters['card'] ?? '',
+                            options: [
+                                {
+                                    value: 'yes',
+                                    label: t('customers.filter.card_yes'),
+                                },
+                                {
+                                    value: 'no',
+                                    label: t('customers.filter.card_no'),
+                                },
+                            ],
+                            onChange: (v) => table.setFilter('card', v),
+                        },
+                        {
+                            key: 'due',
+                            labelKey: 'customers.filter.balance_any',
+                            value: table.state.filters['due'] ?? '',
+                            options: [
+                                {
+                                    value: '1',
+                                    label: t('customers.filter.balance_due'),
+                                },
+                            ],
+                            onChange: (v) => table.setFilter('due', v),
+                        },
+                        {
+                            key: 'status',
+                            labelKey: 'customers.filter.active',
+                            value: table.state.filters['status'] ?? '',
+                            options: [
+                                {
+                                    value: 'inactive',
+                                    label: t('customers.filter.inactive'),
+                                },
+                            ],
+                            onChange: (v) => table.setFilter('status', v),
+                        },
+                    ]}
+                />
 
                 <DataTable<CustomerRow>
                     entity="customer"
@@ -339,6 +330,11 @@ export default function CustomersIndex({
                     onSort={table.toggleSort}
                     onPage={table.setPage}
                     loading={table.loading}
+                    chooser="none"
+                    visibility={columnState.visibility}
+                    onVisibilityChange={columnState.setVisibility}
+                    onPerPage={table.setPerPage}
+                    fill
                     empty={
                         <EmptyState
                             icon={Users}
@@ -356,7 +352,7 @@ export default function CustomersIndex({
                         />
                     }
                 />
-            </div>
+            </Page>
 
             <ConfirmDialog
                 open={deactivating !== null}
@@ -373,10 +369,7 @@ export default function CustomersIndex({
                         : undefined
                 }
             />
-            <MergeDialog
-                customer={merging}
-                onClose={() => setMerging(null)}
-            />
+            <MergeDialog customer={merging} onClose={() => setMerging(null)} />
         </>
     );
 }

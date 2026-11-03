@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Cards;
 
+use App\Actions\Cards\EnsureActiveCard;
 use App\Actions\Cards\IssueCard;
 use App\Actions\Cards\RecordCardPrint;
 use App\Actions\Cards\ReissueCard;
@@ -15,12 +16,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Cards\CardIdsRequest;
 use App\Http\Requests\Cards\IssueCardsRequest;
 use App\Models\Customer;
+use App\Models\CustomerGroup;
 use App\Models\MembershipCard;
 use App\Models\User;
+use App\Support\Cards\CardBrand;
 use App\Support\Cards\CardExport;
 use App\Support\Cards\CardRenderer;
 use App\Support\Customers\CustomerNumber;
 use App\Support\Http\TableQuery;
+use App\Support\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -31,57 +35,46 @@ use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
 /**
- * Membership cards: the list, issue, lost/reissue, and the press hand-off (print-ready HTML for the
- * browser's print dialog, variable-data CSV, print recording). Only active cards are printed or exported.
+ * Membership card studio: every customer is a member (the card number is the customer number), so the
+ * index lists members with their card; issue, lost/reissue, and the press hand-off (print-ready HTML
+ * for the browser's print dialog: CR80, bleed with crop marks, A4 10-up; variable-data CSV; print
+ * recording). Only active cards are printed or exported; printing by customer issues a missing card.
  */
 final class MembershipCardController extends Controller
 {
+    /** Members per studio page: four A4 10-up sheets. */
+    public const int PER_PAGE = 40;
+
+    public function __construct(private readonly EnsureActiveCard $ensure, private readonly TenantContext $context) {}
+
     public function index(Request $request): InertiaResponse
     {
         Gate::authorize('viewAny', MembershipCard::class);
-        $table = TableQuery::fromRequest($request, ['issued_at', 'card_code', 'print_count', 'last_printed_at'], ['status'], '-issued_at');
+        $table = TableQuery::fromRequest($request, ['name', 'customer_no', 'member_since'], ['group', 'status'], 'name');
 
-        $query = MembershipCard::query()->with('customer');
-        $status = CardStatus::tryFrom($table->filters['status'] ?? '');
-        if ($status instanceof CardStatus) {
-            $query->where('status', $status);
+        $query = $this->members()->with(['customerGroup', 'membershipCards']);
+        if (isset($table->filters['group'])) {
+            $query->where('customer_group_id', (int) $table->filters['group']);
         }
+        $this->applyStatus($query, $table->filters['status'] ?? '');
         if ($table->search !== '') {
-            $like = '%'.addcslashes($table->search, '%_\\').'%';
-            $digits = CustomerNumber::normalize($table->search);
-            $query->where(fn (Builder $q) => $q->where('card_code', 'like', $like)
-                ->orWhereHas('customer', function (Builder $c) use ($like, $digits): void {
-                    $c->where('name', 'like', $like)->orWhere('shop_name', 'like', $like)->orWhere('phone', 'like', $like);
-                    if (preg_match('/^[0-9]+$/', $digits) === 1) {
-                        $c->orWhere('customer_no', 'like', $digits.'%');
-                    }
-                }));
+            $this->applySearch($query, $table->search);
         }
-        $page = $table->paginate($query);
-        /** @var list<MembershipCard> $items */
+        $page = $table->applySort($query)->orderBy('id')->paginate(self::PER_PAGE, ['*'], 'page', $table->page);
+        /** @var list<Customer> $items */
         $items = $page->items();
         $user = $this->actor($request);
 
         return Inertia::render('cards/index', [
-            'cards' => array_map(static function (MembershipCard $c): array {
-                $customer = $c->customer;
-
-                return [
-                    'id' => (string) $c->id,
-                    'card_code' => $c->card_code,
-                    'status' => $c->status->value,
-                    'issue_no' => $c->issue_no,
-                    'issued_at' => $c->issued_at->toDateString(),
-                    'print_count' => $c->print_count,
-                    'last_printed_at' => $c->last_printed_at?->toIso8601String(),
-                    'customer_uuid' => $customer?->uuid,
-                    'customer_no' => $customer?->customer_no === null ? null : CustomerNumber::format((string) $customer->customer_no),
-                    'name' => $customer?->name,
-                    'shop_name' => $customer?->shop_name,
-                ];
-            }, $items),
+            'members' => array_map($this->memberRow(...), $items),
             'meta' => ['page' => $page->currentPage(), 'perPage' => $page->perPage(), 'total' => $page->total(), 'lastPage' => $page->lastPage()],
-            'can' => ['issue' => $user->can('create', MembershipCard::class)],
+            'totals' => $this->totals(),
+            'groups' => $this->groups(),
+            'brand' => (new CardBrand($this->context))->toArray(),
+            'can' => [
+                'issue' => $user->can('create', MembershipCard::class),
+                'customers' => $user->can('viewAny', Customer::class),
+            ],
         ]);
     }
 
@@ -114,8 +107,11 @@ final class MembershipCardController extends Controller
     {
         Gate::authorize('create', MembershipCard::class);
         $cards = $this->printable($request);
+        $html = $request->a4()
+            ? $renderer->a4($cards, ! $request->has('crop') || $request->cropMarks())
+            : $renderer->html($cards, $request->bleed(), $request->cropMarks());
 
-        return response($renderer->html($cards, $request->bleed()), 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+        return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
     }
 
     /** GET: the press data file, one row per card. */
@@ -135,7 +131,11 @@ final class MembershipCardController extends Controller
     {
         Gate::authorize('create', MembershipCard::class);
         $user = $this->actor($request);
-        $layout = $request->bleed() ? CardPrintLayout::Pdf : CardPrintLayout::Cr80;
+        $layout = match ($request->layout()) {
+            'bleed' => CardPrintLayout::Pdf,
+            'a4' => CardPrintLayout::A410,
+            default => CardPrintLayout::Cr80,
+        };
         foreach ($this->printable($request) as $card) {
             $record->handle($user, $card, $layout);
         }
@@ -183,13 +183,145 @@ final class MembershipCardController extends Controller
         return $user;
     }
 
-    /** @return Collection<int, MembershipCard> */
+    /**
+     * Active cards for the requested card ids, then for the requested customers in request order
+     * (a customer without an active card gets one now; one that cannot have one is skipped).
+     *
+     * @return Collection<int, MembershipCard>
+     */
     private function printable(CardIdsRequest $request): Collection
     {
-        $cards = MembershipCard::query()->whereIn('id', $request->cardIds())->where('status', CardStatus::Active)
-            ->with('customer')->orderBy('id')->get();
+        $cards = new Collection;
+        if ($request->cardIds() !== []) {
+            $cards = MembershipCard::query()->whereIn('id', $request->cardIds())->where('status', CardStatus::Active)
+                ->with('customer.customerGroup')->orderBy('id')->get();
+        }
+
+        $uuids = $request->customerUuids();
+        if ($uuids !== []) {
+            $user = $this->actor($request);
+            $customers = Customer::query()->whereIn('uuid', $uuids)->with('customerGroup')->get()->keyBy('uuid');
+            $seen = $cards->pluck('id')->all();
+            foreach ($uuids as $uuid) {
+                $customer = $customers->get($uuid);
+                if (! $customer instanceof Customer) {
+                    continue;
+                }
+                try {
+                    $card = $this->ensure->handle($user, $customer);
+                } catch (InvalidPartyData) {
+                    continue;
+                }
+                if (! in_array($card->id, $seen, true)) {
+                    $seen[] = $card->id;
+                    $cards->push($card->setRelation('customer', $customer));
+                }
+            }
+        }
         abort_if($cards->isEmpty(), 404);
 
         return $cards;
+    }
+
+    /**
+     * Every customer is a member: active, not the walk-in, not merged away, numbered.
+     *
+     * @return Builder<Customer>
+     */
+    private function members(): Builder
+    {
+        return Customer::query()->where('is_walk_in', false)->where('is_active', true)
+            ->whereNull('merged_into_id')->whereNotNull('customer_no');
+    }
+
+    /** @param Builder<Customer> $query */
+    private function applyStatus(Builder $query, string $status): void
+    {
+        $active = static fn (Builder $q): Builder => $q->where('status', CardStatus::Active);
+        $lost = static fn (Builder $q): Builder => $q->where('status', CardStatus::Lost);
+        match ($status) {
+            'issued' => $query->whereHas('membershipCards', $active),
+            'lost' => $query->whereDoesntHave('membershipCards', $active)->whereHas('membershipCards', $lost),
+            'not_issued' => $query->whereDoesntHave('membershipCards', $active)->whereDoesntHave('membershipCards', $lost),
+            default => null,
+        };
+    }
+
+    /**
+     * Name (EN/BN), shop, phone (national digits), customer number (prefix) or card code.
+     *
+     * @param  Builder<Customer>  $query
+     */
+    private function applySearch(Builder $query, string $term): void
+    {
+        $like = '%'.addcslashes($term, '%_\\').'%';
+        $digits = CustomerNumber::normalize($term);
+        $query->where(function (Builder $q) use ($like, $digits, $term): void {
+            $q->where('name', 'like', $like)->orWhere('name_bn', 'like', $like)->orWhere('shop_name', 'like', $like);
+            if (preg_match('/^[0-9]+$/', $digits) === 1) {
+                $q->orWhere('customer_no', 'like', $digits.'%');
+                $national = ltrim(str_starts_with($digits, '880') ? substr($digits, 3) : $digits, '0');
+                if (strlen($national) >= 3) {
+                    $q->orWhere('phone', 'like', '%'.$national.'%')->orWhere('alt_phone', 'like', '%'.$national.'%');
+                }
+            }
+            if (preg_match('/^MC\d{3,}$/i', $term) === 1) {
+                $q->orWhereHas('membershipCards', fn (Builder $c): Builder => $c->where('card_code', 'like', strtoupper($term).'%'));
+            }
+        });
+    }
+
+    /** @return array{members: int, issued: int, not_issued: int, lost: int} */
+    private function totals(): array
+    {
+        $members = $this->members()->count();
+        $issued = $this->members()->whereHas('membershipCards', static fn (Builder $q): Builder => $q->where('status', CardStatus::Active))->count();
+        $lostQuery = $this->members();
+        $this->applyStatus($lostQuery, 'lost');
+        $lost = $lostQuery->count();
+
+        return ['members' => $members, 'issued' => $issued, 'not_issued' => $members - $issued - $lost, 'lost' => $lost];
+    }
+
+    /**
+     * Active groups with their member counts (the filter chips).
+     *
+     * @return array<int, array{id: int, name: string, count: int}>
+     */
+    private function groups(): array
+    {
+        /** @var array<int|string, int|string> $counts */
+        $counts = $this->members()->whereNotNull('customer_group_id')->selectRaw('customer_group_id, count(*) as aggregate')
+            ->groupBy('customer_group_id')->pluck('aggregate', 'customer_group_id')->all();
+
+        return CustomerGroup::query()->where('is_active', true)->orderBy('name')->get()
+            ->map(static fn (CustomerGroup $g): array => ['id' => $g->id, 'name' => $g->name, 'count' => (int) ($counts[$g->id] ?? 0)])
+            ->values()->all();
+    }
+
+    /** @return array<string, mixed> */
+    private function memberRow(Customer $c): array
+    {
+        $cards = $c->membershipCards;
+        $card = $cards->firstWhere('status', CardStatus::Active) ?? $cards->sortByDesc('issue_no')->first();
+
+        return [
+            'uuid' => $c->uuid,
+            'name' => $c->name,
+            'name_bn' => $c->name_bn,
+            'shop_name' => $c->shop_name,
+            'phone' => $c->phone,
+            'customer_no' => CustomerNumber::format((string) $c->customer_no),
+            'member_since' => $c->member_since?->toDateString(),
+            'group' => $c->customerGroup?->name,
+            'card' => $card instanceof MembershipCard ? [
+                'id' => $card->id,
+                'code' => $card->card_code,
+                'status' => $card->status->value,
+                'issue_no' => $card->issue_no,
+                'print_count' => $card->print_count,
+                'printed_at' => $card->last_printed_at?->toIso8601String(),
+            ] : null,
+        ];
     }
 }

@@ -1,3 +1,7 @@
+/**
+ * Section heading for settings screens. `default` uses the mockup page-title scale (18 px bold, 12 px
+ * muted description), `small` the card-section scale. For a screen's own title use `<PageHeader>`.
+ */
 export default function Heading({
     title,
     description,
@@ -8,18 +12,20 @@ export default function Heading({
     variant?: 'default' | 'small';
 }) {
     return (
-        <header className={variant === 'small' ? '' : 'mb-8 space-y-0.5'}>
+        <header className={variant === 'small' ? '' : 'mb-6'}>
             <h2
                 className={
                     variant === 'small'
-                        ? 'mb-0.5 text-base font-medium'
-                        : 'text-xl font-semibold tracking-tight'
+                        ? 'mb-0.5 text-sm font-semibold'
+                        : 'text-lg leading-7 font-bold'
                 }
             >
                 {title}
             </h2>
             {description && (
-                <p className="text-sm text-muted-foreground">{description}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                    {description}
+                </p>
             )}
         </header>
     );

@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Page, PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useT } from '@/i18n';
@@ -32,23 +33,23 @@ export function AdminPage({
     return (
         <>
             <Head title={title} />
-            <div className="flex flex-col gap-4 p-4 md:p-6">
-                <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="mr-auto text-2xl font-bold">{title}</h1>
-                    {actions}
-                    {onNew ? (
-                        <Button
-                            type="button"
-                            className="min-h-11 md:min-h-9"
-                            onClick={onNew}
-                        >
-                            <Plus aria-hidden="true" />
-                            {newLabel ?? t('admin.add')}
-                        </Button>
-                    ) : null}
-                </div>
+            <Page>
+                <PageHeader
+                    title={title}
+                    actions={
+                        <>
+                            {actions}
+                            {onNew ? (
+                                <Button type="button" onClick={onNew}>
+                                    <Plus aria-hidden="true" />
+                                    {newLabel ?? t('admin.add')}
+                                </Button>
+                            ) : null}
+                        </>
+                    }
+                />
                 {children}
-            </div>
+            </Page>
         </>
     );
 }

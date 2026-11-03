@@ -15,6 +15,8 @@ type Props = {
     label?: string;
     loadingLabel?: string;
     separator?: string;
+    /** Draw the "or" separator above the button (the passkey offered after the password form). */
+    separatorFirst?: boolean;
 };
 
 export default function PasskeyVerify({
@@ -22,6 +24,7 @@ export default function PasskeyVerify({
     label,
     loadingLabel,
     separator,
+    separatorFirst = false,
 }: Props = {}) {
     const { verify, isLoading, error, isSupported } = usePasskeyVerify({
         ...(routes && {
@@ -39,36 +42,40 @@ export default function PasskeyVerify({
         return null;
     }
 
+    const button = (
+        <div className="grid gap-2">
+            <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 w-full rounded-lg md:h-9 md:min-h-9 md:text-xs"
+                onClick={verify}
+                disabled={isLoading}
+            >
+                {isLoading ? <Spinner /> : <KeyRound className="h-4 w-4" />}
+                {isLoading
+                    ? (loadingLabel ?? 'Authenticating...')
+                    : (label ?? 'Sign in with a passkey')}
+            </Button>
+            {error && <InputError message={error} className="text-center" />}
+        </div>
+    );
+    const divider = (
+        <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                    {separator ?? 'Or continue with email'}
+                </span>
+            </div>
+        </div>
+    );
+
     return (
         <>
-            <div className="grid gap-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={verify}
-                    disabled={isLoading}
-                >
-                    {isLoading ? <Spinner /> : <KeyRound className="h-4 w-4" />}
-                    {isLoading
-                        ? (loadingLabel ?? 'Authenticating...')
-                        : (label ?? 'Sign in with a passkey')}
-                </Button>
-                {error && (
-                    <InputError message={error} className="text-center" />
-                )}
-            </div>
-
-            <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                    <Separator className="w-full" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                        {separator ?? 'Or continue with email'}
-                    </span>
-                </div>
-            </div>
+            {separatorFirst ? divider : button}
+            {separatorFirst ? button : divider}
         </>
     );
 }

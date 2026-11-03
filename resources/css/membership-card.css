@@ -1,0 +1,309 @@
+/*
+ * Membership card artwork (CR80, ISO/IEC 7810 ID-1, 85.6 x 54 mm), ported one-to-one from the baseline
+ * mockup's card studio (tools/mockup/baseline/parts/render_customers_messaging.py, "THE CARD": a 340 x
+ * 214 px teal card). ONE stylesheet for the screen (components/cards/membership-card.tsx, via app.css)
+ * and for print (inlined by resources/views/cards/*.blade.php), so preview and printed card match.
+ *
+ * Sizes are in cqw (1% of the card width) measured from the mockup's 340 px card, so the card scales
+ * anywhere: set --mc-width (85.6mm for print, 100% in a column). Colours are the mockup's tokens
+ * (primary, primary-soft, warning, border, muted-foreground) at their light-theme values.
+ */
+.mc {
+    /* The mockup's light-theme tokens, pinned: the card is printed artwork and looks the same in any theme. */
+    --mc-primary: #0f766e;
+    --mc-primary-soft: #ccfbf1;
+    --mc-warning: #b45309;
+    --mc-border: #e2e8f0;
+    --mc-muted: #475569;
+    --mc-white: #ffffff;
+    --mc-black: #000000;
+
+    container-type: inline-size;
+    width: var(--mc-width, 100%);
+    max-width: 100%;
+    font-family: 'Inter Variable', 'Hind Siliguri', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.5;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.mc * {
+    box-sizing: border-box;
+    margin: 0;
+}
+.mc-face {
+    position: relative;
+    display: flex;
+    width: 100%;
+    aspect-ratio: 340 / 214;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    border-radius: 4.706cqw;
+    color: var(--mc-white);
+    user-select: none;
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}
+.mc-print .mc-face {
+    box-shadow: none;
+}
+.mc-front {
+    padding: 5.882cqw;
+    border: 1px solid color-mix(in srgb, var(--mc-primary) 40%, transparent);
+    background: linear-gradient(135deg, #042f2e 0%, #0d9488 50%, #0f766e 100%);
+}
+.mc-sheen {
+    position: absolute;
+    top: -14.118cqw;
+    right: -14.118cqw;
+    width: 47.059cqw;
+    height: 47.059cqw;
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.1);
+    filter: blur(7.059cqw);
+    pointer-events: none;
+}
+.mc-top {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+.mc-brand {
+    display: flex;
+    align-items: center;
+    gap: 1.765cqw;
+}
+.mc-logo {
+    max-width: 14cqw;
+    height: 7.059cqw;
+    border-radius: 1.176cqw;
+    object-fit: contain;
+    background: var(--mc-white);
+}
+.mc-tenant {
+    color: var(--mc-primary-soft);
+    font-size: 3.529cqw;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    line-height: 1.333;
+    text-transform: uppercase;
+}
+.mc-tagline {
+    color: var(--mc-primary-soft);
+    font-size: 2.647cqw;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+.mc-marks {
+    display: flex;
+    align-items: center;
+    gap: 2.353cqw;
+}
+.mc-chip {
+    display: flex;
+    width: 9.412cqw;
+    height: 7.059cqw;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid color-mix(in srgb, var(--mc-warning) 50%, transparent);
+    border-radius: 1.176cqw;
+    background: linear-gradient(to bottom right, var(--mc-warning), var(--mc-warning));
+    color: var(--mc-black);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 2.353cqw;
+    font-weight: 700;
+    box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+}
+.mc-nfc {
+    color: var(--mc-primary-soft);
+    font-size: 4.118cqw;
+    font-weight: 700;
+    letter-spacing: -0.05em;
+    line-height: 1.43;
+}
+.mc-bottom {
+    position: relative;
+    z-index: 10;
+}
+.mc-bottom > * + * {
+    margin-top: 1.176cqw;
+}
+.mc-number {
+    color: var(--mc-white);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 5.882cqw;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    line-height: 1.4;
+    filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.1)) drop-shadow(0 1px 1px rgb(0 0 0 / 0.06));
+}
+.mc-holder {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-top: 1.176cqw;
+}
+.mc-label {
+    color: var(--mc-primary-soft);
+    font-size: 2.353cqw;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    line-height: 1.5;
+    text-transform: uppercase;
+}
+.mc-name {
+    color: var(--mc-white);
+    font-size: 3.529cqw;
+    font-weight: 700;
+    letter-spacing: 0.025em;
+    line-height: 1.333;
+}
+.mc-name-bn {
+    color: var(--mc-primary-soft);
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+    font-size: 2.941cqw;
+    line-height: 1.5;
+}
+.mc-right {
+    text-align: right;
+}
+.mc-tier {
+    color: var(--mc-warning);
+    font-size: 3.529cqw;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    line-height: 1.333;
+    text-transform: uppercase;
+}
+.mc-valid {
+    color: var(--mc-primary-soft);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 2.647cqw;
+}
+
+/* Back */
+.mc-back {
+    border: 1px solid var(--mc-border);
+    background: #1e293b;
+}
+.mc-stripe {
+    width: 100%;
+    height: 11.765cqw;
+    margin-top: 4.706cqw;
+    border-block: 1px solid var(--mc-black);
+    background: var(--mc-black);
+}
+.mc-backbody {
+    padding: 2.353cqw 5.882cqw;
+}
+.mc-backbody > * + * {
+    margin-top: 2.353cqw;
+}
+.mc-sigrow {
+    display: flex;
+    align-items: center;
+    gap: 3.529cqw;
+}
+.mc-sig {
+    display: flex;
+    height: 8.235cqw;
+    min-width: 0;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.176cqw;
+    padding: 0 2.353cqw;
+    border: 1px solid var(--mc-border);
+    border-radius: 1.176cqw;
+    background: var(--mc-white);
+    color: var(--mc-black);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 2.941cqw;
+    font-style: italic;
+}
+.mc-sig small {
+    color: var(--mc-muted);
+    font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    font-size: 2.353cqw;
+    font-style: normal;
+}
+.mc-sig span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mc-cid {
+    display: flex;
+    width: 9.412cqw;
+    height: 8.235cqw;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--mc-border);
+    border-radius: 1.176cqw;
+    background: var(--mc-white);
+    color: var(--mc-black);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 3.529cqw;
+    font-weight: 700;
+}
+.mc-codes {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1.176cqw;
+}
+.mc-barcode {
+    padding: 1.765cqw;
+    border: 1px solid var(--mc-border);
+    border-radius: 1.176cqw;
+    background: var(--mc-white);
+    text-align: center;
+}
+.mc-barcode svg {
+    display: block;
+    width: 44cqw;
+    height: 7.059cqw;
+}
+.mc-barcode div {
+    color: var(--mc-black);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 2.353cqw;
+    font-weight: 600;
+    line-height: 1.5;
+}
+.mc-qr {
+    display: flex;
+    width: 14.118cqw;
+    height: 14.118cqw;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.176cqw;
+    border: 1px solid var(--mc-border);
+    border-radius: 1.176cqw;
+    background: var(--mc-white);
+    color: var(--mc-black);
+}
+.mc-qr svg {
+    display: block;
+    width: 8.5cqw;
+    height: 8.5cqw;
+}
+.mc-qr span {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 1.765cqw;
+    line-height: 1.4;
+}
+.mc-terms {
+    padding-top: 1.176cqw;
+    color: var(--mc-muted);
+    font-size: 2.059cqw;
+    line-height: 1.25;
+}
+
+/* The A4 sheet preview is white paper in every theme (the mockup's bg-white text-black). */
+.mc-paper {
+    background: #ffffff;
+    color: #000000;
+}

@@ -6,7 +6,9 @@ import { StatusBadge, type Tone } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
-import type { CustomerCard } from '@/types/customers';
+import type { CardBrand, CardMember, MemberCardInfo } from '@/components/cards/card-face';
+import { MembershipCard, type CardSide } from '@/components/cards/membership-card';
+import type { CustomerCard, CustomerDetail } from '@/types/customers';
 
 const CARD_TONE: Record<string, Tone> = {
     active: 'success',
@@ -16,17 +18,21 @@ const CARD_TONE: Record<string, Tone> = {
 };
 
 /**
- * The membership card on the customer profile: a live preview (the same server view the printing
- * press layout uses, so front and back always match), status and the lifecycle buttons.
+ * The membership card on the customer profile: the studio's MembershipCard (the same artwork the
+ * print views render; click to flip), status and the lifecycle buttons.
  */
 export function CardPanel({
     customerUuid,
     card,
+    customer,
+    brand,
     canIssue,
     canViewCards,
 }: {
     customerUuid: string;
     card: CustomerCard | null;
+    customer: CustomerDetail;
+    brand: CardBrand;
     canIssue: boolean;
     canViewCards: boolean;
 }) {
@@ -34,6 +40,27 @@ export function CardPanel({
     const digits = useDigits();
     const [confirmLost, setConfirmLost] = useState(false);
     const active = card?.status === 'active';
+    const [side, setSide] = useState<CardSide>('front');
+    const member: CardMember = {
+        uuid: customerUuid,
+        name: customer.name,
+        name_bn: customer.name_bn,
+        shop_name: customer.shop_name,
+        phone: customer.phone,
+        customer_no: customer.customer_no ?? '',
+        member_since: customer.member_since,
+        group: customer.group,
+        card: card
+            ? {
+                  id: card.id,
+                  code: card.card_code,
+                  status: card.status as MemberCardInfo['status'],
+                  issue_no: card.issue_no,
+                  print_count: card.print_count,
+                  printed_at: null,
+              }
+            : null,
+    };
 
     const printCard = () => {
         if (!card) {
@@ -71,12 +98,25 @@ export function CardPanel({
             </div>
 
             {card && active ? (
-                <iframe
-                    title={t('cards.panel.preview')}
-                    src={`/app/membership-cards/print?ids=${card.id}&layout=cr80`}
-                    scrolling="no"
-                    className="h-102 w-82 max-w-full self-center rounded-md border bg-white"
-                />
+                <div className="flex flex-col items-center gap-2">
+                    {/* The studio's card component: the same artwork as the printed card. */}
+                    <button
+                        type="button"
+                        onClick={() => setSide((s) => (s === 'front' ? 'back' : 'front'))}
+                        aria-label={t('cards.panel.preview')}
+                        className="max-w-full rounded-2xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    >
+                        <MembershipCard member={member} brand={brand} side={side} width="320px" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setSide((s) => (s === 'front' ? 'back' : 'front'))}
+                        className="flex min-h-11 items-center gap-1 rounded text-xs font-semibold text-primary outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 md:min-h-7"
+                    >
+                        <RefreshCw className="size-3" aria-hidden="true" />
+                        {t('cards.studio.click_flip', { side: t(`cards.studio.side_${side}`) })}
+                    </button>
+                </div>
             ) : (
                 <p className="py-6 text-center text-sm text-muted-foreground">
                     {card

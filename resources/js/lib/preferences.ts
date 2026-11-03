@@ -58,6 +58,8 @@ export function applyToDocument(patch: Partial<Preferences>): void {
     }
     if (patch.locale) {
         root.lang = patch.locale;
+        // Read by SetLocale for guests (the sign-in pages); a signed-in user's saved preference wins.
+        setCookie('locale', patch.locale);
         void setLanguage(patch.locale);
     }
     if (patch.theme) {

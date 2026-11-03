@@ -89,6 +89,12 @@ final class AuthenticationTest extends TestCase
             'password' => 'wrong-password',
         ]);
 
-        $response->assertTooManyRequests();
+        // The sign-in form gets a field error to count down from; JSON clients keep the plain 429.
+        $response->assertRedirect()->assertSessionHasErrors('login');
+
+        $this->postJson(route('login.store'), [
+            'login' => $user->email,
+            'password' => 'wrong-password',
+        ])->assertTooManyRequests();
     }
 }

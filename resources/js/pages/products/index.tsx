@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { Page, PageHeader } from '@/components/page-header';
 import { Boxes, Plus, Tags } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { registerProductActions } from '@/command/catalog-actions';
@@ -66,7 +67,8 @@ export default function ProductsIndex({
             id: 'products.new',
             keys: 'n',
             labelKey: 'hotkeys.new',
-            handler: () => can('products.create') && router.visit('/app/products/create'),
+            handler: () =>
+                can('products.create') && router.visit('/app/products/create'),
         },
         {
             id: 'products.search',
@@ -114,11 +116,36 @@ export default function ProductsIndex({
                     </div>
                 ),
             },
-            { id: 'sku', headerKey: 'products.col_sku', sortKey: 'sku', cell: (r) => <span className="num">{r.sku}</span> },
-            { id: 'barcode', headerKey: 'products.col_barcode', hidden: true, cell: (r) => <span className="num">{r.barcode ?? ''}</span> },
-            { id: 'category', headerKey: 'products.col_category', cell: (r) => r.category ?? '' },
-            { id: 'brand', headerKey: 'products.col_brand', hidden: true, cell: (r) => r.brand ?? '' },
-            { id: 'sale_price', headerKey: 'products.col_price', sortKey: 'sale_price', numeric: true, cell: (r) => digits.money(r.sale_price) },
+            {
+                id: 'sku',
+                headerKey: 'products.col_sku',
+                sortKey: 'sku',
+                cell: (r) => <span className="num">{r.sku}</span>,
+            },
+            {
+                id: 'barcode',
+                headerKey: 'products.col_barcode',
+                hidden: true,
+                cell: (r) => <span className="num">{r.barcode ?? ''}</span>,
+            },
+            {
+                id: 'category',
+                headerKey: 'products.col_category',
+                cell: (r) => r.category ?? '',
+            },
+            {
+                id: 'brand',
+                headerKey: 'products.col_brand',
+                hidden: true,
+                cell: (r) => r.brand ?? '',
+            },
+            {
+                id: 'sale_price',
+                headerKey: 'products.col_price',
+                sortKey: 'sale_price',
+                numeric: true,
+                cell: (r) => digits.money(r.sale_price),
+            },
             ...(canViewCost
                 ? [
                       {
@@ -126,7 +153,10 @@ export default function ProductsIndex({
                           headerKey: 'products.col_cost',
                           sortKey: 'cost_price',
                           numeric: true,
-                          cell: (r: Row) => (r.cost_price === null ? '' : digits.money(r.cost_price)),
+                          cell: (r: Row) =>
+                              r.cost_price === null
+                                  ? ''
+                                  : digits.money(r.cost_price),
                       } satisfies DataColumn<Row>,
                   ]
                 : []),
@@ -137,10 +167,14 @@ export default function ProductsIndex({
                 numeric: true,
                 cell: (r) =>
                     r.on_hand === null ? (
-                        <span className="text-muted-foreground">{t('products.not_tracked')}</span>
+                        <span className="text-muted-foreground">
+                            {t('products.not_tracked')}
+                        </span>
                     ) : (
                         <span className="inline-flex items-center justify-end gap-2">
-                            {r.low_stock ? <StatusBadge status="low_stock" /> : null}
+                            {r.low_stock ? (
+                                <StatusBadge status="low_stock" />
+                            ) : null}
                             {digits.qty(r.on_hand)}
                         </span>
                     ),
@@ -150,53 +184,83 @@ export default function ProductsIndex({
     );
 
     const toggleActive = (row: Row) =>
-        router.patch(`/app/products/${row.uuid}/active`, { is_active: !row.is_active }, { preserveScroll: true });
+        router.patch(
+            `/app/products/${row.uuid}/active`,
+            { is_active: !row.is_active },
+            { preserveScroll: true },
+        );
 
-    const filterOptions = (list: Option[]) => list.map((o) => ({ value: String(o.id), label: o.name }));
+    const filterOptions = (list: Option[]) =>
+        list.map((o) => ({ value: String(o.id), label: o.name }));
 
     return (
         <>
             <Head title={t('products.title')} />
-            <div className="flex flex-col gap-4 p-4 md:p-6">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h1 className="text-2xl font-bold">{t('products.title')}</h1>
-                    <div className="flex gap-2">
-                        {can('products.update') ? (
-                            <>
-                                <Button asChild variant="outline" className="min-h-11">
-                                    <Link href="/app/products/categories">
-                                        <Tags aria-hidden="true" /> {t('categories.title')}
+            <Page>
+                <PageHeader
+                    title={t('products.title')}
+                    count={meta.total}
+                    actions={
+                        <>
+                            {can('products.update') ? (
+                                <>
+                                    <Button asChild variant="outline">
+                                        <Link href="/app/products/categories">
+                                            <Tags aria-hidden="true" />{' '}
+                                            {t('categories.title')}
+                                        </Link>
+                                    </Button>
+                                    <Button asChild variant="outline">
+                                        <Link href="/app/products/brands">
+                                            {t('brands.title')}
+                                        </Link>
+                                    </Button>
+                                </>
+                            ) : null}
+                            {can('products.create') ? (
+                                <Button asChild>
+                                    <Link href="/app/products/create">
+                                        <Plus aria-hidden="true" />{' '}
+                                        {t('products.new')}
                                     </Link>
                                 </Button>
-                                <Button asChild variant="outline" className="min-h-11">
-                                    <Link href="/app/products/brands">{t('brands.title')}</Link>
-                                </Button>
-                            </>
-                        ) : null}
-                        {can('products.create') ? (
-                            <Button asChild className="min-h-11">
-                                <Link href="/app/products/create">
-                                    <Plus aria-hidden="true" /> {t('products.new')}
-                                </Link>
-                            </Button>
-                        ) : null}
-                    </div>
-                </div>
+                            ) : null}
+                        </>
+                    }
+                />
 
                 <TableToolbar
                     search={table.searchText}
                     onSearch={table.setSearch}
                     placeholderKey="products.search"
                     filters={[
-                        { key: 'category', labelKey: 'products.all_categories', value: table.state.filters['category'] ?? '', options: filterOptions(categories), onChange: (v) => table.setFilter('category', v) },
-                        { key: 'brand', labelKey: 'products.all_brands', value: table.state.filters['brand'] ?? '', options: filterOptions(brands), onChange: (v) => table.setFilter('brand', v) },
+                        {
+                            key: 'category',
+                            labelKey: 'products.all_categories',
+                            value: table.state.filters['category'] ?? '',
+                            options: filterOptions(categories),
+                            onChange: (v) => table.setFilter('category', v),
+                        },
+                        {
+                            key: 'brand',
+                            labelKey: 'products.all_brands',
+                            value: table.state.filters['brand'] ?? '',
+                            options: filterOptions(brands),
+                            onChange: (v) => table.setFilter('brand', v),
+                        },
                         {
                             key: 'status',
                             labelKey: 'products.all_statuses',
                             value: table.state.filters['status'] ?? '',
                             options: [
-                                { value: 'active', label: t('products.status_active') },
-                                { value: 'inactive', label: t('products.inactive') },
+                                {
+                                    value: 'active',
+                                    label: t('products.status_active'),
+                                },
+                                {
+                                    value: 'inactive',
+                                    label: t('products.inactive'),
+                                },
                                 { value: 'low', label: t('status.low_stock') },
                             ],
                             onChange: (v) => table.setFilter('status', v),
@@ -213,7 +277,8 @@ export default function ProductsIndex({
                     getRowId={(r) => r.uuid}
                     rowHref={(r) => `/app/products/${r.uuid}/edit`}
                     handlers={{
-                        'row.edit': (r) => router.visit(`/app/products/${r.uuid}/edit`),
+                        'row.edit': (r) =>
+                            router.visit(`/app/products/${r.uuid}/edit`),
                         'row.delete': (r) => setToDelete(r),
                         'product.toggle_active': toggleActive,
                     }}
@@ -230,14 +295,16 @@ export default function ProductsIndex({
                             action={
                                 can('products.create') ? (
                                     <Button asChild>
-                                        <Link href="/app/products/create">{t('products.new')}</Link>
+                                        <Link href="/app/products/create">
+                                            {t('products.new')}
+                                        </Link>
                                     </Button>
                                 ) : undefined
                             }
                         />
                     }
                 />
-            </div>
+            </Page>
 
             <ConfirmDialog
                 open={toDelete !== null}
@@ -248,7 +315,9 @@ export default function ProductsIndex({
                 recordName={toDelete?.name ?? ''}
                 onConfirm={() => {
                     if (toDelete) {
-                        router.delete(`/app/products/${toDelete.uuid}`, { preserveScroll: true });
+                        router.delete(`/app/products/${toDelete.uuid}`, {
+                            preserveScroll: true,
+                        });
                     }
                 }}
             />

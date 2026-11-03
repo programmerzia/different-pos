@@ -38,7 +38,7 @@ use Picqer\Barcode\BarcodeGeneratorSVG;
  * Never includes cost, COGS, batches or customer PIN data. The public variant (/r/{token}) also
  * drops the customer's phone, number and BIN.
  *
- * @phpstan-type Shop array{name: string, legal_name: string|null, vat_bin: string|null, address: string|null, phone: string|null, branch: string, branch_address: string|null, branch_phone: string|null, header: string|null, footer: string|null}
+ * @phpstan-type Shop array{name: string, logo_url: string|null, legal_name: string|null, vat_bin: string|null, address: string|null, phone: string|null, branch: string, branch_address: string|null, branch_phone: string|null, header: string|null, footer: string|null}
  * @phpstan-type Party array{name: string, shop_name: string|null, customer_no: string|null, phone: string|null, vat_bin: string|null}
  * @phpstan-type Row array{label: string, value: string, strong?: bool}
  */
@@ -287,6 +287,7 @@ final readonly class ReceiptBuilder
 
         return [
             'name' => $tenant->name,
+            'logo_url' => $tenant->logoUrl(),
             'legal_name' => $tenant->legal_name,
             'vat_bin' => $tenant->vat_bin,
             'address' => $tenant->vat_registered_address ?? $tenant->address,

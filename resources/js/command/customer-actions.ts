@@ -2,11 +2,17 @@ import {
     Ban,
     BadgeDollarSign,
     CreditCard,
+    ExternalLink,
+    FileSpreadsheet,
     FileText,
+    ListPlus,
+    Printer,
+    RefreshCw,
     GitMerge,
     ShoppingCart,
 } from 'lucide-react';
 import { actions, type AppAction } from './actions';
+import type { CardMember } from '@/components/cards/card-face';
 import type { CardRow, CustomerRow } from '@/types/customers';
 
 /**
@@ -97,6 +103,69 @@ export const cardActions: AppAction<CardRow>[] = [
         run: ({ row, handlers }) => handlers?.['card.reissue']?.(row),
     },
 ];
+
+/**
+ * A member in the card studio (queue rows): print, press CSV, report lost → reissue (page handlers),
+ * open the customer. Same registry as the palette and the context menu.
+ */
+export const memberCardActions: AppAction<CardMember>[] = [
+    {
+        id: 'member_card.print',
+        entity: 'member_card',
+        labelKey: 'cards.studio.print_card',
+        icon: Printer,
+        permission: 'cards.issue',
+        requires: 'handler',
+        run: ({ row, handlers }) => handlers?.['member_card.print']?.(row),
+    },
+    {
+        id: 'member_card.export',
+        entity: 'member_card',
+        labelKey: 'cards.press.csv',
+        icon: FileSpreadsheet,
+        permission: 'cards.issue',
+        requires: 'handler',
+        run: ({ row, handlers }) => handlers?.['member_card.export']?.(row),
+    },
+    {
+        id: 'member_card.queue',
+        entity: 'member_card',
+        labelKey: 'cards.studio.queue_toggle',
+        icon: ListPlus,
+        requires: 'handler',
+        run: ({ row, handlers }) => handlers?.['member_card.queue']?.(row),
+    },
+    {
+        id: 'member_card.open',
+        entity: 'member_card',
+        labelKey: 'cards.studio.open_customer',
+        icon: ExternalLink,
+        permission: 'customers.view',
+        run: ({ row, navigate }) => navigate(`/app/customers/${row.uuid}`),
+    },
+    {
+        id: 'member_card.reissue',
+        entity: 'member_card',
+        labelKey: 'cards.studio.lost_reissue',
+        icon: RefreshCw,
+        permission: 'cards.issue',
+        group: 'danger',
+        requires: 'handler',
+        visible: (row) => row.card?.status === 'active' || row.card?.status === 'lost',
+        run: ({ row, handlers }) => handlers?.['member_card.reissue']?.(row),
+    },
+];
+
+let memberCardsRegistered = false;
+
+/** Idempotent; called by the card studio page. */
+export function registerMemberCardActions(): void {
+    if (memberCardsRegistered) {
+        return;
+    }
+    memberCardsRegistered = true;
+    actions.register(...memberCardActions);
+}
 
 let registered = false;
 

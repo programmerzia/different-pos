@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { Page, PageHeader } from '@/components/page-header';
 import { BarChart3 } from 'lucide-react';
 import { EmptyState } from '@/components/empty-state';
 import { useT } from '@/i18n';
@@ -12,8 +13,8 @@ export default function ReportsIndex({ groups }: Props) {
     return (
         <>
             <Head title={t('reports.title')} />
-            <div className="flex flex-col gap-6 p-4 md:p-6">
-                <h1 className="text-2xl font-bold">{t('reports.title')}</h1>
+            <Page className="gap-6">
+                <PageHeader title={t('reports.title')} />
                 {entries.length === 0 ? (
                     <EmptyState icon={BarChart3} title={t('reports.no_rows')} />
                 ) : (
@@ -53,7 +54,7 @@ export default function ReportsIndex({ groups }: Props) {
                         </section>
                     ))
                 )}
-            </div>
+            </Page>
         </>
     );
 }

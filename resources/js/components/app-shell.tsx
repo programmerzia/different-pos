@@ -17,9 +17,13 @@ export function AppShell({ children, variant = 'sidebar' }: Props) {
         );
     }
 
-    // Column: top bar, then (sidebar | content), then the status bar.
+    // Column: top bar, then (sidebar | content), then the status bar. The shell is exactly one viewport
+    // tall (as the mockup): only the content area scrolls, so the status bar is always visible.
     return (
-        <SidebarProvider defaultOpen={isOpen} className="min-h-svh flex-col">
+        <SidebarProvider
+            defaultOpen={isOpen}
+            className="h-svh min-h-0 flex-col overflow-hidden"
+        >
             {children}
         </SidebarProvider>
     );

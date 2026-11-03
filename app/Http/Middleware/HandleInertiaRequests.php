@@ -51,6 +51,10 @@ final class HandleInertiaRequests extends Middleware
                 'branches' => fn (): array => $this->branches($request, $context),
                 'branch_id' => fn (): ?int => $context->hasBranch() ? $context->branchId() : null,
             ],
+            // Lazy for the same reason; null outside a tenant context (guests, the platform console).
+            'tenant' => fn (): ?array => $context->hasTenant()
+                ? ['name' => $context->tenant()->name, 'logo_url' => $context->tenant()->logoUrl()]
+                : null,
             'preferences' => fn (): array => $this->preferences($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

@@ -16,7 +16,7 @@
         "customers": "Customers",
         "customers_list": "Customers",
         "dues": "Dues",
-        "cards": "Membership cards",
+        "cards": "Membership Cards",
         "inventory": "Inventory",
         "products": "Products",
         "stock": "Stock",
@@ -34,11 +34,32 @@
         "branches": "Branches",
         "users": "Users",
         "roles": "Roles",
-        "audit": "Audit log",
+        "audit": "Audit Log",
         "registers": "Registers",
         "payment_methods": "Payment methods",
         "taxes": "Taxes",
-        "units": "Units"
+        "units": "Units",
+        "group_customers": "Customers",
+        "sales_history": "Sales History",
+        "returns_exchange": "Returns & Exchange",
+        "due_collection": "Due Collection",
+        "customer_statement": "Customer Statement",
+        "products_skus": "Products & SKUs",
+        "purchases_grn": "Purchases (GRN)",
+        "vendor_directory": "Vendor Directory",
+        "group_sell": "Sell",
+        "group_catalog_stock": "Catalog & Stock",
+        "group_money": "Money",
+        "group_insights": "Insights",
+        "group_admin": "Admin & System",
+        "whatsapp_sms": "WhatsApp & SMS",
+        "stock_transfer": "Stock & Transfer",
+        "analytics_dashboard": "Analytics Dashboard",
+        "reports_directory": "Reports Directory",
+        "users_roles": "Users & Roles",
+        "audit_log": "Audit Security Log",
+        "active_role": "Active role",
+        "shortcuts_guide": "Shortcuts Guide"
     },
     "tabs": {
         "label": "Primary",
@@ -73,7 +94,12 @@
     },
     "status_bar": {
         "no_branch": "No branch",
-        "version": "v1.0.0"
+        "version": "v1.0.0",
+        "branch": "Branch:",
+        "user": "User:",
+        "sync_ok": "Sync ✓",
+        "sync_offline": "Offline: sales queue on this device",
+        "shortcuts": "Shortcuts"
     },
     "notifications": {
         "title": "Notifications",
@@ -178,7 +204,19 @@
         "select_row": "Select row",
         "showing": "{{from}}–{{to}} of {{total}}",
         "prev": "Previous page",
-        "next": "Next page"
+        "next": "Next page",
+        "visible_columns": "Visible columns",
+        "reset_columns": "Reset all",
+        "rows_per_page": "Rows per page:",
+        "total": "Total ({{n}})",
+        "export": "Export",
+        "export_csv": "Export to CSV",
+        "export_excel": "Export Excel (.csv)",
+        "print": "Print",
+        "more_filters": "More filters",
+        "view": "View:",
+        "date": "Date:",
+        "clear_search": "Clear search"
     },
     "confirm": {
         "ok": "Confirm",
@@ -205,7 +243,20 @@
         "in_stock": "In stock",
         "low_stock": "Low stock",
         "out_of_stock": "Out of stock",
-        "due_soon": "Due soon"
+        "due_soon": "Due soon",
+        "active": "Active",
+        "inactive": "Inactive",
+        "lost": "Lost",
+        "blocked": "Blocked",
+        "locked": "Locked",
+        "verified": "Verified",
+        "set": "Set",
+        "not_set": "Not set",
+        "none": "None",
+        "pending": "Pending",
+        "failed": "Failed",
+        "sent": "Sent",
+        "returned": "Returned"
     },
     "range": {
         "label": "Date range",
@@ -644,6 +695,94 @@
             "printed": "Times printed",
             "print": "Print card",
             "all_cards": "All cards"
+        },
+        "face": {
+            "tagline": "EXCLUSIVE PRIVILEGE CLUB",
+            "cardholder": "Member cardholder",
+            "club_tier": "Club tier",
+            "tier": {
+                "gold": "Gold privilege",
+                "vip": "Platinum VIP"
+            },
+            "valid": "SINCE: {{date}}",
+            "signature": "AUTHORIZED SIGNATURE",
+            "terms": "This membership card remains property of {{name}}. Settle dues within 30 days. Found cards please return to {{branch}}. Helpline: {{phone}}.",
+            "terms_no_phone": "This membership card remains property of {{name}}. Settle dues within 30 days. Found cards please return to {{branch}}."
+        },
+        "studio": {
+            "title": "Membership Card Studio & Production",
+            "subtitle": "Print designer with front/back preview, ISO CR80 PVC cards, 10-Up A4 sheets, and Lost Card reissue",
+            "lost_reissue": "Report Lost → Reissue",
+            "layout": "Print layout",
+            "layout_cr80": "CR80 PVC",
+            "layout_a4": "A4 (10-Up)",
+            "print_batch": "Print Batch",
+            "print_card": "Print card",
+            "print_queued": "Print All Queued Cards",
+            "clear": "Clear",
+            "export": "Export for printing press",
+            "export_pdf": "Print-ready PDF (CR80 + 3 mm bleed)",
+            "export_pdf_hint": "91.6 × 60 mm pages, front and back on separate pages. Save as PDF from the print dialog.",
+            "crop_marks": "Add crop marks",
+            "export_csv": "Download data CSV",
+            "export_queued": "{{count}} queued members for variable-data printing.",
+            "export_current": "The member on screen, for variable-data printing.",
+            "press_note": "Press-ready: 300 dpi, CMYK, CR80 85.6×54 mm with 3 mm bleed; variable data from the CSV.",
+            "select_member": "Select Member:",
+            "no_member": "No member",
+            "find_member": "Find a member",
+            "search": "Search name, phone, number or shop",
+            "group_filter": "Group",
+            "all_groups": "All groups ({{count}})",
+            "status_filter": "Card status",
+            "any_status": "Any card status",
+            "status": {
+                "issued": "Card issued",
+                "not_issued": "Not issued",
+                "lost": "Lost"
+            },
+            "members": "Members",
+            "ungrouped": "No group",
+            "empty": "No member matches this search.",
+            "queue_named": "Queue {{name}} for printing",
+            "queue_page": "Queue all {{count}} on this page",
+            "queue_toggle": "Add to / remove from print queue",
+            "page_of": "Page {{page}} of {{last}} · {{total}} members",
+            "picker_keys": "↑↓ move · Enter show card · Space queue · Esc close",
+            "flip": "Flip card",
+            "flip_showing": "Flip Card (Showing: {{side}})",
+            "click_flip": "Click to Flip (Currently {{side}})",
+            "side_front": "FRONT",
+            "side_back": "BACK",
+            "simulation": "Interactive Physical CR80 Simulation",
+            "card_preview": "Card of {{name}}, {{side}}. Press Enter to flip.",
+            "queue_title": "Bulk Print Queue (Pending Batch)",
+            "queued": "{{count}} Cards Queued",
+            "queue_empty": "No cards queued. Pick members in Select Member and press Space.",
+            "col_no": "Member #",
+            "col_name": "Customer Name",
+            "col_tier": "Tier",
+            "col_status": "Print Status",
+            "tier_short": {
+                "gold": "GOLD",
+                "vip": "VIP"
+            },
+            "print_status": {
+                "ready": "Ready to Print",
+                "printed": "Printed ×{{count}}",
+                "lost": "Card lost"
+            },
+            "a4_title": "A4 Card Sheet Grid (2 columns × 5 rows with crop marks for die-cutting)",
+            "a4_scale": "Print at 100% scale (No fit to page)",
+            "privilege_card": "Privilege Card #{{n}}",
+            "member_tag": "MEMBER",
+            "sheet_pager": "A4 sheets",
+            "sheet_of_queue": "Sheet {{n}} of {{total}} (print queue)",
+            "sheet_of_page": "Sheet {{n}} of {{total}} (this page)",
+            "open_customer": "Open customer",
+            "reissue_title": "Report this card lost and reissue?",
+            "reissue_body": "{{name}}'s card {{code}} stops working at the register at once and a new card is issued with the next issue number.",
+            "reissue_body_lost": "{{name}}'s card {{code}} is already lost. A new card is issued with the next issue number."
         }
     },
     "common": {
@@ -960,7 +1099,19 @@
         "pin_policy": "Customer PIN",
         "pin_always": "Always ask",
         "pin_credit_only": "Only for credit sales",
-        "pin_off": "Never ask"
+        "pin_off": "Never ask",
+        "section_logo": "Logo",
+        "logo": "Business logo",
+        "logo_hint": "PNG, JPG or WebP, up to 2 MB. Shown at sign-in, in the top bar, on receipts and on membership cards.",
+        "logo_none": "No logo yet: the business name is shown instead.",
+        "logo_upload": "Upload logo",
+        "logo_replace": "Replace logo",
+        "logo_remove": "Remove logo",
+        "logo_remove_title": "Remove the logo?",
+        "logo_remove_body": "Receipts, cards and the sign-in page will show the business name instead.",
+        "logo_preview": "Logo preview",
+        "logo_selected": "Selected: {{name}}",
+        "logo_cancel": "Cancel"
     },
     "login": {
         "title": "Log in",
@@ -976,7 +1127,18 @@
         "password": "Password",
         "forgot": "Forgot your password?",
         "remember": "Remember me",
-        "submit": "Log in"
+        "submit": "Log in",
+        "caps_lock": "Caps Lock is on",
+        "throttled": "Too many sign-in attempts. Please wait for the countdown, then try again.",
+        "throttle_over": "You can try again now.",
+        "retry_in": "Try again in {{seconds}} s",
+        "error_summary": "We could not sign you in:",
+        "signing_in": "Signing in…",
+        "passkey": "Sign in with a passkey",
+        "passkey_loading": "Checking your passkey…",
+        "or_continue": "or use a passkey",
+        "throttled_title": "Sign-in paused",
+        "password_placeholder": "Enter password"
     },
     "password_change": {
         "title": "Choose a new password",
@@ -1528,5 +1690,13 @@
         "age": "Age",
         "days": "{{n}} days",
         "recent_payments": "Recent payments"
+    },
+    "auth": {
+        "tagline": "Point of sale",
+        "staff_only": "For authorised staff only"
+    },
+    "password_input": {
+        "show": "Show password",
+        "hide": "Hide password"
     }
 }

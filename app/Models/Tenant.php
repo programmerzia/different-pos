@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * One business (a customer of the SaaS). Not tenant-scoped itself.
@@ -94,6 +95,22 @@ final class Tenant extends Model
     public function setting(string $key): mixed
     {
         return $this->settings[$key] ?? self::DEFAULT_SETTINGS[$key] ?? null;
+    }
+
+    /** The logo's path on the public disk (tenants.branding.logo_path), or null without one. */
+    public function logoPath(): ?string
+    {
+        $path = $this->branding['logo_path'] ?? null;
+
+        return is_string($path) && $path !== '' ? $path : null;
+    }
+
+    /** The public URL of the business logo, or null without one. */
+    public function logoUrl(): ?string
+    {
+        $path = $this->logoPath();
+
+        return $path === null ? null : Storage::disk('public')->url($path);
     }
 
     public function isActive(): bool

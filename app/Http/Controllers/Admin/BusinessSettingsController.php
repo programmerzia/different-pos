@@ -5,21 +5,24 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Settings\SaveBusinessSettings;
+use App\Actions\Settings\SaveTenantLogo;
 use App\Http\Controllers\Concerns\TranslatesDomainErrors;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SaveTenantLogoRequest;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Tenancy\TenantContext;
 use DateTimeZone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** /app/settings/business (settings.manage via route middleware). */
+/** /app/settings/business and its logo (settings.manage via route middleware). */
 final class BusinessSettingsController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
@@ -46,6 +49,7 @@ final class BusinessSettingsController extends Controller implements HasMiddlewa
                 'currency' => $tenant->currency,
                 'timezone' => $tenant->timezone,
                 'locale' => $tenant->locale,
+                'logo_url' => $tenant->logoUrl(),
                 'tax_inclusive' => (bool) $tenant->setting('tax_inclusive'),
                 'backdate_days' => (int) $tenant->setting('backdate_days'),
                 'return_days' => $tenant->setting('return_days'),
@@ -82,6 +86,28 @@ final class BusinessSettingsController extends Controller implements HasMiddlewa
         abort_unless($user instanceof User, 401);
         $this->guarded(fn (): Tenant => $save->handle($user, $data));
         Inertia::flash('toast', ['type' => 'success', 'message' => __('app.saved')]);
+
+        return back();
+    }
+
+    public function updateLogo(SaveTenantLogoRequest $request, SaveTenantLogo $save): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $logo = $request->file('logo');
+        abort_unless($logo instanceof UploadedFile, 422);
+        $save->handle($user, $logo);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('app.logo_saved')]);
+
+        return back();
+    }
+
+    public function destroyLogo(Request $request, SaveTenantLogo $save): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $save->handle($user, null);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('app.logo_removed')]);
 
         return back();
     }

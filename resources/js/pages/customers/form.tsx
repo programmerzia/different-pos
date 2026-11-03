@@ -1,4 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
+import { PageHeader } from '@/components/page-header';
 import { useState } from 'react';
 import { FormSection } from '@/components/form-section';
 import InputError from '@/components/input-error';
@@ -148,17 +149,15 @@ export default function CustomerForm({
 
     return (
         <>
-            <Head
-                title={editing ? t('customers.edit') : t('customers.new')}
-            />
+            <Head title={editing ? t('customers.edit') : t('customers.new')} />
             <form
                 onSubmit={submit}
-                className="flex flex-col gap-8 p-4 md:p-6"
+                className="flex flex-col gap-8 p-page"
                 noValidate
             >
-                <h1 className="text-2xl font-bold">
-                    {editing ? t('customers.edit') : t('customers.new')}
-                </h1>
+                <PageHeader
+                    title={editing ? t('customers.edit') : t('customers.new')}
+                />
                 <InputError
                     message={(form.errors as Record<string, string>)['form']}
                 />
@@ -180,10 +179,14 @@ export default function CustomerForm({
                             inputMode="tel"
                             required
                             value={form.data.phone}
-                            onChange={(e) => form.setData('phone', e.target.value)}
+                            onChange={(e) =>
+                                form.setData('phone', e.target.value)
+                            }
                             onBlur={(e) => void checkPhone(e.target.value)}
                             aria-invalid={form.errors.phone ? true : undefined}
-                            aria-describedby={existing ? 'phone-duplicate' : undefined}
+                            aria-describedby={
+                                existing ? 'phone-duplicate' : undefined
+                            }
                             className="min-h-11 md:min-h-9"
                         />
                         <InputError message={form.errors.phone} />
@@ -287,7 +290,7 @@ export default function CustomerForm({
                             onChange={(e) =>
                                 form.setData('notes', e.target.value)
                             }
-                            className="border-input focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-md border bg-transparent px-3 py-2 text-base outline-none focus-visible:ring-[3px] md:text-sm"
+                            className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-base outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
                         />
                         <InputError message={form.errors.notes} />
                     </div>

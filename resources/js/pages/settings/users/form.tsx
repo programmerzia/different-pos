@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/page-header';
 import { Head, Link, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { CheckField } from '@/components/admin/check-field';
@@ -90,8 +91,8 @@ export default function UserForm({
     return (
         <>
             <Head title={title} />
-            <form onSubmit={submit} className="flex flex-col gap-8 p-4 md:p-6">
-                <h1 className="text-2xl font-bold">{title}</h1>
+            <form onSubmit={submit} className="flex flex-col gap-8 p-page">
+                <PageHeader title={title} />
                 {errors['form'] ? (
                     <p
                         role="alert"

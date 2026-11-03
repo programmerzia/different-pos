@@ -26,6 +26,8 @@
     .muted { opacity: .8; }
     .small { font-size: .85em; }
     .shop-name { font-size: 1.35em; font-weight: 700; }
+    .shop-logo { display: block; max-width: 40mm; max-height: 48px; width: auto; height: auto; object-fit: contain; filter: grayscale(1); margin: 0 auto 1mm; }
+    .paper-a4 .shop-logo { max-height: 64px; margin: 0 0 2mm; }
     .title { font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin: 2mm 0; }
     hr { border: 0; border-top: 1px dashed black; margin: 2mm 0; }
     table { width: 100%; border-collapse: collapse; }

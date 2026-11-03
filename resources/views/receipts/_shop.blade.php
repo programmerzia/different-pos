@@ -1,5 +1,6 @@
 {{-- Shop header (thermal: centred). --}}
 <header class="{{ $paper === 'a4' ? '' : 'center' }}">
+    @if (! empty($r['shop']['logo_url']))<img class="shop-logo" src="{{ $r['shop']['logo_url'] }}" alt="">@endif
     <div class="shop-name">{{ $r['shop']['name'] }}</div>
     @if ($r['shop']['legal_name'] && $r['shop']['legal_name'] !== $r['shop']['name'])<div class="small">{{ $r['shop']['legal_name'] }}</div>@endif
     <div class="small">{{ $r['shop']['branch'] }}</div>

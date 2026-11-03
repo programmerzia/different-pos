@@ -2,7 +2,9 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Receipt, Undo2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import {
+    ColumnChooser,
     DataTable,
+    useColumnVisibility,
     type DataColumn,
     type TableMeta,
 } from '@/components/data-table/data-table';
@@ -12,6 +14,7 @@ import {
 } from '@/components/data-table/server-table';
 import { DateRangePicker } from '@/components/date-range-picker';
 import { EmptyState } from '@/components/empty-state';
+import { Page, PageHeader, PrintButton } from '@/components/page-header';
 import { CollectDialog } from '@/components/sales/collect-dialog';
 import { VoidSaleDialog } from '@/components/sales/void-dialog';
 import { StatusBadge } from '@/components/status-badge';
@@ -216,6 +219,7 @@ export default function SalesIndex({
         ],
         [digits, t],
     );
+    const columnState = useColumnVisibility(columns);
 
     const handlers = {
         ...(can('sales.void')
@@ -232,56 +236,80 @@ export default function SalesIndex({
             : {}),
     };
 
-    const statusOptions = [
-        { value: 'completed', label: t('status.completed') },
-        { value: 'voided', label: t('status.voided') },
+    // Mockup status chips: All · Paid · Partial · Due · Void, over the two server filters.
+    const chipValue =
+        filters['status'] === 'voided'
+            ? 'voided'
+            : (filters['payment_status'] ?? '');
+    const chipOptions = [
+        { value: '', label: t('sales.all_statuses') },
+        { value: 'paid', label: t('status.paid') },
+        { value: 'partial', label: t('status.partial') },
+        { value: 'unpaid', label: t('status.due') },
+        { value: 'voided', label: t('status.void') },
     ];
-    const paymentOptions = ['paid', 'partial', 'unpaid'].map((s) => ({
-        value: s,
-        label: t(`status.${s}`),
-    }));
+    const setChip = (value: string) =>
+        setFilters(
+            value === 'voided'
+                ? { status: 'voided', payment_status: '' }
+                : {
+                      status: value === '' ? '' : 'completed',
+                      payment_status: value,
+                  },
+        );
 
     return (
         <>
             <Head title={t('sales.title')} />
-            <div className="flex flex-col gap-4 p-4 md:p-6">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                        <h1 className="text-2xl font-bold">
-                            {t('sales.title')}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {t('sales.subtitle')}
-                        </p>
-                    </div>
-                    {can('returns.create') ? (
-                        <Button asChild variant="outline" className="min-h-11">
-                            <Link href={salesUrl.returnCreate()}>
-                                <Undo2 aria-hidden="true" /> {t('returns.new')}
-                            </Link>
-                        </Button>
-                    ) : null}
-                </div>
+            <Page fill>
+                <PageHeader
+                    title={t('sales.title')}
+                    count={meta.total}
+                    subtitle={t('sales.subtitle')}
+                    actions={
+                        <>
+                            {can('returns.create') ? (
+                                <Button asChild variant="outline">
+                                    <Link href={salesUrl.returnCreate()}>
+                                        <Undo2 aria-hidden="true" />{' '}
+                                        {t('returns.new')}
+                                    </Link>
+                                </Button>
+                            ) : null}
+                            <ColumnChooser
+                                columns={columns}
+                                visibility={columnState.visibility}
+                                onChange={columnState.setVisibility}
+                            />
+                            <PrintButton />
+                        </>
+                    }
+                />
                 <TableToolbar
                     search={table.searchText}
                     onSearch={table.setSearch}
                     placeholderKey="sales.search"
-                    filters={[
+                    dateControl={
+                        <DateRangePicker
+                            value={{
+                                from: filters['from'] ?? '',
+                                to: filters['to'] ?? '',
+                            }}
+                            onChange={(range) =>
+                                setFilters({ from: range.from, to: range.to })
+                            }
+                        />
+                    }
+                    chips={[
                         {
                             key: 'status',
-                            labelKey: 'sales.all_statuses',
-                            value: filters['status'] ?? '',
-                            options: statusOptions,
-                            onChange: (v) => table.setFilter('status', v),
+                            label: t('common.status'),
+                            value: chipValue,
+                            options: chipOptions,
+                            onChange: setChip,
                         },
-                        {
-                            key: 'payment_status',
-                            labelKey: 'sales.all_payments',
-                            value: filters['payment_status'] ?? '',
-                            options: paymentOptions,
-                            onChange: (v) =>
-                                table.setFilter('payment_status', v),
-                        },
+                    ]}
+                    filters={[
                         {
                             key: 'cashier',
                             labelKey: 'sales.all_cashiers',
@@ -294,20 +322,10 @@ export default function SalesIndex({
                         },
                     ]}
                 >
-                    <DateRangePicker
-                        value={{
-                            from: filters['from'] ?? '',
-                            to: filters['to'] ?? '',
-                        }}
-                        onChange={(range) =>
-                            setFilters({ from: range.from, to: range.to })
-                        }
-                    />
                     {filters['from'] || filters['to'] ? (
                         <Button
                             type="button"
                             variant="ghost"
-                            className="min-h-11 md:min-h-9"
                             onClick={() => setFilters({ from: '', to: '' })}
                         >
                             <X aria-hidden="true" /> {t('sales.clear_dates')}
@@ -317,7 +335,6 @@ export default function SalesIndex({
                         <Button
                             type="button"
                             variant="secondary"
-                            className="min-h-11 md:min-h-9"
                             aria-label={t('sales.clear_customer', {
                                 name: customer.name,
                             })}
@@ -341,7 +358,11 @@ export default function SalesIndex({
                     onSort={table.toggleSort}
                     onPage={table.setPage}
                     loading={table.loading}
-                    selectable={false}
+                    chooser="none"
+                    visibility={columnState.visibility}
+                    onVisibilityChange={columnState.setVisibility}
+                    onPerPage={table.setPerPage}
+                    fill
                     empty={
                         <EmptyState
                             icon={Receipt}
@@ -350,7 +371,7 @@ export default function SalesIndex({
                         />
                     }
                 />
-            </div>
+            </Page>
             <VoidSaleDialog
                 sale={voiding}
                 onOpenChange={(open) => !open && setVoiding(null)}

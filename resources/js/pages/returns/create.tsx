@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { Page, PageHeader } from '@/components/page-header';
 import { AlertTriangle, ArrowLeft, Plus, Search, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
@@ -93,7 +94,7 @@ export default function ReturnCreate(props: Props) {
                         : t('returns.new')
                 }
             />
-            <div className="flex flex-col gap-4 p-4 md:p-6">
+            <Page>
                 <div className="flex items-center gap-3">
                     <Button
                         asChild
@@ -108,11 +109,14 @@ export default function ReturnCreate(props: Props) {
                             <ArrowLeft aria-hidden="true" />
                         </Link>
                     </Button>
-                    <h1 className="text-2xl font-bold">
-                        {props.mode === 'exchange'
-                            ? t('returns.new_exchange')
-                            : t('returns.new')}
-                    </h1>
+                    <PageHeader
+                        className="flex-1"
+                        title={
+                            props.mode === 'exchange'
+                                ? t('returns.new_exchange')
+                                : t('returns.new')
+                        }
+                    />
                 </div>
                 {props.sale ? (
                     <ReturnForm
@@ -123,7 +127,7 @@ export default function ReturnCreate(props: Props) {
                 ) : (
                     <SalePicker {...props} />
                 )}
-            </div>
+            </Page>
         </>
     );
 }

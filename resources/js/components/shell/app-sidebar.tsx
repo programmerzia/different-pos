@@ -1,7 +1,7 @@
-import { Link } from '@inertiajs/react';
-import { ChevronRight } from 'lucide-react';
-import { RowContextMenu } from '@/components/row-context-menu';
+import { Link, usePage } from '@inertiajs/react';
+import { ChevronRight, CircleHelp } from 'lucide-react';
 import { Kbd } from '@/components/kbd';
+import { RowContextMenu } from '@/components/row-context-menu';
 import {
     Collapsible,
     CollapsibleContent,
@@ -10,7 +10,9 @@ import {
 import {
     Sidebar,
     SidebarContent,
+    SidebarFooter,
     SidebarGroup,
+    SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
@@ -19,10 +21,12 @@ import {
     SidebarMenuSubItem,
     useSidebar,
 } from '@/components/ui/sidebar';
-import { NAV, type NavGroup } from '@/command/nav';
+import { activeNav, SIDEBAR_SECTIONS, type ActiveNav, type NavGroup } from '@/command/nav';
+import { useUiStore } from '@/command/ui-store';
 import { useCan } from '@/hooks/use-can';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import { useT } from '@/i18n';
+import { cn } from '@/lib/utils';
 
 /** Sidebar item context menu: Open / Open in new tab (generic row actions, `href` surface). */
 function NavContext({
@@ -41,50 +45,60 @@ function NavContext({
     );
 }
 
-function GroupItem({ group }: { group: NavGroup }) {
+/**
+ * Mockup nav item (render_shell.py): h-8, px-2.5, rounded-lg, 12 px, 15 px icon; active = solid primary,
+ * primary-foreground, semibold, shadow-xs. Touch screens keep a 44 px target.
+ */
+const ITEM =
+    'h-8 gap-2 rounded-lg px-2.5 text-xs text-sidebar-foreground [&>svg]:mr-0.5 [&>svg]:size-3.75 [&>svg]:text-muted-foreground hover:bg-surface-sunken hover:text-foreground hover:[&>svg]:text-foreground ' +
+    'data-[active=true]:bg-primary data-[active=true]:font-semibold data-[active=true]:text-primary-foreground data-[active=true]:shadow-xs data-[active=true]:[&>svg]:text-primary-foreground ' +
+    'data-[active=true]:hover:bg-primary data-[active=true]:hover:text-primary-foreground active:bg-surface-sunken [@media(pointer:coarse)]:min-h-11';
+
+function GroupItem({ group, active }: { group: NavGroup; active: ActiveNav }) {
     const { t } = useT();
     const can = useCan();
-    const { isCurrentOrParentUrl } = useCurrentUrl();
     const { state, setOpenMobile } = useSidebar();
     const label = t(group.labelKey);
     const children = (group.children ?? []).filter((c) => can(c.permission));
-    const active =
-        isCurrentOrParentUrl(group.href) ||
-        children.some((c) => isCurrentOrParentUrl(c.href));
+    const isActive = active?.groupId === group.id;
     const hint = group.chord ? `g ${group.chord}` : group.keys;
+    const keycap = hint ? (
+        <Kbd
+            keys={hint}
+            tone={isActive ? 'on-primary' : 'default'}
+            className={cn(
+                'ml-auto px-1 py-0 text-[10px] group-data-[collapsible=icon]:hidden',
+                !isActive && 'bg-surface',
+            )}
+        />
+    ) : null;
+    const body = (
+        <>
+            <group.icon aria-hidden="true" />
+            <span className="truncate">{label}</span>
+            {keycap}
+        </>
+    );
 
     const link = (
         <SidebarMenuButton
             asChild
-            isActive={active}
+            isActive={isActive}
             tooltip={{ children: label }}
-            className="min-h-11 md:min-h-8"
+            className={ITEM}
         >
             {group.external ? (
-                <a href={group.href}>
-                    <group.icon aria-hidden="true" />
-                    <span>{label}</span>
-                    {hint ? (
-                        <Kbd
-                            keys={hint}
-                            className="ml-auto group-data-[collapsible=icon]:hidden"
-                        />
-                    ) : null}
+                <a href={group.href} aria-current={isActive ? 'page' : undefined}>
+                    {body}
                 </a>
             ) : (
                 <Link
                     href={group.href}
                     prefetch
+                    aria-current={isActive ? 'page' : undefined}
                     onClick={() => setOpenMobile(false)}
                 >
-                    <group.icon aria-hidden="true" />
-                    <span>{label}</span>
-                    {hint ? (
-                        <Kbd
-                            keys={hint}
-                            className="ml-auto group-data-[collapsible=icon]:hidden"
-                        />
-                    ) : null}
+                    {body}
                 </Link>
             )}
         </SidebarMenuButton>
@@ -101,9 +115,9 @@ function GroupItem({ group }: { group: NavGroup }) {
     }
 
     return (
-        <Collapsible asChild defaultOpen={active} className="group/collapsible">
+        <Collapsible asChild defaultOpen={isActive} className="group/collapsible">
             <SidebarMenuItem>
-                <div className="flex items-center">
+                <div className="flex items-center gap-0.5">
                     <div className="min-w-0 flex-1">
                         <NavContext id={group.id} href={group.href}>
                             {link}
@@ -113,38 +127,49 @@ function GroupItem({ group }: { group: NavGroup }) {
                         <button
                             type="button"
                             aria-label={t('nav.toggle_group', { name: label })}
-                            className="flex size-11 items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent md:size-8"
+                            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-surface-sunken hover:text-foreground [@media(pointer:coarse)]:size-11"
                         >
                             <ChevronRight
-                                className="size-4 transition-transform group-data-[state=open]/collapsible:rotate-90"
+                                className="size-3.5 transition-transform group-data-[state=open]/collapsible:rotate-90"
                                 aria-hidden="true"
                             />
                         </button>
                     </CollapsibleTrigger>
                 </div>
                 <CollapsibleContent>
-                    <SidebarMenuSub>
-                        {children.map((leaf) => (
-                            <SidebarMenuSubItem key={leaf.id}>
-                                <NavContext id={leaf.id} href={leaf.href}>
-                                    <SidebarMenuSubButton
-                                        asChild
-                                        isActive={isCurrentOrParentUrl(
-                                            leaf.href,
-                                        )}
-                                        className="min-h-11 md:min-h-7"
-                                    >
-                                        <Link
-                                            href={leaf.href}
-                                            prefetch
-                                            onClick={() => setOpenMobile(false)}
+                    <SidebarMenuSub className="mx-4 gap-0.5 px-2 py-0.5">
+                        {children.map((leaf) => {
+                            const leafActive =
+                                isActive && active?.leafId === leaf.id;
+
+                            return (
+                                <SidebarMenuSubItem key={leaf.id}>
+                                    <NavContext id={leaf.id} href={leaf.href}>
+                                        <SidebarMenuSubButton
+                                            asChild
+                                            size="sm"
+                                            isActive={leafActive}
+                                            className="h-7 rounded-lg px-2 text-xs text-muted-foreground hover:bg-surface-sunken hover:text-foreground data-[active=true]:bg-primary-soft data-[active=true]:font-semibold data-[active=true]:text-primary [@media(pointer:coarse)]:min-h-11"
                                         >
-                                            <span>{t(leaf.labelKey)}</span>
-                                        </Link>
-                                    </SidebarMenuSubButton>
-                                </NavContext>
-                            </SidebarMenuSubItem>
-                        ))}
+                                            <Link
+                                                href={leaf.href}
+                                                prefetch
+                                                aria-current={
+                                                    leafActive
+                                                        ? 'page'
+                                                        : undefined
+                                                }
+                                                onClick={() =>
+                                                    setOpenMobile(false)
+                                                }
+                                            >
+                                                <span>{t(leaf.labelKey)}</span>
+                                            </Link>
+                                        </SidebarMenuSubButton>
+                                    </NavContext>
+                                </SidebarMenuSubItem>
+                            );
+                        })}
                     </SidebarMenuSub>
                 </CollapsibleContent>
             </SidebarMenuItem>
@@ -152,23 +177,100 @@ function GroupItem({ group }: { group: NavGroup }) {
     );
 }
 
+/**
+ * The mockup's "Active role" card (sidebar top). The demo's role-switching select is omitted: it shows
+ * the signed-in user's role(s) and branch instead.
+ */
+function ActiveRoleCard() {
+    const { t } = useT();
+    const { auth } = usePage().props;
+    const branch = auth.branches.find((b) => b.id === auth.branch_id);
+    const role = auth.roles?.[0] ?? null;
+
+    if (!auth.user) {
+        return null;
+    }
+
+    return (
+        <div className="px-2 group-data-[collapsible=icon]:hidden">
+            <section
+                aria-label={t('nav.active_role')}
+                className="space-y-1 rounded-xl border bg-surface-sunken p-2 text-xs"
+            >
+                <div className="flex items-center justify-between gap-2 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                    <span>{t('nav.active_role')}</span>
+                    {role ? (
+                        <span className="truncate rounded-sm bg-primary-soft px-1.5 text-[9px] font-bold text-primary normal-case">
+                            {role}
+                        </span>
+                    ) : null}
+                </div>
+                <div className="truncate rounded-lg border bg-surface p-1 font-semibold text-foreground">
+                    {auth.user.name}
+                    {branch ? (
+                        <span className="font-normal text-muted-foreground">
+                            {' · '}
+                            {branch.name}
+                        </span>
+                    ) : null}
+                </div>
+            </section>
+        </div>
+    );
+}
+
 /** Permission-filtered navigation (shared `auth.permissions`); collapses to icons (Ctrl+B). */
 export function AppSidebar() {
     const { t } = useT();
     const can = useCan();
-    const groups = NAV.filter((g) => can(g.permission));
+    const { currentUrl } = useCurrentUrl();
+    const openOverlay = useUiStore((s) => s.open);
+    const sections = SIDEBAR_SECTIONS.map((section) => ({
+        ...section,
+        items: section.items.filter((g) => can(g.permission)),
+    })).filter((section) => section.items.length > 0);
+    const active = activeNav(currentUrl, sections);
 
     return (
         <Sidebar collapsible="icon" aria-label={t('nav.label')}>
-            <SidebarContent>
-                <SidebarGroup className="px-2 py-2">
-                    <SidebarMenu>
-                        {groups.map((group) => (
-                            <GroupItem key={group.id} group={group} />
-                        ))}
-                    </SidebarMenu>
-                </SidebarGroup>
+            <SidebarContent className="gap-3 py-2">
+                <ActiveRoleCard />
+                {sections.map((section) => (
+                    <SidebarGroup key={section.id} className="px-2 py-0">
+                        <SidebarGroupLabel className="mb-1 h-auto px-2.5 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                            {t(section.labelKey)}
+                        </SidebarGroupLabel>
+                        <SidebarMenu className="gap-0.5">
+                            {section.items.map((group) => (
+                                <GroupItem
+                                    key={group.id}
+                                    group={group}
+                                    active={active}
+                                />
+                            ))}
+                        </SidebarMenu>
+                    </SidebarGroup>
+                ))}
             </SidebarContent>
+            <SidebarFooter className="border-t p-2">
+                <button
+                    type="button"
+                    onClick={() => openOverlay('shortcuts')}
+                    title={`${t('nav.shortcuts_guide')} (?)`}
+                    className="flex h-7 w-full items-center justify-between gap-2 rounded-md px-2 text-xs text-muted-foreground hover:bg-surface-sunken hover:text-foreground [@media(pointer:coarse)]:min-h-11"
+                >
+                    <span className="flex items-center gap-2">
+                        <CircleHelp className="size-3.5" aria-hidden="true" />
+                        <span className="group-data-[collapsible=icon]:hidden">
+                            {t('nav.shortcuts_guide')}
+                        </span>
+                    </span>
+                    <Kbd
+                        keys="?"
+                        className="text-[10px] group-data-[collapsible=icon]:hidden"
+                    />
+                </button>
+            </SidebarFooter>
         </Sidebar>
     );
 }

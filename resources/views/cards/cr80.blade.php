@@ -3,40 +3,49 @@
 <head>
 <meta charset="utf-8">
 <title>{{ __('cards.title') }}</title>
-@php($w = $bleed ? '91.6mm' : '85.6mm')
-@php($h = $bleed ? '60mm' : '54mm')
+{{-- CR80 85.6 x 54 mm; bleed 91.6 x 60 mm (the artwork's edge colour runs 3 mm past the trim);
+     bleed + crop marks on a 101.6 x 70 mm page (5 mm slug for the marks). --}}
+@php($w = $crop ? '101.6mm' : ($bleed ? '91.6mm' : '85.6mm'))
+@php($h = $crop ? '70mm' : ($bleed ? '60mm' : '54mm'))
+@php($offset = ($crop ? 5 : 0) + ($bleed ? 3 : 0))
 <style>
     @page { size: {{ $w }} {{ $h }}; margin: 0; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: sans-serif; color: #111; }
-    .card { width: {{ $w }}; height: {{ $h }}; padding: {{ $bleed ? '8mm 8mm' : '5mm 5mm' }}; page-break-after: always; overflow: hidden; }
-    .tenant { font-size: 9pt; font-weight: bold; letter-spacing: .5pt; }
-    .name { font-size: 12pt; font-weight: bold; margin-top: 7mm; }
-    .name-bn { font-size: 11pt; }
-    .shop { font-size: 9pt; }
-    .no { font-size: 13pt; font-family: monospace; margin-top: 4mm; }
-    .meta { font-size: 7pt; margin-top: 2mm; }
-    .back { text-align: center; }
-    .back svg { width: 100%; height: 14mm; margin-top: 8mm; }
-    .code { font-family: monospace; font-size: 9pt; margin-top: 2mm; }
-    .terms { font-size: 6pt; margin-top: 4mm; }
+{!! $css !!}
+    body { margin: 0; }
+    .page { position: relative; width: {{ $w }}; height: {{ $h }}; page-break-after: always; break-after: page; overflow: hidden; }
+    .page:last-child { page-break-after: auto; break-after: auto; }
+    .page > .card { --mc-width: 85.6mm; position: absolute; left: {{ $offset }}mm; top: {{ $offset }}mm; }
+@if ($bleed)
+    /* The artwork's background runs 3 mm past the trim on every side. */
+    .bleed { position: absolute; left: {{ $offset - 3 }}mm; top: {{ $offset - 3 }}mm; width: 91.6mm; height: 60mm; }
+    .bleed.front { background: linear-gradient(135deg, #042f2e 0%, #0d9488 50%, #0f766e 100%); }
+    .bleed.back { background: #1e293b; }
+    .page > .card .mc-face { border-radius: 0; border: 0; background: transparent; overflow: visible; }
+@endif
+    .mark { position: absolute; background: #000000; }
+    .mark.v { width: .2mm; height: 4mm; }
+    .mark.h { width: 4mm; height: .2mm; }
 </style>
 </head>
 <body>
 @foreach ($cards as $card)
-    <section class="card front">
-        <div class="tenant">{{ $tenantName }}</div>
-        <div class="name">{{ $card['name'] }}</div>
-        @if ($card['name_bn'])<div class="name-bn">{{ $card['name_bn'] }}</div>@endif
-        @if ($card['shop_name'])<div class="shop">{{ $card['shop_name'] }}</div>@endif
-        <div class="no">{{ $card['customer_no'] }}</div>
-        @if ($card['member_since'])<div class="meta">{{ __('cards.member_since') }} {{ $card['member_since'] }}</div>@endif
-    </section>
-    <section class="card back">
-        {!! $card['barcode'] !!}
-        <div class="code">{{ $card['card_code'] }}</div>
-        <div class="terms">{{ __('cards.terms') }}</div>
-    </section>
+    @foreach (['_front', '_back'] as $side)
+        <div class="page">
+            @if ($bleed)<div class="bleed {{ $side === '_front' ? 'front' : 'back' }}"></div>@endif
+            @include('cards.'.$side, ['card' => $card])
+            @if ($crop)
+                {{-- Trim box corners at 8 mm / 93.6 mm (x) and 8 mm / 62 mm (y); marks stay in the slug. --}}
+                @foreach ([8, 93.6] as $x)
+                    <span class="mark v" style="left: {{ $x - 0.1 }}mm; top: 0"></span>
+                    <span class="mark v" style="left: {{ $x - 0.1 }}mm; bottom: 0"></span>
+                @endforeach
+                @foreach ([8, 62] as $y)
+                    <span class="mark h" style="top: {{ $y - 0.1 }}mm; left: 0"></span>
+                    <span class="mark h" style="top: {{ $y - 0.1 }}mm; right: 0"></span>
+                @endforeach
+            @endif
+        </div>
+    @endforeach
 @endforeach
 </body>
 </html>

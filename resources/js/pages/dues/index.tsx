@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import { Page, PageHeader } from '@/components/page-header';
 import { HandCoins, Wallet } from 'lucide-react';
 import { useMemo } from 'react';
 import {
@@ -143,13 +144,12 @@ export default function DuesIndex({ rows, meta, filters, totals }: Props) {
     return (
         <>
             <Head title={t('dues.title')} />
-            <div className="flex flex-col gap-4 p-4 md:p-6">
-                <div>
-                    <h1 className="text-2xl font-bold">{t('dues.title')}</h1>
-                    <p className="text-sm text-muted-foreground">
-                        {t('dues.subtitle')}
-                    </p>
-                </div>
+            <Page>
+                <PageHeader
+                    title={t('dues.title')}
+                    count={meta.total}
+                    subtitle={t('dues.subtitle')}
+                />
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                     <KpiTile
                         label={t('dues.kpi_total', {
@@ -239,7 +239,7 @@ export default function DuesIndex({ rows, meta, filters, totals }: Props) {
                         {t('dues.see_partial')}
                     </Link>
                 </p>
-            </div>
+            </Page>
         </>
     );
 }

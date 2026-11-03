@@ -12,6 +12,9 @@
 @import '@fontsource/jetbrains-mono/latin-400.css';
 @import '@fontsource/jetbrains-mono/latin-500.css';
 
+/* Membership card artwork, shared with the print views (resources/views/cards). */
+@import './membership-card.css';
+
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
@@ -34,6 +37,10 @@
     --color-foreground: var(--foreground);
 
     --color-card: var(--card);
+    --color-surface: var(--surface);
+    --color-surface-raised: var(--surface-raised);
+    --color-surface-sunken: var(--surface-sunken);
+    --color-border-subtle: var(--border-subtle);
     --color-card-foreground: var(--card-foreground);
 
     --color-popover: var(--popover);
@@ -94,9 +101,11 @@
     --spacing-topbar: var(--topbar-h);
     --spacing-row: var(--row-h);
     --spacing-statusbar: 1.75rem;
+    --spacing-cell-y: var(--cell-py);
+    --spacing-page: var(--page-pad);
 }
 
-/* 03_UI_Spec §1.2 light. Brand tokens below are overridden per scheme (§1.4). */
+/* 03_UI_Spec §1.2 light = the baseline mockup's tokens (tools/mockup/baseline/parts/styles_and_head.py). */
 :root {
     --background: #f8fafc;
     --foreground: #0f172a;
@@ -110,7 +119,13 @@
     --muted-foreground: #475569;
     --subtle-foreground: #64748b;
     --border: #e2e8f0;
+    --border-subtle: #f1f5f9;
     --input: #cbd5e1;
+
+    /* Mockup surface names: surface = card, raised = popover/dialog, sunken = table header, input wells. */
+    --surface: var(--card);
+    --surface-raised: var(--popover);
+    --surface-sunken: var(--muted);
 
     --primary: #0f766e;
     --primary-hover: #115e59;
@@ -143,32 +158,50 @@
     --chart-6: #15803d;
     --chart-7: #475569;
 
-    --sidebar: #ffffff;
-    --sidebar-foreground: #0f172a;
+    --sidebar: var(--card);
+    --sidebar-foreground: var(--foreground);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: var(--primary-foreground);
-    --sidebar-accent: var(--primary-soft);
+    --sidebar-accent: var(--muted);
     --sidebar-accent-foreground: var(--foreground);
-    --sidebar-border: #e2e8f0;
+    --sidebar-border: var(--border);
     --sidebar-ring: var(--ring);
 
-    --radius: 0.625rem;
+    /*
+     * Tailwind rounded-sm/md/lg = 4/6/8 px: the radii the mockup's utility classes actually render
+     * (its CDN Tailwind ignores --radius). xl = 12 px is Tailwind's default.
+     */
+    --radius: 0.5rem;
 
-    /* Density: comfortable (default) */
+    /* Density: comfortable (default) = the mockup's rendered metrics: 52 px top bar, 12 px tables, ~40 px rows. */
     --topbar-h: 3.25rem;
-    --row-h: 2.75rem;
-    --card-pad: 1.5rem;
-    --table-font: 0.875rem;
+    --row-h: 2.5rem;
+    --cell-py: 0.625rem;
+    --card-pad: 1rem;
+    --table-font: 0.75rem;
     --menu-item-h: 2rem;
     --statusbar-h: 1.75rem;
+    --page-pad: 1rem;
 }
 
+/* Compact: one step tighter than the mockup. */
 :root[data-density='compact'] {
     --topbar-h: 2.75rem;
     --row-h: 2rem;
-    --card-pad: 1rem;
-    --table-font: 0.8125rem;
+    --cell-py: 0.375rem;
+    --card-pad: 0.75rem;
+    --table-font: 0.75rem;
     --menu-item-h: 1.75rem;
+    --page-pad: 0.75rem;
+}
+
+/* Touch screens: rows and menu items never drop below a 44 px target. */
+@media (pointer: coarse) {
+    :root,
+    :root[data-density='compact'] {
+        --row-h: 2.75rem;
+        --menu-item-h: 2.75rem;
+    }
 }
 
 /* 03_UI_Spec §1.2 dark. */
@@ -185,6 +218,7 @@
     --muted-foreground: #94a3b8;
     --subtle-foreground: #64748b;
     --border: #1e293b;
+    --border-subtle: #172033;
     --input: #334155;
 
     --primary: #14b8a6;
@@ -217,9 +251,6 @@
     --chart-5: #a78bfa;
     --chart-6: #4ade80;
     --chart-7: #94a3b8;
-
-    --sidebar: #111827;
-    --sidebar-border: #1e293b;
 }
 
 /* Colour schemes override only the brand tokens (§1.4): status colours keep their meaning. */
@@ -235,35 +266,35 @@
     --primary-hover: #3730A3;
     --primary-soft: #E0E7FF;
     --primary-foreground: #FFFFFF;
-    --ring: #818CF8;
+    --ring: #6366F1;
 }
 [data-scheme='violet'] {
     --primary: #6D28D9;
     --primary-hover: #5B21B6;
     --primary-soft: #EDE9FE;
     --primary-foreground: #FFFFFF;
-    --ring: #A78BFA;
+    --ring: #8B5CF6;
 }
 [data-scheme='rose'] {
     --primary: #BE123C;
     --primary-hover: #9F1239;
     --primary-soft: #FFE4E6;
     --primary-foreground: #FFFFFF;
-    --ring: #FB7185;
+    --ring: #F43F5E;
 }
 [data-scheme='ocean'] {
     --primary: #0369A1;
     --primary-hover: #075985;
     --primary-soft: #E0F2FE;
     --primary-foreground: #FFFFFF;
-    --ring: #38BDF8;
+    --ring: #0284C7;
 }
 [data-scheme='graphite'] {
     --primary: #334155;
     --primary-hover: #1E293B;
     --primary-soft: #E2E8F0;
     --primary-foreground: #FFFFFF;
-    --ring: #CBD5E1;
+    --ring: #64748B;
 }
 
 .dark[data-scheme='teal'],
@@ -323,6 +354,38 @@
     body {
         @apply bg-background text-foreground;
         line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* The mockup's dense desktop base: 13 px body copy; touch screens keep 14 px. */
+    @media (pointer: fine) {
+        body {
+            font-size: 0.8125rem;
+        }
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        letter-spacing: -0.015em;
+    }
+
+    /* Hairline scrollbars (mockup). */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--muted-foreground);
     }
 
     /* Visible focus everywhere (03_UI_Spec §5): 2px ring, 2px offset. */
@@ -352,6 +415,21 @@
     .num {
         font-variant-numeric: tabular-nums;
         font-feature-settings: 'tnum';
+        letter-spacing: -0.01em;
+    }
+
+    /* The mockup's keycap (`kbd` in styles_and_head.py). */
+    .keycap {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        line-height: 1.35;
+        font-weight: 500;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: var(--surface-sunken);
+        border: 1px solid var(--border);
+        color: var(--muted-foreground);
+        white-space: nowrap;
     }
 
     /* Touch targets stay >= 44px on coarse pointers. */

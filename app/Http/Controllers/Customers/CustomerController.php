@@ -22,6 +22,7 @@ use App\Models\Payment;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\User;
+use App\Support\Cards\CardBrand;
 use App\Support\Customers\CustomerNumber;
 use App\Support\Customers\CustomerSearch;
 use App\Support\Customers\CustomerSearchResult;
@@ -119,6 +120,7 @@ final class CustomerController extends Controller
         return Inertia::render('customers/show', [
             'customer' => $this->detail($model),
             'card' => $card instanceof MembershipCard ? $this->cardData($card, $model) : null,
+            'brand' => app(CardBrand::class)->toArray(),
             'sales' => $user->can('viewAny', Sale::class) ? $this->sales($model) : [],
             'returns' => $user->can('viewAny', SaleReturn::class) ? $this->returns($model) : [],
             'payments' => $user->can('viewAny', Payment::class) ? $this->payments($model) : [],

@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { Page, PageHeader } from '@/components/page-header';
 import { Download, Printer } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -220,44 +221,41 @@ export default function ReportShow({
     return (
         <>
             <Head title={title} />
-            <div className="flex flex-col gap-4 p-4 md:p-6">
-                <div className="flex flex-wrap items-start justify-between gap-3 print:hidden">
-                    <div>
-                        <Link
-                            href="/app/reports"
-                            className="text-sm text-muted-foreground hover:underline"
-                        >
-                            {t('reports.back')}
-                        </Link>
-                        <h1 className="text-2xl font-bold">{title}</h1>
-                        <p className="text-sm text-muted-foreground">
-                            {t(`reports.items.${report.name}.desc`)}
-                        </p>
-                    </div>
-                    <div className="flex gap-2">
-                        {canExport ? (
+            <Page>
+                <Link
+                    href="/app/reports"
+                    className="text-sm text-muted-foreground hover:underline print:hidden"
+                >
+                    {t('reports.back')}
+                </Link>
+                <PageHeader
+                    className="print:hidden"
+                    title={title}
+                    subtitle={t(`reports.items.${report.name}.desc`)}
+                    actions={
+                        <>
+                            {canExport ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={exporting}
+                                    onClick={() => void exportCsv()}
+                                >
+                                    <Download aria-hidden="true" />
+                                    {t('reports.export')}
+                                </Button>
+                            ) : null}
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="min-h-11 md:min-h-9"
-                                disabled={exporting}
-                                onClick={() => void exportCsv()}
+                                onClick={() => window.print()}
                             >
-                                <Download aria-hidden="true" />
-                                {t('reports.export')}
+                                <Printer aria-hidden="true" />
+                                {t('reports.print')}
                             </Button>
-                        ) : null}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="min-h-11 md:min-h-9"
-                            onClick={() => window.print()}
-                        >
-                            <Printer aria-hidden="true" />
-                            {t('reports.print')}
-                        </Button>
-                    </div>
-                </div>
+                        </>
+                    }
+                />
 
                 <div className="flex flex-wrap items-end gap-3 print:hidden">
                     {report.usesPeriod ? (
@@ -394,7 +392,7 @@ export default function ReportShow({
                         </dl>
                     ) : null}
                 </div>
-            </div>
+            </Page>
         </>
     );
 }

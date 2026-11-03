@@ -17,18 +17,33 @@
 │ [≡] Logo/Tenant · Branch ▾ │ ⌕ Search or jump… (Ctrl+K) │ ● Online / ⚠ Offline · ⟳ 3 unsynced · last sync 2m │
 │                              Register R1 · 12 sales today │ 🔔 4 │ ⏰ 10:42:15 AM · Wed 29 Oct │ EN/বাং │ 🎨 │ Avatar ▾ │
 ├ SIDEBAR (collapsible to icons, Ctrl+B) ─┬ CONTENT ──────────────────────────────────────────────────────────┤
-│ Dashboard            G D                │ Breadcrumb · Page title · primary actions (with key hints)       │
-│ POS Register         F1                 │                                                                   │
-│ Sales ▸              G S                │                                                                   │
-│ Customers ▸          G C                │                                                                   │
-│ Inventory ▸          G I                │                                                                   │
-│ Purchases ▸          G P                │                                                                   │
-│ Money ▸              G M                │                                                                   │
-│ Reports              G R                │                                                                   │
-│ Settings ▸           G ,                │                                                                   │
+│ ACTIVE ROLE  [Owner]  name · branch     │                                                                   │
+│ SELL                                    │                                                                   │
+│   POS Register       F1                 │                                                                   │
+│   Sales History      G S                │                                                                   │
+│   Returns & Exchange G T                │                                                                   │
+│   Due Collection     G U                │                                                                   │
+│ CUSTOMERS                               │                                                                   │
+│   Customers          G C                │                                                                   │
+│   Customer Statement G A                │                                                                   │
+│   Membership Cards                      │                                                                   │
+│   WhatsApp & SMS     G W                │                                                                   │
+│ CATALOG & STOCK                         │                                                                   │
+│   Products & SKUs    G I                │                                                                   │
+│   Stock & Transfer   G K                │                                                                   │
+│   Purchases (GRN)    G P                │                                                                   │
+│   Vendor Directory   G V                │                                                                   │
+│ INSIGHTS                                │                                                                   │
+│   Analytics Dashboard  G D              │                                                                   │
+│   Reports Directory  G R                │                                                                   │
+│ ADMIN & SYSTEM                          │                                                                   │
+│   Users & Roles                         │                                                                   │
+│   Settings ▸         G ,                │                                                                   │
+│   Audit Security Log                    │                                                                   │
 ├─────────────────────────────────────────┴───────────────────────────────────────────────────────────────────┤
-│ STATUS BAR (desktop only, 28 px): Branch · User · Printer ✓ · Scanner ✓ · Sync ✓ · DB size 12 MB · v1.0.0    │
+│ STATUS BAR (desktop only, 28 px): Branch · User (role) · Sync ✓ │ ? Shortcuts · v1.0.0 (+ printer/scanner/DB)  │
 └──────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+Sidebar = the baseline mockup (tools/mockup/baseline, commit 2078d6c): an "Active role" card, then permission-gated groups SELL · CUSTOMERS · CATALOG & STOCK · MONEY · INSIGHTS · ADMIN & SYSTEM with small uppercase headers (hidden when no item is permitted). MONEY (Accounts & Expense, Fixed Assets), Backup & Restore and SaaS Platform Admin join when those modules exist. Customer Statement is a later owner request added under CUSTOMERS. Stock adjustments (`/app/adjustments`) are folded into "Stock & Transfer" (no own item; the palette keeps it). Exactly one item is active (longest matching path; `/app` only exact). Footer: Shortcuts Guide `?`. Settings children: business, branches, registers, payment methods, taxes, units, roles, SMS.
 Mobile (< 768 px): the sidebar becomes a bottom tab bar [Home · POS · Sales · Stock · More]. The top bar is reduced to logo · sync dot · 🔔 · avatar.
 ```
 
@@ -86,7 +101,7 @@ Rules: shortcuts never fire while typing in an input, except `Esc`, `F-keys`, `C
 | # | Method | URI | Route name | Page / response | Permission |
 |---|---|---|---|---|---|
 | **Auth** |
-| 1 | GET/POST | `/login` | `login` | `auth/login`: one identifier field `login` (email / username / phone) + **business code** (`business`) shown for non-email identifiers, remembered per browser in cookie `pos_tenant` (ADR 0006). Same error for unknown business / user / password; 5 attempts per minute per login+IP (429, every attempt written to `login_activities`); a deactivated user is refused after a correct password. A migrated user whose password is still the legacy MD5 is upgraded to argon2id on this login and sent to `password.change` | guest |
+| 1 | GET/POST | `/login` | `login` | `auth/login`: one identifier field `login` (email / username / phone) + **business code** (`business`) shown for non-email identifiers, remembered per browser in cookie `pos_tenant` (ADR 0006); the `business` prop is `{code, name, logo_url, tagline}` for a known remembered code, else null. Brand layout (`layouts/auth/auth-brand-layout.tsx`, every auth page), ported from the mockup login screen (`tools/mockup/baseline`, mockup commit 2078d6c, demo-role chips omitted): one centred card with the brand header (business logo where the mockup's mark sits, else the generic mark; business name, else the app name; tagline), then the page; below the card the EN/BN switch (`Alt+L`, cookie `locale`, read by `SetLocale` for guests; Fortify routes run the `locale` middleware) and a staff-only line. Fields are 36 px from md, 44 px below. Form: password show/hide, Caps Lock warning, error summary (`role=alert`, focused on error) plus inline errors. Same error for unknown business / user / password; 5 attempts per minute per login+IP (form post: redirect with `errors.login` = `auth.throttle` and the seconds, shown as a countdown that disables submit; JSON: 429; every attempt written to `login_activities`); a deactivated user is refused after a correct password. A migrated user whose password is still the legacy MD5 is upgraded to argon2id on this login and sent to `password.change` | guest |
 | 2 | POST | `/logout` | `logout` | redirect | auth |
 | 3 | GET/POST | `/forgot-password`, `/reset-password/{token}` | `password.*` | `auth/forgot-password`, `auth/reset-password` | guest |
 | 4 | GET/POST | `/two-factor-challenge` | `two-factor.login` | `auth/two-factor-challenge` | pending 2FA |
@@ -148,9 +163,9 @@ Rules: shortcuts never fire while typing in an input, except `Esc`, `F-keys`, `C
 | 55a | GET | `/app/messages` | `messages.index` | `messages/index` (SMS log, status filter) | `customers.view` |
 | 55b | POST | `/app/messages/{message}/resend` | `messages.resend` | redirect back (failed messages only) | `settings.manage` |
 | 56 | resource | `/app/customer-groups` | `customer-groups.*` | `customer-groups/*` | `customers.update` |
-| 57 | GET | `/app/membership-cards` | `cards.index` | `cards/index` (issued cards, filter status, print queue) | `cards.view` |
+| 57 | GET | `/app/membership-cards?q=&filter[group]=&filter[status]=issued\|not_issued\|lost&page=` | `cards.index` | `cards/index` = Membership Card Studio & Production (baseline mockup): every customer is a member (active, not walk-in, numbered), 40 per page, search name/BN name/shop/phone/number/`MC…` code; props `members[]` (uuid, name, name_bn, shop_name, phone, customer_no formatted, member_since, group, `card` = active card else latest: id, code, status, issue_no, print_count, printed_at), `meta`, `totals` (members, issued, not_issued, lost), `groups` (id, name, count), `brand` (name, logo_url, phone, branch, bin), `can` (issue, customers). Member picker (`/`, ↑↓, Enter show, Space queue), flip (`F`), CR80 PVC / A4 10-up (`Alt+1`/`Alt+2`), bulk print queue, Print Batch (`P`), press export (bleed PDF ± crop marks, CSV `Shift+E`), Report lost → Reissue | `cards.view` |
 | 58 | POST | `/app/membership-cards/issue` | `cards.issue` | issue for customer uuids (`customers[]`) → back with toast | `cards.issue` |
-| 59 | GET · GET · POST | `/app/membership-cards/print?ids=&layout=cr80\|bleed` · `/export.csv?ids=` · `POST /printed` | `cards.print` · `cards.export` · `cards.printed` | print-ready HTML with `@page` (browser print dialog saves the PDF; only active cards) · press data CSV · records print_count | `cards.issue` |
+| 59 | GET · GET · POST | `/app/membership-cards/print?ids=&customers=&layout=cr80\|bleed\|a4&crop=0\|1` · `/export.csv?ids=&customers=` · `POST /printed` | `cards.print` · `cards.export` · `cards.printed` | print-ready HTML with `@page` (browser print dialog saves the PDF; only active cards): CR80 85.6×54 front/back pages, bleed 91.6×60 (crop marks on a 101.6×70 slug page), A4 10-up (2×5, fronts then column-mirrored backs per sheet, crop marks by default) · press data CSV · records print_count (`a4` → `a4_10`). `customers` (uuids, ≤500): a customer without an active card gets one issued first (`EnsureActiveCard`; a lost card is never reused; walk-in/inactive skipped; unknown or foreign uuids are not found → 404 when nothing is printable) | `cards.issue` |
 | 60 | POST | `/app/membership-cards/{card}/lost` · `/reissue` | `cards.lost/reissue` | redirect | `cards.issue` |
 | 61 | GET | `/app/api/geo/search?q=&level=` · `/app/api/geo/{level}?parent=` | `api.geo.*` | JSON location lookup (cached, global) | auth |
 | **Inventory** |
@@ -171,6 +186,7 @@ Rules: shortcuts never fire while typing in an input, except `Esc`, `F-keys`, `C
 | 96 | POST | `/app/reports/{report}/export` | `reports.export` | CSV streamed as a download (queued export deferred; D4.2) | `reports.export` |
 | **Settings** |
 | 100 | GET/PUT | `/app/settings/business` (profile, VAT BIN, locale, timezone, currency, tax-inclusive, back-date days, return window, default credit limit, customer PIN policy, offline credit cap) | `settings.business`, `settings.business.update` | `settings/business` | `settings.manage` |
+| 100c | POST/DELETE | `/app/settings/business/logo` (PNG/JPG/WebP ≤ 2 MB, no SVG; replace deletes the old file; audit `settings.logo_updated`) | `settings.business.logo`, `settings.business.logo.destroy` | redirect + toast. The logo shows at sign-in, in the top bar (shared prop `tenant: {name, logo_url}`, null outside a tenant), on receipts and membership cards | `settings.manage` |
 | 100a | GET/PUT | `/app/settings/sms` | `settings.sms.edit`, `settings.sms.update` | `settings/sms` (provider, credentials, templates) | `settings.manage` |
 | 100b | POST | `/app/settings/sms/test` | `settings.sms.test` | redirect + toast (sends a test SMS now) | `settings.manage` |
 | 101 | GET + POST/PUT | `/app/settings/branches[/{branch}]`, `/app/settings/registers[/{register}]` (+ **devices**: list/revoke, later) | `branches.index/store/update`, `registers.index/store/update`, `devices.*` | `settings/branches`, `settings/registers` (list + dialog form) | `settings.manage`, `devices.manage` |

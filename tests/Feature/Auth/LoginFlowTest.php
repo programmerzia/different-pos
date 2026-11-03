@@ -85,11 +85,14 @@ it('throttles after five failures per login and ip and records every attempt', f
     foreach (range(1, 5) as $_) {
         $this->post('/login', ['login' => 'owner@shop.test', 'password' => 'wrong'])->assertSessionHasErrors('login');
     }
-    $this->post('/login', ['login' => 'owner@shop.test', 'password' => 'password'])->assertTooManyRequests();
+    $this->post('/login', ['login' => 'owner@shop.test', 'password' => 'password'])
+        ->assertRedirect()->assertSessionHasErrors('login');
+    expect(session('errors')->first('login'))->toMatch('/^Too many login attempts\. Please try again in \d+ seconds\.$/');
+    $this->postJson('/login', ['login' => 'owner@shop.test', 'password' => 'password'])->assertTooManyRequests();
 
     $this->assertGuest();
     expect(LoginActivity::query()->where('event', 'failed')->count())->toBe(5)
-        ->and(LoginActivity::query()->where('event', 'throttled')->count())->toBe(1);
+        ->and(LoginActivity::query()->where('event', 'throttled')->count())->toBe(2);
     RateLimiter::clear(md5('login'.'owner@shop.test|127.0.0.1'));
     expect($user->exists)->toBeTrue();
 });

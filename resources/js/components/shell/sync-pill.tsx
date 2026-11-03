@@ -13,14 +13,19 @@ const subscribe = (cb: () => void) => {
     };
 };
 
-/** Placeholder until the sync center lands (D-next): connectivity only. Offline is amber, never red. */
-export function SyncPill({ className }: { className?: string }) {
-    const { t } = useT();
-    const online = useSyncExternalStore(
+/** Browser connectivity (true on the server render). */
+export function useOnline(): boolean {
+    return useSyncExternalStore(
         subscribe,
         () => navigator.onLine,
         () => true,
     );
+}
+
+/** Placeholder until the sync center lands (D-next): connectivity only. Offline is amber, never red. */
+export function SyncPill({ className }: { className?: string }) {
+    const { t } = useT();
+    const online = useOnline();
 
     return (
         <output
