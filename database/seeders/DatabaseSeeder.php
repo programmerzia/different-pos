@@ -37,6 +37,8 @@ final class DatabaseSeeder extends Seeder
         $this->call(RolesAndPermissionsSeeder::class);
         $this->call(GeoSeeder::class);
 
+        // Real customers, products, stock, vendors, purchases and sales from the legacy dump (once).
+        $this->call(DifferentFashionSeeder::class);
         $this->storeEssentials($store, [$main, $second]);
 
         $this->tenantUser($store, ['email' => 'owner@differentfashion.test'], 'Owner', self::STORE_PASSWORD, SystemRoles::OWNER, [$main->id => true, $second->id => false], 'owner');
