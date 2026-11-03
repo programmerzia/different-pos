@@ -14,7 +14,9 @@ php artisan migrate:fresh --seed
 composer dev                  # app server, queue worker and Vite
 ```
 
-Demo login: `owner@demo.test` / `password`.
+Seeded logins (password `abc123AB`): `owner@differentfashion.test` (Owner, both branches), `admin@differentfashion.test` (platform admin at `/platform`), and the managers `Different -1` and `Different -2` (username login).
+
+Demo login, local and testing only: `owner@demo.test` / `password`.
 
 ## Quality gates
 
