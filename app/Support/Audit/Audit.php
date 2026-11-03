@@ -38,6 +38,18 @@ final class Audit
         $logger->withProperties(self::scrub($properties))->log($event);
     }
 
+    /** Model events report old/new values in properties: they belong in attribute_changes, which the audit screen reads. */
+    public static function separateChanges(ActivityContract $activity): void
+    {
+        if (! $activity instanceof Model) {
+            return;
+        }
+
+        $properties = collect($activity->getAttribute('properties'));
+        $activity->setAttribute('attribute_changes', $properties->only(['attributes', 'old'])->all());
+        $activity->setAttribute('properties', $properties->except(['attributes', 'old'])->all());
+    }
+
     /** Stamps tenant_id (subject's tenant, else the context's; NULL for platform events) and scrubs secrets. */
     public static function prepare(ActivityContract $activity): void
     {

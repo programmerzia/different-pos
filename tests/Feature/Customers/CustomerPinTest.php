@@ -7,6 +7,7 @@ use App\Actions\Customers\SetCustomerPin;
 use App\Actions\Customers\UnlockCustomerPin;
 use App\Actions\Customers\VerifyCustomerPin;
 use App\Exceptions\Domain\InvalidCustomerPin;
+use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\Tenant;
 use App\Support\Customers\CustomerPin;
@@ -17,7 +18,6 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia;
-use Spatie\Activitylog\Models\Activity;
 use Tests\Fixtures\SalesWorld;
 
 beforeEach(function (): void {

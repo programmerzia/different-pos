@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Actions\Messaging\SendSmsBroadcast;
 use App\Enums\SmsBroadcastStatus;
 use App\Exceptions\Domain\InvalidAdminData;
+use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\Message;
@@ -19,7 +20,6 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
-use Spatie\Activitylog\Models\Activity;
 use Tests\Fixtures\SalesWorld;
 
 /*

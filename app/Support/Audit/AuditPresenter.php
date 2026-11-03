@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Audit;
 
+use App\Models\Activity;
 use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\PaymentMethod;
@@ -17,7 +18,6 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Support\Sales\BusinessDay;
 use Illuminate\Support\Facades\DB;
-use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role;
 
 /**

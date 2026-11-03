@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Activity;
 use App\Models\User;
 use App\Support\Audit\AuditPresenter;
 use App\Support\Http\TableQuery;
@@ -16,7 +17,6 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Inertia\Inertia;
 use Inertia\Response;
-use Spatie\Activitylog\Models\Activity;
 
 /** /app/settings/audit: the business's activity log, newest first (audit.view via route middleware). */
 final class AuditController extends Controller implements HasMiddleware

@@ -12,6 +12,7 @@ use App\Enums\SaleStatus;
 use App\Enums\StockMovementType;
 use App\Exceptions\Domain\InvalidSaleDocument;
 use App\Exceptions\Domain\VoidWindowClosed;
+use App\Models\Activity;
 use App\Models\BranchStock;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
@@ -23,7 +24,6 @@ use App\Support\Quantity\Quantity;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Spatie\Activitylog\Models\Activity;
 use Tests\Fixtures\SalesWorld;
 
 beforeEach(function (): void {

@@ -10,12 +10,12 @@ use App\Actions\Backup\RunScheduledBackup;
 use App\Backup\BackupRunner;
 use App\Exceptions\Domain\InvalidAdminData;
 use App\Jobs\RunBackupJob;
+use App\Models\Activity;
 use App\Models\Backup;
 use App\Support\Permissions\SystemRoles;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
-use Spatie\Activitylog\Models\Activity;
 use Tests\Feature\Backup\FakeBackupRunner;
 
 // The page components are built by the owner (npm run build); these tests only assert the Inertia props.

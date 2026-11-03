@@ -20,7 +20,7 @@ return RectorConfig::configure()
         // Pest closures/datasets in tests: return types add noise, not safety.
         AddArrowFunctionReturnTypeRector::class => [__DIR__.'/tests'],
     ])
-    ->withPhpSets(php84: true)
+    ->withPhpSets(php83: true)
     ->withPreparedSets(
         deadCode: true,
         codeQuality: true,

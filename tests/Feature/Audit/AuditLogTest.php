@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Audit\Audit;
 use App\Support\Tenancy\TenantContext;
-use Spatie\Activitylog\Models\Activity;
 
 function auditTenant(): Tenant
 {

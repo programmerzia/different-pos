@@ -11,6 +11,7 @@ use App\Enums\MessageStatus;
 use App\Exceptions\Domain\InvalidAdminData;
 use App\Exceptions\Domain\WhatsAppNotConfigured;
 use App\Messaging\MessageDispatcher;
+use App\Models\Activity;
 use App\Models\Message;
 use App\Models\SmsBroadcast;
 use App\Models\User;
@@ -24,7 +25,6 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
-use Spatie\Activitylog\Models\Activity;
 use Tests\Fixtures\SalesWorld;
 
 /*

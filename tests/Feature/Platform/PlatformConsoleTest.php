@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__).'/Admin/AdminHelpers.php';
 
+use App\Models\Activity;
 use App\Models\Backup;
 use App\Models\Sale;
 use App\Models\Tenant;
@@ -13,7 +14,6 @@ use App\Support\Permissions\SystemRoles;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
-use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function (): void {
     $this->withoutVite();

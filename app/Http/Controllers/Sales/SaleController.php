@@ -14,6 +14,7 @@ use App\Http\Controllers\Concerns\TranslatesDomainErrors;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Sales\Concerns\PresentsSales;
 use App\Http\Requests\Sales\VoidSaleRequest;
+use App\Models\Activity;
 use App\Models\Customer;
 use App\Models\Message;
 use App\Models\Payment;
@@ -45,7 +46,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
-use Spatie\Activitylog\Models\Activity;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** Sales history (current branch): list, detail, void and share link. */

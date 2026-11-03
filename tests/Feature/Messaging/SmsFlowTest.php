@@ -11,6 +11,7 @@ use App\Actions\Sales\Data\CustomerPaymentDraft;
 use App\Enums\MessageStatus;
 use App\Exceptions\Domain\DomainException;
 use App\Exceptions\Domain\SmsNotConfigured;
+use App\Models\Activity;
 use App\Models\Message;
 use App\Models\Product;
 use App\Models\Tenant;
@@ -26,7 +27,6 @@ use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
-use Spatie\Activitylog\Models\Activity;
 use Tests\Fixtures\SalesWorld;
 
 beforeEach(function (): void {

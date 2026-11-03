@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 require_once __DIR__.'/AdminHelpers.php';
 
+use App\Models\Activity;
 use App\Models\Tenant;
 use App\Support\Permissions\SystemRoles;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
-use Spatie\Activitylog\Models\Activity;
 
 beforeEach(function (): void {
     Storage::fake('public');

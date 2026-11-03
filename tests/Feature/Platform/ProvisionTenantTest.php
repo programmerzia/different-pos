@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\Platform\ProvisionTenant;
 use App\Exceptions\Domain\InvalidAdminData;
+use App\Models\Activity;
 use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\PaymentMethod;
@@ -17,7 +18,6 @@ use App\Support\Permissions\SystemRoles;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
-use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 

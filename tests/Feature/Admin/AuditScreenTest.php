@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 require_once __DIR__.'/AdminHelpers.php';
 
+use App\Models\Activity;
 use App\Models\User;
 use App\Support\Audit\Audit;
 use App\Support\Permissions\SystemRoles;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Inertia\Testing\AssertableInertia as Assert;
-use Spatie\Activitylog\Models\Activity;
 
 it('needs audit.view', function (): void {
     [$manager] = adminActor(SystemRoles::MANAGER);

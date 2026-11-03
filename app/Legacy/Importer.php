@@ -21,7 +21,7 @@ use App\Legacy\Steps\Vendors;
 use App\Support\Database\Transaction;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Contracts\Container\Container;
-use Spatie\Activitylog\Support\ActivityLogger;
+use Spatie\Activitylog\ActivityLogger;
 
 /**
  * Imports legacy stores into one tenant (05_Schema §12, ADR 0002). The whole run is ONE transaction:
@@ -59,7 +59,7 @@ final readonly class Importer
         $started = hrtime(true);
         $context = new ImportContext($options);
 
-        return $this->activity->withoutLogging(fn (): ImportResult => Transaction::run(function () use ($context, $started): ImportResult {
+        return $this->activity->withoutLogs(fn (): ImportResult => Transaction::run(function () use ($context, $started): ImportResult {
             $this->step($context, $this->container->make(StoresAndBranches::class));
 
             return $this->tenancy->run($context->tenant(), null, function () use ($context, $started): ImportResult {

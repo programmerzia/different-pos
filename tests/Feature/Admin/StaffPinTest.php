@@ -6,12 +6,12 @@ require_once __DIR__.'/AdminHelpers.php';
 
 use App\Actions\Users\ResetStaffPin;
 use App\Exceptions\Domain\InvalidAdminData;
+use App\Models\Activity;
 use App\Models\User;
 use App\Support\Permissions\SystemRoles;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
-use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role;
 
 it('resets a staff PIN, clears the lockout and audits without the PIN', function (): void {

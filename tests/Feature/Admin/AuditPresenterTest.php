@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__.'/AdminHelpers.php';
 
+use App\Models\Activity;
 use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\Product;
@@ -12,7 +13,6 @@ use App\Support\Audit\AuditPresenter;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
-use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Role;
 
 /** Rows for the activity log: subject names instead of "Role #9", and tenant-local timestamps. */

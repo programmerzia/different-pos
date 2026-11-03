@@ -18,7 +18,7 @@ Both frameworks could do the job. This choice minimises custom plumbing for keyb
 
 | Component | Constraint | Pinned | Notes |
 |---|---|---|---|
-| PHP | `^8.4` (dev has 8.5.12; CI runs 8.4 and 8.5) | 8.5.12 (dev) | ext: `bcmath intl mbstring pdo_mysql redis gd zip exif pcntl sodium` |
+| PHP | `^8.3` (Composer platform pinned to 8.3 because the dev server runs 8.3; owner decision 2026-11-04) | 8.5.12 (dev), 8.3 (dev server) | ext: `bcmath intl mbstring pdo_mysql redis gd zip exif pcntl sodium` |
 | Laravel | `^13.0` | 13.39.0 | |
 | Composer | `>= 2.8` | 2.11.1 | |
 | Node.js | 24 LTS | 24.22.2 (via nvm) | npm, `package-lock.json` committed |
@@ -46,7 +46,7 @@ Both frameworks could do the job. This choice minimises custom plumbing for keyb
 | `laravel/horizon` | 5.50.1 | queues (prod, needs `ext-redis`) |
 | `laravel/pulse` | 1.8.1 | perf monitoring (gated) |
 | `spatie/laravel-permission` | 8.3.2 | roles/permissions, teams = tenant |
-| `spatie/laravel-activitylog` | 5.1.3 | audit |
+| `spatie/laravel-activitylog` | 4.12.3 (5.x needs PHP 8.4) | audit |
 | `spatie/laravel-backup` | 10.3.3 | backups |
 | `spatie/simple-excel` | 3.11.0 | XLSX streaming (`App\Support\Export\XlsxWriter`: typed money/qty/date cells); CSV stays `ReportCsv` |
 | `mpdf/mpdf` | 8.3.1 (`^8.3`), installed 2026-11-03 | Bangla-shaped PDFs (`App\Support\Pdf\PdfRenderer`, Hind Siliguri in `resources/fonts/`, ADR 0009). Needs `ext-gd` |
@@ -58,7 +58,7 @@ Both frameworks could do the job. This choice minimises custom plumbing for keyb
 | starter-kit extras | `laravel/chisel` 0.1.1, `laravel/tinker` 3.0.2 | kept as shipped |
 
 ### 2.2 Composer (dev)
-`pestphp/pest` 5.3.4 + `pest-plugin-laravel` 5.0.1 + `pest-plugin-drift` 5.0.0 · `larastan/larastan` 3.13.2 (level 8) · `laravel/pint` 1.32.1 · `rector/rector` 2.8.3 · `laravel/telescope` 5.26.0 (local only, not auto-discovered) · `fakerphp/faker` 1.24.1 · `mockery/mockery` 1.6.15 · `nunomaduro/collision` 8.9.5 · starter-kit: `laravel/pail`, `laravel/pao`, `laravel/sail` (unused; native dev).
+`pestphp/pest` 4.7.8 + `pest-plugin-laravel` 4.1.0 + `pest-plugin-drift` 4.1.0 · `larastan/larastan` 3.13.2 (level 8) · `laravel/pint` 1.32.1 · `rector/rector` 2.8.3 · `laravel/telescope` 5.26.0 (local only, not auto-discovered) · `fakerphp/faker` 1.24.1 · `mockery/mockery` 1.6.15 · `nunomaduro/collision` 8.9.5 · starter-kit: `laravel/pail`, `laravel/pao`, `laravel/sail` (unused; native dev).
 
 ### 2.3 npm
 | Package | Pinned | Purpose |

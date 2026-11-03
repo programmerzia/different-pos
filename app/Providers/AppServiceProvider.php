@@ -7,7 +7,6 @@ namespace App\Providers;
 use App\Backup\BackupRunner;
 use App\Backup\SpatieBackupRunner;
 use App\Models\User;
-use App\Support\Audit\Audit;
 use App\Support\Platform\Impersonation;
 use App\Support\Sync\SyncVersionRecorder;
 use App\Support\Tenancy\TenantContext;
@@ -21,7 +20,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
-use Spatie\Activitylog\Actions\LogActivityAction;
 
 final class AppServiceProvider extends ServiceProvider
 {
@@ -42,7 +40,6 @@ final class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
-        LogActivityAction::beforeLogging(Audit::prepare(...));
         // Not permissions (spatie's before-hook yields null for unknown names): platform-level abilities.
         Gate::define('platform.admin', static fn (User $user): bool => $user->is_platform_admin && $user->tenant_id === null);
         Gate::define('impersonating', static fn (User $user): bool => app(Impersonation::class)->isActive());
