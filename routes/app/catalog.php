@@ -6,6 +6,7 @@ use App\Http\Controllers\Catalog\BrandController;
 use App\Http\Controllers\Catalog\CategoryController;
 use App\Http\Controllers\Catalog\ProductController;
 use App\Http\Controllers\Catalog\ProductFamilyController;
+use App\Http\Controllers\Catalog\ProductImageController;
 use App\Http\Controllers\Catalog\VariantOptionController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('products', [ProductController::class, 'index'])->name('products.index');
 Route::get('products/create', [ProductController::class, 'create'])->name('products.create');
 Route::post('products', [ProductController::class, 'store'])->name('products.store');
+Route::get('products/images', ProductImageController::class)->name('products.images');
 
 Route::get('products/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::post('products/categories', [CategoryController::class, 'store'])->name('categories.store');

@@ -73,6 +73,7 @@ describe('register hotkeys', () => {
         );
         expect(keys).toMatchObject({
             search: 'f2',
+            browse: 'alt+g',
             customer: 'f4',
             price_check: 'f5',
             line_discount: 'f6',

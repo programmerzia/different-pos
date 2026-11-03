@@ -38,6 +38,66 @@ test('register: bill line stepper, payment panel keys, Esc after a dialog', asyn
     await expect(page.getByText('Cart is empty')).toBeVisible();
 });
 
+test('register: the cart is the main view; the search dropdown and the browse surface add to it', async ({
+    page,
+}) => {
+    await open(page, '/app/pos');
+    await expect(page.getByText('Cart is empty')).toBeVisible();
+    const catalogue = page.getByRole('region', { name: 'Catalogue' });
+    await expect(catalogue).toHaveCount(0);
+
+    // Typing shows the hits in a dropdown under the field; Enter adds the highlighted one.
+    await page.keyboard.press('F2');
+    await expect(page.getByLabel(/Scan barcode, SKU/)).toBeFocused();
+    await page.evaluate(
+        () =>
+            new Promise((done) =>
+                requestAnimationFrame(() => requestAnimationFrame(done)),
+            ),
+    );
+    await page.keyboard.type('E2E Ca');
+    const hits = page.getByRole('list', { name: 'Search results' });
+    await expect(hits.getByRole('button', { name: /E2E Cap/ })).toBeVisible();
+    await page.keyboard.press('Enter');
+    const bill = page.getByRole('table', { name: 'Bill lines' });
+    await expect(bill.getByText('E2E Cap')).toBeVisible();
+    await expect(hits).toHaveCount(0);
+
+    // Alt+G opens the browse surface over the bill; Esc goes back to the cart.
+    await page.keyboard.press('Alt+G');
+    await expect(catalogue).toBeVisible();
+    await expect(
+        catalogue.getByRole('button', { name: /E2E Bag/ }),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(catalogue).toBeHidden();
+    await expect(bill.getByText('E2E Cap')).toBeVisible();
+
+    // Typed text filters the open grid; ↓ enters it, Enter adds and returns to the cart.
+    await page.keyboard.press('Alt+G');
+    await expect(catalogue).toBeVisible();
+    await page.keyboard.type('E2E Bag');
+    await expect(
+        catalogue.getByRole('button', { name: /E2E Bag/ }),
+    ).toBeVisible();
+    await expect(
+        catalogue.getByRole('button', { name: /E2E Cap/ }),
+    ).toHaveCount(0);
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await expect(catalogue).toBeHidden();
+    await expect(bill.getByText('E2E Bag')).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: /Pay ৳1,500\.00/ }),
+    ).toBeVisible();
+
+    // Del with the empty field removes the selected line, until the cart is empty again.
+    await page.keyboard.press('F2');
+    await page.keyboard.press('Delete');
+    await page.keyboard.press('Delete');
+    await expect(page.getByText('Cart is empty')).toBeVisible();
+});
+
 test('sells to a card member, paying cash in full', async ({ page }) => {
     await ringUp(page, 'E2E-TEE', '01711000001', 'Rina Member');
     await page.keyboard.press('F10');

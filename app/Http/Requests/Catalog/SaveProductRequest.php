@@ -60,6 +60,8 @@ final class SaveProductRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:2000'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'remove_image' => ['boolean'],
+            // Reuse a photo already on one of this tenant's products (the image picker); no file copy.
+            'existing_image' => ['nullable', 'string', 'max:255', ScopedExists::in('products', 'image_path', softDeletes: true)],
             'variants' => [$creating ? 'nullable' : 'prohibited', 'array'],
             'variants.option1_id' => ['required_with:variants', 'integer', ScopedExists::in('variant_options')],
             'variants.option2_id' => ['nullable', 'integer', 'different:variants.option1_id', ScopedExists::in('variant_options')],

@@ -2,13 +2,16 @@ import { Head, router } from '@inertiajs/react';
 import {
     Banknote,
     CircleCheck,
+    LayoutGrid,
     Layers,
     Pause,
     Percent,
     Printer,
+    Receipt,
     RotateCcw,
     Search,
     ShieldCheck,
+    ShoppingCart,
     Tag,
     Trash2,
     UserRound,
@@ -32,12 +35,20 @@ import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useCan } from '@/hooks/use-can';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
+import { cn } from '@/lib/utils';
 import {
     saleBody,
     searchProducts,
     submitSale,
     type PosError,
 } from '@/pos/register/api';
+import {
+    BROWSE_CLOSED,
+    browseReducer,
+    chooseOutcome,
+    escapeStep,
+    showSearchDropdown,
+} from '@/pos/register/browse';
 import {
     cartReducer,
     cartTotals,
@@ -55,6 +66,7 @@ import { PaymentDialog } from '@/pos/register/components/payment-dialog';
 import { PriceCheckDialog } from '@/pos/register/components/price-check-dialog';
 import { QtyDialog } from '@/pos/register/components/qty-dialog';
 import {
+    BillHead,
     BillLine,
     Breakdown,
     CatalogTile,
@@ -63,6 +75,7 @@ import {
     EmptyBill,
     FnButton,
     PayBar,
+    SearchHit,
 } from '@/pos/register/components/register-parts';
 import { TodayDialog } from '@/pos/register/components/today-dialog';
 import { VariantPicker } from '@/pos/register/components/variant-picker';
@@ -126,6 +139,9 @@ const POS_SPECS = posHotkeySpecs((command, event) => {
 
 const registerStorageKey = (branchId: number) => `pos.register.${branchId}`;
 
+/** Hits shown in the dropdown under the scan field; "Show all" opens the browse grid with the rest. */
+const DROPDOWN_MAX = 8;
+
 function initialRegister(
     branchId: number,
     registers: Props['registers'],
@@ -160,7 +176,10 @@ export default function Register(props: Props) {
     const total = totals.order.grand_total;
 
     const [query, setQuery] = useState('');
-    const [category, setCategory] = useState<number | null>(null);
+    // The product grid is a surface opened on purpose over the bill (Browse catalogue, Alt+G).
+    const [browse, browseTo] = useReducer(browseReducer, BROWSE_CLOSED);
+    const category = browse.category;
+    const [scanFocused, setScanFocused] = useState(false);
     const [items, setItems] = useState<CatalogItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [highlight, setHighlight] = useState(-1);
@@ -203,13 +222,22 @@ export default function Register(props: Props) {
         focusScan();
     }, [focusScan]);
 
-    // Catalogue: debounced search, or the category / first page when the field is empty.
+    // Catalogue: debounced search (dropdown, or the browse grid's filter), or the category / first
+    // page while browsing with an empty field. Nothing is fetched while the cart view shows alone.
+    const browsing = browse.open;
     useEffect(() => {
+        if (!browsing && query.trim() === '') {
+            return;
+        }
         const controller = new AbortController();
         const timer = setTimeout(
             () => {
                 setLoading(true);
-                searchProducts(query.trim(), category, controller.signal)
+                searchProducts(
+                    query.trim(),
+                    browsing ? category : null,
+                    controller.signal,
+                )
                     .then((r) => {
                         setItems(r.items);
                         setHighlight(query.trim() === '' ? -1 : 0);
@@ -226,7 +254,7 @@ export default function Register(props: Props) {
             clearTimeout(timer);
             controller.abort();
         };
-    }, [query, category]);
+    }, [query, category, browsing]);
 
     const addVariants = useCallback(
         (rows: { variant: CatalogVariant; qty: number }[]) => {
@@ -258,22 +286,37 @@ export default function Register(props: Props) {
         [cart.lines, settings.allow_negative_stock, t, d],
     );
 
+    /** Back to the cart view: clear the search, close the browse surface, focus the scan field. */
+    const backToCart = useCallback(() => {
+        setQuery('');
+        setItems([]);
+        setHighlight(-1);
+        browseTo({ type: 'close' });
+        focusScan();
+    }, [focusScan]);
+
+    /** A plain product goes straight onto the bill (and back to the cart); a family opens the picker. */
     const choose = useCallback(
         (item: CatalogItem | undefined) => {
             if (!item) {
                 return;
             }
             const only = item.variants[0];
-            if (item.kind === 'product' && only) {
-                addVariants([{ variant: only, qty: QTY_SCALE }]);
-                setQuery('');
-                focusScan();
-
-                return;
+            switch (chooseOutcome(item)) {
+                case 'add':
+                    if (only) {
+                        addVariants([{ variant: only, qty: QTY_SCALE }]);
+                    }
+                    backToCart();
+                    break;
+                case 'picker':
+                    setPicker(item);
+                    break;
+                case 'none':
+                    break;
             }
-            setPicker(item);
         },
-        [addVariants, focusScan],
+        [addVariants, backToCart],
     );
 
     /** Enter in the scan field: exact barcode / SKU adds at once, else the highlighted result. */
@@ -413,6 +456,11 @@ export default function Register(props: Props) {
             case 'search':
                 focusScan();
                 break;
+            case 'browse':
+                setCompleted(null);
+                browseTo({ type: 'toggle' });
+                focusScan();
+                break;
             case 'qty':
                 if (selectedLine) {
                     setDialog('qty');
@@ -462,13 +510,29 @@ export default function Register(props: Props) {
                 printReceipt(lastSale);
                 break;
             case 'cancel':
-                if (completed) {
-                    newSale();
-                } else if (query !== '') {
-                    setQuery('');
-                    focusScan();
-                } else if (cart.lines.length > 0) {
-                    setDialog('clear');
+                switch (
+                    escapeStep({
+                        completed: completed !== null,
+                        query,
+                        browseOpen: browse.open,
+                        hasLines: cart.lines.length > 0,
+                    })
+                ) {
+                    case 'new_sale':
+                        newSale();
+                        break;
+                    case 'clear_query':
+                        setQuery('');
+                        focusScan();
+                        break;
+                    case 'close_browse':
+                        backToCart();
+                        break;
+                    case 'confirm_clear':
+                        setDialog('clear');
+                        break;
+                    case null:
+                        break;
                 }
                 break;
             case 'remove':
@@ -622,17 +686,45 @@ export default function Register(props: Props) {
             choose(items[index]);
         }
         if (e.key === 'Escape') {
+            // Esc on a tile closes the browse surface (the pos `cancel` key must not also run).
             e.preventDefault();
             e.stopPropagation();
-            focusScan();
+            backToCart();
         }
     };
 
-    /** Scan field keys: Enter scans; with an empty field ↑↓ pick a bill line and Delete removes it. */
+    const dropdown = scanFocused && showSearchDropdown(query, browse.open);
+    const shown = dropdown ? items.slice(0, DROPDOWN_MAX) : [];
+
+    /**
+     * Scan field keys: Enter scans (or takes the highlighted hit); ↑↓ move through the dropdown, or into
+     * the browse grid; with an empty field and no grid ↑↓ pick a bill line and Delete removes it.
+     */
     const scanKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             void scan();
+
+            return;
+        }
+        if (dropdown && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+            e.preventDefault();
+            if (shown.length > 0) {
+                const delta = e.key === 'ArrowDown' ? 1 : -1;
+                setHighlight((highlight + delta + shown.length) % shown.length);
+            }
+
+            return;
+        }
+        if (browse.open) {
+            if (e.key === 'ArrowDown' && items.length > 0) {
+                e.preventDefault();
+                const target = Math.max(0, highlight);
+                setHighlight(target);
+                (
+                    gridRef.current?.children[target] as HTMLElement | undefined
+                )?.focus();
+            }
 
             return;
         }
@@ -647,14 +739,6 @@ export default function Register(props: Props) {
             }
 
             return;
-        }
-        if (e.key === 'ArrowDown' && items.length > 0) {
-            e.preventDefault();
-            const target = Math.max(0, highlight);
-            setHighlight(target);
-            (
-                gridRef.current?.children[target] as HTMLElement | undefined
-            )?.focus();
         }
     };
 
@@ -706,12 +790,12 @@ export default function Register(props: Props) {
         <>
             <Head title={t('pos.title')} />
             <div className="flex min-h-0 flex-col overflow-hidden md:h-[calc(100svh-var(--topbar-h)-var(--statusbar-h))] lg:flex-row">
-                {/* Left: scan bar, category pills, catalogue grid / completion, function bar */}
+                {/* Left: scan bar + Browse, the bill ledger (or the completed sale), the browse surface over it, function bar */}
                 <section
                     className="flex min-w-0 flex-1 flex-col overflow-hidden border-r"
-                    aria-label={t('pos.catalog.label')}
+                    aria-label={t('pos.bill.ledger')}
                 >
-                    <div className="shrink-0 space-y-2 border-b bg-surface p-2">
+                    <div className="shrink-0 border-b bg-surface p-2">
                         <div className="flex items-center gap-2">
                             <div className="relative flex-1">
                                 <Search
@@ -731,6 +815,8 @@ export default function Register(props: Props) {
                                             setCompleted(null);
                                         }
                                     }}
+                                    onFocus={() => setScanFocused(true)}
+                                    onBlur={() => setScanFocused(false)}
                                     placeholder={t('pos.scan.placeholder')}
                                     aria-label={t('pos.scan.placeholder')}
                                     autoComplete="off"
@@ -741,7 +827,100 @@ export default function Register(props: Props) {
                                     keys="f2"
                                     className="absolute top-1/2 right-2 -translate-y-1/2 text-[10px]"
                                 />
+                                {dropdown && (
+                                    <div className="absolute top-full left-0 z-30 mt-1 w-full min-w-[min(34rem,calc(100vw-2rem))] overflow-hidden rounded-lg border bg-surface shadow-lg">
+                                        {shown.length > 0 ? (
+                                            <ul
+                                                id="pos-search-results"
+                                                aria-label={t(
+                                                    'pos.catalog.dropdown',
+                                                )}
+                                                className="max-h-[60vh] divide-y overflow-y-auto"
+                                            >
+                                                {shown.map((item, i) => (
+                                                    <SearchHit
+                                                        key={item.key}
+                                                        id={`pos-hit-${i}`}
+                                                        item={item}
+                                                        active={i === highlight}
+                                                        onChoose={() =>
+                                                            choose(item)
+                                                        }
+                                                        onHover={() =>
+                                                            setHighlight(i)
+                                                        }
+                                                    />
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p
+                                                id="pos-search-results"
+                                                className="p-3 text-center text-xs text-muted-foreground"
+                                            >
+                                                {loading
+                                                    ? t('pos.catalog.loading')
+                                                    : t('pos.scan.none')}
+                                            </p>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onMouseDown={(e) =>
+                                                e.preventDefault()
+                                            }
+                                            onClick={() =>
+                                                browseTo({ type: 'open' })
+                                            }
+                                            className="touch-target flex w-full items-center justify-center gap-1.5 border-t bg-surface-sunken px-3 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary-soft"
+                                        >
+                                            <LayoutGrid
+                                                className="size-3"
+                                                aria-hidden="true"
+                                            />
+                                            {t('pos.catalog.see_all')}
+                                            <Kbd
+                                                keys="alt+g"
+                                                className="text-[9px]"
+                                            />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
+                            <button
+                                type="button"
+                                aria-pressed={browse.open}
+                                onClick={() => run('browse')}
+                                className={cn(
+                                    'touch-target flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors',
+                                    browse.open
+                                        ? 'border-primary bg-primary text-primary-foreground shadow-xs'
+                                        : 'bg-surface-sunken text-foreground hover:border-primary',
+                                )}
+                                title={t('pos.keys.browse')}
+                            >
+                                {browse.open ? (
+                                    <ShoppingCart
+                                        className="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                ) : (
+                                    <LayoutGrid
+                                        className="size-3.5"
+                                        aria-hidden="true"
+                                    />
+                                )}
+                                <span className="hidden md:inline">
+                                    {browse.open
+                                        ? t('pos.catalog.back', { count: pcs })
+                                        : t('pos.catalog.browse')}
+                                </span>
+                                <Kbd
+                                    keys="alt+g"
+                                    tone={
+                                        browse.open ? 'on-primary' : 'default'
+                                    }
+                                    className="text-[10px]"
+                                />
+                            </button>
                             {props.registers.length > 1 && (
                                 <select
                                     className="touch-target h-9 rounded-lg border bg-surface-sunken px-2 text-xs"
@@ -796,74 +975,219 @@ export default function Register(props: Props) {
                                 </button>
                             )}
                         </div>
-
-                        {props.categories.length > 0 && (
-                            <div
-                                className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-1 select-none"
-                                role="toolbar"
-                                aria-label={t('pos.catalog.categories')}
-                            >
-                                <CategoryPill
-                                    active={category === null}
-                                    onClick={() => setCategory(null)}
-                                >
-                                    {t('pos.catalog.all_items')}
-                                </CategoryPill>
-                                {props.categories.map((c) => (
-                                    <CategoryPill
-                                        key={c.id}
-                                        active={category === c.id}
-                                        onClick={() => setCategory(c.id)}
-                                    >
-                                        {name(c)}
-                                    </CategoryPill>
-                                ))}
-                            </div>
-                        )}
                     </div>
 
-                    <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                    <div className="relative flex min-h-0 flex-1 flex-col">
                         {completed ? (
-                            <Completed
-                                sale={completed}
-                                canPrint={
-                                    completed.receipt_url !== null ||
-                                    props.receiptAvailable
-                                }
-                                onPrint={() => printReceipt(completed)}
-                                onNew={newSale}
-                            />
-                        ) : items.length === 0 && !loading ? (
-                            <p className="p-6 text-center text-xs text-muted-foreground">
-                                {query === ''
-                                    ? t('pos.catalog.empty')
-                                    : t('pos.scan.none')}
-                            </p>
-                        ) : (
-                            <div
-                                ref={gridRef}
-                                aria-label={t('pos.catalog.results')}
-                                className="grid auto-rows-max grid-cols-2 content-start items-start gap-2.5 sm:grid-cols-3 xl:grid-cols-4"
-                            >
-                                {items.map((item, i) => (
-                                    <CatalogTile
-                                        key={item.key}
-                                        item={item}
-                                        highlighted={i === highlight}
-                                        tabIndex={
-                                            i === Math.max(0, highlight)
-                                                ? 0
-                                                : -1
-                                        }
-                                        onChoose={() => choose(item)}
-                                        onFocus={() => setHighlight(i)}
-                                        onKeyDown={(e) => gridKeys(e, i)}
-                                    />
-                                ))}
+                            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                                <Completed
+                                    sale={completed}
+                                    canPrint={
+                                        completed.receipt_url !== null ||
+                                        props.receiptAvailable
+                                    }
+                                    onPrint={() => printReceipt(completed)}
+                                    onNew={newSale}
+                                />
                             </div>
+                        ) : !hasLines ? (
+                            <EmptyBill onBrowse={() => run('browse')} />
+                        ) : (
+                            <>
+                                <div className="flex shrink-0 items-center justify-between gap-2 border-b bg-surface-sunken/60 px-3 py-1.5 text-xs">
+                                    <span className="flex items-center gap-1.5 font-bold text-foreground">
+                                        <Receipt
+                                            className="size-3.5 text-primary"
+                                            aria-hidden="true"
+                                        />
+                                        {t('pos.bill.ledger')}
+                                    </span>
+                                    <span className="num rounded-md border bg-surface px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                                        {t('pos.bill.ledger_count', {
+                                            pcs,
+                                            lines: d.n(cart.lines.length),
+                                        })}
+                                    </span>
+                                </div>
+                                <div className="min-h-0 flex-1 overflow-y-auto">
+                                    <table
+                                        aria-label={t('pos.bill.lines')}
+                                        className="w-full border-collapse"
+                                    >
+                                        <BillHead />
+                                        <tbody className="divide-y">
+                                            {cart.lines.map((line, i) => (
+                                                <RowContextMenu
+                                                    key={line.key}
+                                                    entity="pos_line"
+                                                    row={line}
+                                                    handlers={lineHandlers}
+                                                >
+                                                    <BillLine
+                                                        ref={(node) => {
+                                                            rowRefs.current[i] =
+                                                                node;
+                                                        }}
+                                                        index={i}
+                                                        line={line}
+                                                        priced={totals.lines[i]}
+                                                        selected={
+                                                            i === cart.selected
+                                                        }
+                                                        onSelect={() =>
+                                                            selectLine(i)
+                                                        }
+                                                        onQty={() => {
+                                                            selectLine(i);
+                                                            setDialog('qty');
+                                                        }}
+                                                        onStep={(delta) =>
+                                                            stepLine(
+                                                                line,
+                                                                delta,
+                                                            )
+                                                        }
+                                                        onDiscount={() => {
+                                                            selectLine(i);
+                                                            setDialog(
+                                                                'line_discount',
+                                                            );
+                                                        }}
+                                                        onRemove={() =>
+                                                            dispatch({
+                                                                type: 'remove',
+                                                                key: line.key,
+                                                            })
+                                                        }
+                                                    />
+                                                </RowContextMenu>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Browse surface: category chips + product grid over the bill; Esc / Back to cart closes it. */}
+                        {browse.open && (
+                            <section
+                                aria-label={t('pos.catalog.label')}
+                                className="absolute inset-0 z-20 flex flex-col bg-background"
+                            >
+                                <div className="flex shrink-0 items-center justify-between gap-2 border-b bg-surface-sunken px-3 py-1.5 text-xs">
+                                    <span className="flex min-w-0 items-center gap-2">
+                                        <span className="truncate font-semibold text-foreground">
+                                            {query.trim() !== ''
+                                                ? t(
+                                                      'pos.catalog.title_search',
+                                                      {
+                                                          q: query.trim(),
+                                                      },
+                                                  )
+                                                : t('pos.catalog.title')}
+                                        </span>
+                                        <span className="num shrink-0 rounded-md border bg-surface px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
+                                            {t('pos.catalog.count', {
+                                                count: d.n(items.length),
+                                            })}
+                                        </span>
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={backToCart}
+                                        className="touch-target flex h-7 shrink-0 items-center gap-1.5 rounded-md border bg-surface px-3 text-xs font-semibold text-foreground hover:border-primary"
+                                    >
+                                        <Receipt
+                                            className="size-3.5 text-primary"
+                                            aria-hidden="true"
+                                        />
+                                        {t('pos.catalog.back', { count: pcs })}
+                                        <Kbd
+                                            keys="escape"
+                                            className="text-[9px]"
+                                        />
+                                    </button>
+                                </div>
+                                {props.categories.length > 0 && (
+                                    <div
+                                        className="no-scrollbar flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-3 py-1.5 select-none"
+                                        role="toolbar"
+                                        aria-label={t('pos.catalog.categories')}
+                                    >
+                                        <CategoryPill
+                                            active={category === null}
+                                            onClick={() =>
+                                                browseTo({
+                                                    type: 'category',
+                                                    id: null,
+                                                })
+                                            }
+                                        >
+                                            {t('pos.catalog.all_items')}
+                                        </CategoryPill>
+                                        {props.categories.map((c) => (
+                                            <CategoryPill
+                                                key={c.id}
+                                                active={category === c.id}
+                                                onClick={() =>
+                                                    browseTo({
+                                                        type: 'category',
+                                                        id: c.id,
+                                                    })
+                                                }
+                                            >
+                                                {name(c)}
+                                            </CategoryPill>
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                                    {items.length === 0 ? (
+                                        <p className="p-6 text-center text-xs text-muted-foreground">
+                                            {loading
+                                                ? t('pos.catalog.loading')
+                                                : query === ''
+                                                  ? t('pos.catalog.empty')
+                                                  : t('pos.scan.none')}
+                                        </p>
+                                    ) : (
+                                        <div
+                                            ref={gridRef}
+                                            aria-label={t(
+                                                'pos.catalog.results',
+                                            )}
+                                            className="grid auto-rows-max grid-cols-2 content-start items-start gap-2.5 sm:grid-cols-3 xl:grid-cols-4"
+                                        >
+                                            {items.map((item, i) => (
+                                                <CatalogTile
+                                                    key={item.key}
+                                                    item={item}
+                                                    highlighted={
+                                                        i === highlight
+                                                    }
+                                                    tabIndex={
+                                                        i ===
+                                                        Math.max(0, highlight)
+                                                            ? 0
+                                                            : -1
+                                                    }
+                                                    onChoose={() =>
+                                                        choose(item)
+                                                    }
+                                                    onFocus={() =>
+                                                        setHighlight(i)
+                                                    }
+                                                    onKeyDown={(e) =>
+                                                        gridKeys(e, i)
+                                                    }
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
                         )}
                     </div>
-
                     {/* Function bar (mockup "POS Function Bar"). */}
                     <div
                         className="flex shrink-0 items-center justify-between gap-0.5 overflow-x-auto border-t bg-surface-sunken p-1.5 text-[11px]"
@@ -946,9 +1270,9 @@ export default function Register(props: Props) {
                     </div>
                 </section>
 
-                {/* Right: customer, bill lines, payment breakdown, PAY */}
+                {/* Right: customer, held bills, payment breakdown, PAY */}
                 <aside
-                    className="flex min-h-0 w-full shrink-0 flex-col overflow-hidden bg-surface lg:w-[420px] xl:w-[470px]"
+                    className="flex min-h-0 w-full shrink-0 flex-col overflow-hidden bg-surface lg:w-[400px] xl:w-[440px]"
                     aria-label={t('pos.bill.label')}
                 >
                     <CustomerStrip
@@ -959,72 +1283,49 @@ export default function Register(props: Props) {
                             dispatch({ type: 'customer', customer: null })
                         }
                     />
-
-                    <div className="min-h-0 flex-1 overflow-y-auto">
-                        {cart.lines.length === 0 ? (
-                            <EmptyBill />
-                        ) : (
-                            <table
-                                aria-label={t('pos.bill.lines')}
-                                className="w-full border-collapse"
+                    {held.length > 0 && (
+                        <div className="flex shrink-0 items-center justify-between gap-2 border-b bg-primary-soft/40 px-2.5 py-1.5 text-xs">
+                            <span className="flex items-center gap-1.5 font-semibold text-primary">
+                                <Pause
+                                    className="size-3.5"
+                                    aria-hidden="true"
+                                />
+                                {t('pos.held.banner', {
+                                    count: d.n(held.length),
+                                })}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => run('held')}
+                                className="touch-target flex h-6 items-center gap-1 rounded-md bg-primary px-2.5 text-[10px] font-bold text-primary-foreground hover:bg-primary-hover"
                             >
-                                <tbody className="divide-y">
-                                    {cart.lines.map((line, i) => (
-                                        <RowContextMenu
-                                            key={line.key}
-                                            entity="pos_line"
-                                            row={line}
-                                            handlers={lineHandlers}
-                                        >
-                                            <BillLine
-                                                ref={(node) => {
-                                                    rowRefs.current[i] = node;
-                                                }}
-                                                index={i}
-                                                line={line}
-                                                priced={totals.lines[i]}
-                                                selected={i === cart.selected}
-                                                onSelect={() => selectLine(i)}
-                                                onQty={() => {
-                                                    selectLine(i);
-                                                    setDialog('qty');
-                                                }}
-                                                onStep={(delta) =>
-                                                    stepLine(line, delta)
-                                                }
-                                                onDiscount={() => {
-                                                    selectLine(i);
-                                                    setDialog('line_discount');
-                                                }}
-                                                onRemove={() =>
-                                                    dispatch({
-                                                        type: 'remove',
-                                                        key: line.key,
-                                                    })
-                                                }
-                                            />
-                                        </RowContextMenu>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
+                                {t('pos.held.recall')}
+                                <Kbd
+                                    keys="shift+f8"
+                                    tone="on-primary"
+                                    className="text-[9px]"
+                                />
+                            </button>
+                        </div>
+                    )}
 
-                    <Breakdown
-                        totals={totals}
-                        pcs={pcs}
-                        taxInclusive={settings.tax_inclusive}
-                        groupName={customer?.group?.name ?? null}
-                        orderDiscountLabel={orderDiscountLabel}
-                        canDiscount={hasLines}
-                        onOrderDiscount={() => run('bill_discount')}
-                        onRemoveOrderDiscount={() =>
-                            dispatch({
-                                type: 'order_discount',
-                                discount: NO_DISCOUNT,
-                            })
-                        }
-                    />
+                    <div className="min-h-0 flex-1 overflow-y-auto bg-surface-sunken">
+                        <Breakdown
+                            totals={totals}
+                            pcs={pcs}
+                            taxInclusive={settings.tax_inclusive}
+                            groupName={customer?.group?.name ?? null}
+                            orderDiscountLabel={orderDiscountLabel}
+                            canDiscount={hasLines}
+                            onOrderDiscount={() => run('bill_discount')}
+                            onRemoveOrderDiscount={() =>
+                                dispatch({
+                                    type: 'order_discount',
+                                    discount: NO_DISCOUNT,
+                                })
+                            }
+                        />
+                    </div>
                     {approval && (
                         <p className="flex items-center gap-1 bg-surface-sunken px-3 pb-1 text-[11px] text-success">
                             <ShieldCheck
@@ -1049,12 +1350,13 @@ export default function Register(props: Props) {
                 item={picker}
                 allowNegative={settings.allow_negative_stock}
                 onAdd={(rows) => {
+                    // Lines added: close the picker and the browse surface, back to the cart.
                     addVariants(rows);
                     setPicker(null);
-                    setQuery('');
-                    focusScan();
+                    backToCart();
                 }}
                 onClose={() => {
+                    // Cancelled: the browse surface (if open) stays where the cashier was.
                     setPicker(null);
                     focusScan();
                 }}

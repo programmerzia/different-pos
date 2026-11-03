@@ -1379,6 +1379,15 @@
         "photo": "Product photo",
         "photo_pick": "Choose photo",
         "photo_hint": "PNG, JPG or WebP, up to 4 MB",
+        "photo_reuse": "Reuse uploaded",
+        "photo_reused": "Reusing a photo already uploaded",
+        "photo_library_title": "Reuse an uploaded photo",
+        "photo_library_hint": "Photos already on your products. The product will use the same file.",
+        "photo_library_search": "Search by product name or SKU",
+        "photo_library_loading": "Loading photos…",
+        "photo_library_empty": "No product photos uploaded yet.",
+        "photo_library_none": "No photo matches this search.",
+        "photo_library_failed": "Could not load the photos. Try again.",
         "err_name": "Product name is required",
         "err_sku": "SKU identifier is required",
         "err_unit": "Choose a unit of measure",
@@ -1944,7 +1953,8 @@
             "remove": "Remove selected line",
             "up": "Previous bill line",
             "down": "Next bill line",
-            "collect_due": "Collect due of the attached customer"
+            "collect_due": "Collect due of the attached customer",
+            "browse": "Browse catalogue"
         },
         "scan": {
             "placeholder": "Scan barcode, SKU or type a product name (F2)",
@@ -1958,7 +1968,15 @@
             "results": "Products",
             "empty": "No products to show.",
             "all_items": "All Items",
-            "variants": "Variants ({{count}})"
+            "variants": "Variants ({{count}})",
+            "browse": "Browse catalogue",
+            "back": "Back to cart ({{count}})",
+            "title": "Catalogue",
+            "title_search": "Search: \"{{q}}\"",
+            "count": "{{count}} products",
+            "dropdown": "Search results",
+            "see_all": "Show all in the catalogue",
+            "loading": "Searching…"
         },
         "stock": {
             "in_stock": "{{qty}} in stock",
@@ -2002,7 +2020,17 @@
             "disc": "% Disc",
             "vat_rate": "VAT {{pct}}%",
             "qty_of": "Quantity of {{name}}",
-            "remove": "Remove {{name}}"
+            "remove": "Remove {{name}}",
+            "ledger": "Active bill",
+            "ledger_count": "{{pcs}} pcs · {{lines}} items",
+            "col_no": "#",
+            "col_item": "Item",
+            "col_price": "Unit price",
+            "col_qty": "Qty",
+            "col_disc": "Discount",
+            "col_vat": "VAT",
+            "col_total": "Line total",
+            "empty_hint": "Scan a barcode, type a name (F2) or browse the catalogue (Alt+G)."
         },
         "totals": {
             "subtotal": "Subtotal ({{count}} pcs)",
@@ -2112,7 +2140,9 @@
             "none": "No held bills.",
             "lines": "{{count}} lines",
             "discard": "Discard held bill",
-            "done": "Bill held."
+            "done": "Bill held.",
+            "banner": "{{count}} held bill(s)",
+            "recall": "Recall"
         },
         "clear": {
             "title": "Clear the bill?",

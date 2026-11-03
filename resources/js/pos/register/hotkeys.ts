@@ -8,6 +8,7 @@ export const POS_COMMAND_EVENT = 'pos:command';
 
 export type PosCommand =
     | 'search'
+    | 'browse'
     | 'qty'
     | 'customer'
     | 'price_check'
@@ -35,6 +36,8 @@ type Def = {
 /** The register's keys (scope `pos`). F1 is the shell's global key, routed here by POS_F1_EVENT. */
 export const POS_KEYS: readonly Def[] = [
     { command: 'search', keys: 'f2', labelKey: 'pos.keys.search' },
+    // Browse catalogue (the product grid over the bill); Alt+G = "grid", also from the scan field.
+    { command: 'browse', keys: 'alt+g', labelKey: 'pos.keys.browse' },
     { command: 'qty', keys: 'f3', labelKey: 'pos.keys.qty' },
     { command: 'customer', keys: 'f4', labelKey: 'pos.keys.customer' },
     { command: 'price_check', keys: 'f5', labelKey: 'pos.keys.price_check' },

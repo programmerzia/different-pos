@@ -38,7 +38,7 @@ function routePermissions(): array
         'dashboard' => ['dashboard.view'],
         'reports.index' => ['reports.view'], 'reports.show' => ['reports.view'],
 
-        'products.index' => $products, 'products.create' => ['products.create'], 'products.edit' => ['products.update'],
+        'products.index' => $products, 'products.images' => $products, 'products.create' => ['products.create'], 'products.edit' => ['products.update'],
         'brands.index' => $products, 'categories.index' => $products, 'families.show' => $products,
 
         'vendors.index' => ['vendors.view'], 'vendors.create' => ['vendors.create'],

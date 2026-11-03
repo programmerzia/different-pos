@@ -58,8 +58,10 @@ export function HotkeyHost() {
                 return;
             }
             if (result.type === 'fire') {
-                event.preventDefault();
+                // The handler runs first so it can still see whether something else (a closing Radix
+                // dialog's Esc) already consumed the key: the register's Esc relies on it.
                 result.def.handler(event);
+                event.preventDefault();
             }
         };
 

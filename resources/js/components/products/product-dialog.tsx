@@ -4,6 +4,7 @@ import {
     Check,
     CircleDollarSign,
     ImageIcon,
+    Images,
     Layers,
     Tag,
     Upload,
@@ -28,6 +29,7 @@ import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { GroupDialog, type Family } from './group-dialog';
+import { ImagePickerDialog, type LibraryImage } from './image-picker-dialog';
 import {
     defaultVariantDraft,
     gridFor,
@@ -150,6 +152,7 @@ export function ProductDialog({
     const [processing, setProcessing] = useState(false);
     const [image, setImage] = useState<File | null>(null);
     const [removeImage, setRemoveImage] = useState(false);
+    const [reused, setReused] = useState<LibraryImage | null>(null);
     const [variantOptions, setVariantOptions] = useState(
         options.variantOptions,
     );
@@ -178,6 +181,7 @@ export function ProductDialog({
         JSON.stringify(f) !== JSON.stringify(initial) ||
         image !== null ||
         removeImage ||
+        reused !== null ||
         withVariants;
 
     const requestClose = () => {
@@ -231,6 +235,8 @@ export function ProductDialog({
         };
         if (image) {
             payload['image'] = image;
+        } else if (reused) {
+            payload['existing_image'] = reused.path;
         }
         if (editing && removeImage) {
             payload['remove_image'] = true;
@@ -693,14 +699,35 @@ export function ProductDialog({
                                     </div>
                                     <ImageField
                                         current={
-                                            removeImage
+                                            reused?.url ??
+                                            (removeImage
                                                 ? null
-                                                : (product?.image_url ?? null)
+                                                : (product?.image_url ?? null))
                                         }
+                                        reused={reused !== null}
                                         chosen={image}
-                                        error={err('image')}
-                                        onChoose={setImage}
-                                        onRemove={() => setRemoveImage(true)}
+                                        error={
+                                            err('image') ??
+                                            err('existing_image')
+                                        }
+                                        onChoose={(file) => {
+                                            setImage(file);
+                                            if (file) {
+                                                setReused(null);
+                                            }
+                                        }}
+                                        onReuse={(picked) => {
+                                            setReused(picked);
+                                            setImage(null);
+                                            setRemoveImage(false);
+                                        }}
+                                        onRemove={() => {
+                                            if (reused) {
+                                                setReused(null);
+                                            } else {
+                                                setRemoveImage(true);
+                                            }
+                                        }}
                                     />
                                     <Field
                                         id="product-description"
@@ -1234,20 +1261,26 @@ const IMAGE_MAX_MB = 4;
 /** Compact photo picker: thumbnail (or placeholder), "Choose photo", remove. Type/size are checked here and again on the server. */
 function ImageField({
     current,
+    reused,
     chosen,
     error,
     onChoose,
+    onReuse,
     onRemove,
 }: {
     current: string | null;
+    /** `current` is a photo picked from the tenant's library (not saved yet). */
+    reused: boolean;
     chosen: File | null;
     error?: string | undefined;
     onChoose: (file: File | null) => void;
+    onReuse: (image: LibraryImage) => void;
     onRemove: () => void;
 }) {
     const { t } = useT();
     const input = useRef<HTMLInputElement>(null);
     const [localError, setLocalError] = useState<string | null>(null);
+    const [library, setLibrary] = useState(false);
     const preview = useMemo(
         () => (chosen ? URL.createObjectURL(chosen) : null),
         [chosen],
@@ -1317,6 +1350,14 @@ function ImageField({
                         <Upload className="size-3.5" aria-hidden="true" />
                         {t('products.photo_pick')}
                     </button>
+                    <button
+                        type="button"
+                        onClick={() => setLibrary(true)}
+                        className="flex h-8 items-center gap-1.5 rounded-lg border bg-surface-sunken px-3 text-xs font-semibold hover:border-primary [@media(pointer:coarse)]:min-h-11"
+                    >
+                        <Images className="size-3.5" aria-hidden="true" />
+                        {t('products.photo_reuse')}
+                    </button>
                     {chosen ? (
                         <>
                             <span className="truncate text-[11px] text-muted-foreground">
@@ -1336,13 +1377,22 @@ function ImageField({
                             </button>
                         </>
                     ) : current ? (
-                        <button
-                            type="button"
-                            onClick={onRemove}
-                            className="text-[11px] font-semibold text-destructive hover:underline"
-                        >
-                            {t('products.remove_image')}
-                        </button>
+                        <>
+                            {reused && (
+                                <span className="text-[11px] text-muted-foreground">
+                                    {t('products.photo_reused')}
+                                </span>
+                            )}
+                            <button
+                                type="button"
+                                onClick={onRemove}
+                                className="text-[11px] font-semibold text-destructive hover:underline"
+                            >
+                                {reused
+                                    ? t('upload.remove')
+                                    : t('products.remove_image')}
+                            </button>
+                        </>
                     ) : (
                         <span className="text-[10px] text-muted-foreground">
                             {t('products.photo_hint')}
@@ -1359,6 +1409,17 @@ function ImageField({
                     <span>{message}</span>
                 </p>
             ) : null}
+            <ImagePickerDialog
+                open={library}
+                onOpenChange={setLibrary}
+                onPick={(image) => {
+                    setLocalError(null);
+                    if (input.current) {
+                        input.current.value = '';
+                    }
+                    onReuse(image);
+                }}
+            />
         </div>
     );
 }

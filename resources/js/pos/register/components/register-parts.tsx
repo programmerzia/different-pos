@@ -100,17 +100,10 @@ export const CatalogTile = forwardRef<
             onKeyDown={onKeyDown}
         >
             <span className="mb-1 flex items-center gap-2">
-                <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-surface-sunken text-primary transition-colors group-hover:border-primary">
-                    {item.image_url ? (
-                        <img
-                            src={item.image_url}
-                            alt=""
-                            className="size-full object-cover"
-                        />
-                    ) : (
-                        <Tag className="size-4" aria-hidden="true" />
-                    )}
-                </span>
+                <ProductThumb
+                    url={item.image_url}
+                    className="size-12 transition-colors group-hover:border-primary"
+                />
                 <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-1">
                         <span className="max-w-[65px] truncate rounded bg-surface-sunken px-1 font-mono text-[10px] font-medium text-muted-foreground">
@@ -343,7 +336,45 @@ export function CustomerStrip({
     );
 }
 
-/** One bill line: name, unit price (struck through when discounted), discount chip, VAT, qty stepper, total, remove. */
+/** Header of the bill ledger table (mockup "Active Billing Ledger"). */
+export function BillHead() {
+    const { t } = useT();
+    const th =
+        'sticky top-0 z-[1] bg-surface-sunken px-2 py-2 text-[11px] font-semibold text-muted-foreground';
+
+    return (
+        <thead>
+            <tr className="border-b">
+                <th scope="col" className={cn(th, 'w-8 pl-3 text-center')}>
+                    {t('pos.bill.col_no')}
+                </th>
+                <th scope="col" className={cn(th, 'text-left')}>
+                    {t('pos.bill.col_item')}
+                </th>
+                <th scope="col" className={cn(th, 'text-right')}>
+                    {t('pos.bill.col_price')}
+                </th>
+                <th scope="col" className={cn(th, 'w-32 text-center')}>
+                    {t('pos.bill.col_qty')}
+                </th>
+                <th scope="col" className={cn(th, 'text-right')}>
+                    {t('pos.bill.col_disc')}
+                </th>
+                <th scope="col" className={cn(th, 'text-right')}>
+                    {t('pos.bill.col_vat')}
+                </th>
+                <th scope="col" className={cn(th, 'text-right')}>
+                    {t('pos.bill.col_total')}
+                </th>
+                <th scope="col" className={cn(th, 'w-9 pr-3')}>
+                    <span className="sr-only">{t('pos.keys.remove')}</span>
+                </th>
+            </tr>
+        </thead>
+    );
+}
+
+/** One bill line: no., item + SKU, unit price (struck through when discounted), − qty +, discount chip, VAT, line total, remove. */
 export const BillLine = forwardRef<
     HTMLTableRowElement,
     {
@@ -386,6 +417,7 @@ export const BillLine = forwardRef<
             ? `−${d.n(line.discount.value / 100)}%`
             : `−${d.money(discount)}`;
     const step = QTY_SCALE;
+    const td = 'px-2 py-2.5 align-middle';
 
     return (
         <tr
@@ -407,68 +439,57 @@ export const BillLine = forwardRef<
                 }
             }}
         >
-            <td className="w-full max-w-0 py-2.5 pr-1 pl-2.5">
-                <div className="flex items-baseline gap-1.5 text-xs font-semibold text-foreground">
-                    <span className="num shrink-0 font-mono text-[10px] text-muted-foreground">
-                        {d.n(index + 1)}
-                    </span>
-                    <span className="truncate">{line.name}</span>
+            <td
+                className={cn(
+                    td,
+                    'num pl-3 text-center font-mono text-[11px] text-muted-foreground',
+                )}
+            >
+                {d.n(index + 1)}
+            </td>
+            <td className={cn(td, 'max-w-0 min-w-40')}>
+                <div className="truncate text-xs leading-tight font-semibold text-foreground">
+                    {line.name}
                 </div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
-                    {discount > 0 ? (
-                        <span className="flex items-center gap-1.5">
-                            <span className="num line-through opacity-60">
-                                {d.money(line.unitPrice)}
-                            </span>
-                            <span className="num font-bold text-foreground">
-                                {d.money(unitAfter)}
-                            </span>
-                        </span>
-                    ) : (
-                        <span className="num">{d.money(line.unitPrice)}</span>
-                    )}
-                    <span aria-hidden="true">·</span>
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDiscount();
-                        }}
-                        className={cn(
-                            'touch-target flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-bold transition-colors hover:border-primary',
-                            discount > 0
-                                ? 'border-danger/30 bg-danger-soft text-danger'
-                                : 'bg-surface-sunken text-primary hover:bg-primary-soft',
-                        )}
-                        title={t('pos.keys.line_discount')}
-                    >
-                        <Percent className="size-2.5" aria-hidden="true" />
-                        {discount > 0 ? chip : t('pos.bill.disc')}
-                    </button>
-                    {line.taxRateBp > 0 && (
+                <div className="mt-0.5 flex items-center gap-1.5 truncate text-[10px] text-muted-foreground">
+                    <span className="font-mono font-semibold text-primary">
+                        {line.sku}
+                    </span>
+                    {line.label && (
                         <>
                             <span aria-hidden="true">·</span>
-                            <span>
-                                {t('pos.bill.vat_rate', {
-                                    pct: d.n(line.taxRateBp / 100),
-                                })}
+                            <span className="font-semibold text-foreground">
+                                {line.label}
                             </span>
                         </>
                     )}
-                    <span aria-hidden="true">·</span>
-                    <span className="truncate font-mono">{line.sku}</span>
                 </div>
             </td>
-
-            <td className="px-1 py-2.5">
-                <div className="flex items-center gap-1">
+            <td className={cn(td, 'text-right whitespace-nowrap')}>
+                {discount > 0 ? (
+                    <span className="flex flex-col items-end leading-tight">
+                        <span className="num text-[10px] text-muted-foreground line-through opacity-70">
+                            {d.money(line.unitPrice)}
+                        </span>
+                        <span className="num text-xs font-bold text-foreground">
+                            {d.money(unitAfter)}
+                        </span>
+                    </span>
+                ) : (
+                    <span className="num text-xs font-medium text-foreground">
+                        {d.money(line.unitPrice)}
+                    </span>
+                )}
+            </td>
+            <td className={td}>
+                <div className="flex items-center justify-center gap-1">
                     <button
                         type="button"
                         onClick={(e) => {
                             e.stopPropagation();
                             onStep(-step);
                         }}
-                        className="touch-target flex size-6 items-center justify-center rounded bg-surface-sunken text-foreground hover:bg-border"
+                        className="touch-target flex size-6 items-center justify-center rounded border bg-surface-sunken text-foreground hover:bg-border"
                         aria-label={t('qty.decrease')}
                     >
                         <Minus className="size-3" aria-hidden="true" />
@@ -479,7 +500,7 @@ export const BillLine = forwardRef<
                             e.stopPropagation();
                             onQty();
                         }}
-                        className="num touch-target h-6 min-w-10 rounded border bg-surface-sunken px-1 text-center font-mono text-xs font-bold"
+                        className="num touch-target h-6 min-w-10 rounded border bg-surface px-1 text-center font-mono text-xs font-bold"
                         aria-label={t('pos.bill.qty_of', { name: line.name })}
                         title={t('pos.keys.qty')}
                     >
@@ -491,28 +512,60 @@ export const BillLine = forwardRef<
                             e.stopPropagation();
                             onStep(step);
                         }}
-                        className="touch-target flex size-6 items-center justify-center rounded bg-surface-sunken text-foreground hover:bg-border"
+                        className="touch-target flex size-6 items-center justify-center rounded border bg-surface-sunken text-foreground hover:bg-border"
                         aria-label={t('qty.increase')}
                     >
                         <Plus className="size-3" aria-hidden="true" />
                     </button>
                 </div>
             </td>
-
-            <td className="w-20 px-1 py-2.5 text-right whitespace-nowrap">
+            <td className={cn(td, 'text-right')}>
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDiscount();
+                    }}
+                    className={cn(
+                        'touch-target inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-bold transition-colors hover:border-primary',
+                        discount > 0
+                            ? 'border-danger/30 bg-danger-soft text-danger'
+                            : 'bg-surface-sunken text-muted-foreground hover:text-primary',
+                    )}
+                    title={t('pos.keys.line_discount')}
+                >
+                    <Percent className="size-2.5" aria-hidden="true" />
+                    {discount > 0 ? chip : t('pos.bill.disc')}
+                </button>
+            </td>
+            <td
+                className={cn(
+                    td,
+                    'text-right text-[11px] whitespace-nowrap text-muted-foreground',
+                )}
+            >
+                <span className="num block">{d.money(priced?.tax ?? 0)}</span>
+                {line.taxRateBp > 0 && (
+                    <span className="block text-[9px]">
+                        {t('pos.bill.vat_rate', {
+                            pct: d.n(line.taxRateBp / 100),
+                        })}
+                    </span>
+                )}
+            </td>
+            <td className={cn(td, 'text-right whitespace-nowrap')}>
                 <span className="num text-xs font-bold text-foreground">
                     {d.money(lineTotal)}
                 </span>
             </td>
-
-            <td className="py-2.5 pr-2 pl-0.5">
+            <td className={cn(td, 'pr-3 text-center')}>
                 <button
                     type="button"
                     onClick={(e) => {
                         e.stopPropagation();
                         onRemove();
                     }}
-                    className="touch-target rounded p-1 text-muted-foreground hover:text-danger"
+                    className="touch-target rounded p-1 text-muted-foreground hover:bg-danger-soft hover:text-danger"
                     aria-label={t('pos.bill.remove', { name: line.name })}
                     title={t('pos.keys.remove')}
                 >
@@ -523,21 +576,136 @@ export const BillLine = forwardRef<
     );
 });
 
-/** Empty bill: cart icon, "Cart is empty", hint. */
-export function EmptyBill() {
+/** Product photo or the tag placeholder (search hits, browse tiles). */
+export function ProductThumb({
+    url,
+    className,
+}: {
+    url: string | null;
+    className?: string;
+}) {
+    return (
+        <span
+            className={cn(
+                'flex shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-surface-sunken text-primary',
+                className,
+            )}
+        >
+            {url ? (
+                <img
+                    src={url}
+                    alt=""
+                    loading="lazy"
+                    className="size-full object-cover object-top"
+                />
+            ) : (
+                <Tag className="size-4" aria-hidden="true" />
+            )}
+        </span>
+    );
+}
+
+/** One row of the search dropdown under the scan field: photo, name, code, stock, price. */
+export function SearchHit({
+    item,
+    active,
+    id,
+    onChoose,
+    onHover,
+}: {
+    item: CatalogItem;
+    active: boolean;
+    id: string;
+    onChoose: () => void;
+    onHover: () => void;
+}) {
+    const { t } = useT();
+    const d = useDigits();
+    const name = useName();
+    const tone = stockTone(item.stock);
+    const family = item.kind === 'family' && item.variants.length > 1;
+
+    return (
+        <li id={id}>
+            <button
+                type="button"
+                tabIndex={-1}
+                aria-current={active ? 'true' : undefined}
+                className={cn(
+                    'flex w-full items-center gap-2.5 px-2.5 py-1.5 text-left',
+                    active ? 'bg-primary-soft' : 'hover:bg-surface-sunken',
+                )}
+                // Keep the focus in the scan field: the click must not blur it first.
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={onChoose}
+                onMouseMove={onHover}
+            >
+                <ProductThumb url={item.image_url} className="size-10" />
+                <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-semibold text-foreground">
+                        {name(item)}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <span className="truncate font-mono">{item.code}</span>
+                        {family && (
+                            <span className="flex items-center gap-0.5 font-semibold text-primary">
+                                <LayoutGrid
+                                    className="size-2.5"
+                                    aria-hidden="true"
+                                />
+                                {t('pos.catalog.variants', {
+                                    count: item.variants.length,
+                                })}
+                            </span>
+                        )}
+                    </span>
+                </span>
+                {tone && item.stock !== null && (
+                    <span
+                        className={cn(
+                            'num shrink-0 rounded px-1.5 text-[9px] font-bold',
+                            tone === 'danger' && 'bg-danger-soft text-danger',
+                            tone === 'warning' &&
+                                'bg-warning-soft text-warning',
+                            tone === 'success' &&
+                                'bg-success-soft text-success',
+                        )}
+                    >
+                        {t('pos.stock.left', {
+                            qty: d.qty(Math.max(0, item.stock)),
+                        })}
+                    </span>
+                )}
+                <span className="num w-20 shrink-0 text-right text-xs font-bold text-primary">
+                    {d.money(item.price)}
+                </span>
+            </button>
+        </li>
+    );
+}
+
+/** Empty bill in the main area: cart icon, "Cart is empty", how to add, Browse catalogue (Alt+G). */
+export function EmptyBill({ onBrowse }: { onBrowse: () => void }) {
     const { t } = useT();
 
     return (
         <div className="flex h-full flex-col items-center justify-center p-6 text-center text-muted-foreground">
-            <span className="mb-2 flex size-12 items-center justify-center rounded-full bg-surface-sunken">
-                <ShoppingCart className="size-6" aria-hidden="true" />
+            <span className="mb-3 flex size-14 items-center justify-center rounded-full bg-surface-sunken">
+                <ShoppingCart className="size-7" aria-hidden="true" />
             </span>
-            <p className="text-xs font-semibold text-foreground">
+            <p className="text-sm font-semibold text-foreground">
                 {t('pos.bill.empty_title')}
             </p>
-            <p className="mt-1 max-w-[200px] text-[11px]">
-                {t('pos.bill.empty')}
-            </p>
+            <p className="mt-1 max-w-xs text-xs">{t('pos.bill.empty_hint')}</p>
+            <button
+                type="button"
+                onClick={onBrowse}
+                className="touch-target mt-4 flex h-9 items-center gap-1.5 rounded-lg border bg-surface px-3 text-xs font-semibold text-foreground hover:border-primary"
+            >
+                <LayoutGrid className="size-3.5" aria-hidden="true" />
+                {t('pos.catalog.browse')}
+                <Kbd keys="alt+g" className="text-[10px]" />
+            </button>
         </div>
     );
 }

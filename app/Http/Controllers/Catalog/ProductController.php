@@ -245,7 +245,7 @@ final class ProductController extends Controller
         $old = $product->image_path;
 
         $this->guarded(fn (): Product => $save->handle($user, $data, $product));
-        if ($old !== null && $old !== ($data['image_path'] ?? $old)) {
+        if ($old !== null && array_key_exists('image_path', $data) && $old !== $data['image_path'] && ! $this->imageInUse($old)) {
             Storage::disk('public')->delete($old);
         }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Product saved.')]);
@@ -268,6 +268,13 @@ final class ProductController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => $outcome === DeleteOutcome::Deleted ? __('Product deleted.') : __('Product is in use, so it was deactivated.')]);
 
         return $this->toList($request);
+    }
+
+    /** A photo can be shared (reused from the picker, or copied from a family to its variants): keep the file while anything still points at it. */
+    private function imageInUse(string $path): bool
+    {
+        return Product::withTrashed()->where('image_path', $path)->exists()
+            || ProductFamily::withTrashed()->where('image_path', $path)->exists();
     }
 
     /**
@@ -307,6 +314,8 @@ final class ProductController extends Controller
         $image = $request->file('image');
         if ($image instanceof UploadedFile) {
             $data['image_path'] = $image->store('products', 'public');
+        } elseif (is_string($v['existing_image'] ?? null) && $v['existing_image'] !== '') {
+            $data['image_path'] = $v['existing_image'];
         } elseif ($product instanceof Product && (bool) ($v['remove_image'] ?? false)) {
             $data['image_path'] = null;
         }
