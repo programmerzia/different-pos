@@ -30,6 +30,8 @@ use App\Models\User;
 use App\Reports\ColumnType;
 use App\Reports\ReportColumn;
 use App\Reports\ReportResult;
+use App\Sms\SmsNotice;
+use App\Sms\Templates;
 use App\Support\Export\ExportFormat;
 use App\Support\Export\ExportMeta;
 use App\Support\Export\TabularExport;
@@ -80,6 +82,7 @@ final class SaleController extends Controller
 
         $voided = $this->guarded(fn (): Sale => $void->handle($this->actor($request), $model, $request->string('reason')->trim()->value()), 'reason');
         Inertia::flash('toast', ['type' => 'success', 'message' => __('receipts.flash.voided', ['number' => $voided->number])]);
+        SmsNotice::flash(Templates::SALE_VOIDED, Customer::query()->find($voided->customer_id));
 
         // Back to the invoice on the same filtered, paged list (the dialog posts the list's query string).
         return to_route('sales.show', [...$request->query(), 'sale' => $voided->id]);

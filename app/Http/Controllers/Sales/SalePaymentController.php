@@ -10,8 +10,11 @@ use App\Http\Controllers\Concerns\TranslatesDomainErrors;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Sales\Concerns\PresentsSales;
 use App\Http\Requests\Sales\CollectPaymentRequest;
+use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\Sale;
+use App\Sms\SmsNotice;
+use App\Sms\Templates;
 use App\Support\Money\Money;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
@@ -40,6 +43,7 @@ final class SalePaymentController extends Controller
         )), 'amount');
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('receipts.flash.collected', ['number' => $payment->number, 'amount' => $amount->format(app()->getLocale())])]);
+        SmsNotice::flash(Templates::PAYMENT_RECEIVED, Customer::query()->find($model->customer_id));
 
         return to_route('sales.show', ['sale' => $model->id, 'receipt' => $payment->id]);
     }

@@ -113,6 +113,9 @@ test('sells to a card member, paying cash in full', async ({ page }) => {
     expect(number).not.toBe('');
     remember({ cashSale: number });
 
+    // No gateway here: the sale is done and a small notice says the SMS did not go out.
+    await expect(page.getByText(/SMS not sent/).first()).toBeVisible();
+
     // The actions stay inside the card, and both documents open on the sale just made.
     const card = done.locator('xpath=ancestor::div[contains(@class,"rounded-xl")][1]');
     const cardBox = (await card.boundingBox())!;

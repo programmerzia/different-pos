@@ -736,7 +736,7 @@ export const en: Manual = {
                     blocks: [
                         {
                             type: 'p',
-                            text: 'Four templates are sent automatically when switched on in SMS settings, to a named customer with a mobile number: **Sale completed** (with a link to the invoice that the customer can open without signing in; add `{link}` to a customised text to include it), **Payment received** (after a due collection), **Sale returned** (after a return, with the amount handed back; an exchange sends none) and **Sale voided** (after a void). Statement summaries are sent by hand from the statement page. Messages are only sent when a provider is configured.',
+                            text: 'Four templates are sent automatically when switched on in SMS settings, to a named customer with a mobile number: **Sale completed** (with a link to the invoice that the customer can open without signing in; add `{link}` to a customised text to include it), **Payment received** (after a due collection), **Sale returned** (after a return, with the amount handed back; an exchange sends none) and **Sale voided** (after a void). Statement summaries are sent by hand from the statement page. Messages are only sent when a provider is configured with its API key; otherwise the sale, payment, return or void still completes and a small notice tells you the SMS was not sent (Settings > SMS shows whether the provider is ready to send).',
                         },
                     ],
                 },

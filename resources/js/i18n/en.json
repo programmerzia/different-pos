@@ -968,7 +968,9 @@
             "sender": "Sender name",
             "sender_optional": "Sender name (optional)",
             "cost": "Price per SMS part",
-            "cost_hint": "Used only for the composer's cost estimate."
+            "cost_hint": "Used only for the composer's cost estimate.",
+            "status_ready": "Ready to send",
+            "status_missing": "Not set up: messages won't go out until the API key is added"
         },
         "driver": {
             "null": "None (SMS off)",

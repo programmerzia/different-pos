@@ -9,8 +9,11 @@ use App\Enums\SaleOrigin;
 use App\Exceptions\Domain\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Pos\StoreSaleRequest;
+use App\Models\Customer;
 use App\Models\Sale;
 use App\Models\User;
+use App\Sms\SmsNotice;
+use App\Sms\Templates;
 use App\Support\Pos\ManagerApproval;
 use App\Support\Pos\MemberToken;
 use App\Support\Tenancy\TenantContext;
@@ -60,6 +63,8 @@ final class SaleController extends Controller
             ], 422);
         }
 
+        // A replayed sale (200) queued nothing now, so it gets no notice.
+        $smsNotice = $sale->wasRecentlyCreated ? SmsNotice::missing(Templates::SALE_COMPLETED, Customer::query()->find($sale->customer_id)) : null;
         $paper = (string) $context->branch()->setting('paper');
 
         return response()->json(['sale' => [
@@ -72,6 +77,7 @@ final class SaleController extends Controller
             'due' => $sale->due->paisa,
             'flags' => $sale->sync_flags ?? [],
             'member_auth' => $sale->member_auth->value,
+            'sms_notice' => $smsNotice,
             'receipt_url' => Route::has('sales.receipt') ? route('sales.receipt', ['sale' => $sale->id, 'paper' => $paper, 'print' => 1]) : null,
         ]], $sale->wasRecentlyCreated ? 201 : 200);
     }

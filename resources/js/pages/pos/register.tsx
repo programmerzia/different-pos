@@ -475,6 +475,9 @@ export default function Register(props: Props) {
         if (sale.flags.includes('price_mismatch')) {
             toast.warning(t('pos.done.price_mismatch'));
         }
+        if (sale.sms_notice) {
+            toast.info(sale.sms_notice);
+        }
         if (settings.auto_print) {
             printReceipt(sale);
         }

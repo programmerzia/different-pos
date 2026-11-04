@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Customers;
 
+use App\Exceptions\Domain\SmsNotConfigured;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Message;
@@ -81,7 +82,13 @@ final class CustomerStatementController extends Controller
 
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        $message = $sender->handle($user, $model, $body);
+        try {
+            $message = $sender->handle($user, $model, $body);
+        } catch (SmsNotConfigured $e) {
+            Inertia::flash('toast', ['type' => 'error', 'message' => $e->getMessage()]);
+
+            return back();
+        }
         Inertia::flash('toast', $message instanceof Message
             ? ['type' => 'success', 'message' => __('Statement summary queued by SMS.')]
             : ['type' => 'warning', 'message' => __('This customer has no valid mobile number for SMS.')]);

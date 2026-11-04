@@ -62,6 +62,8 @@ it('defaults to this month, validates the period and renders the empty picker pa
 it('queues the statement SMS through the SMS module and needs permission', function (): void {
     Queue::fake();
     [$user, $tenant] = CustomerWorld::actor();
+    // The statement SMS needs a working gateway; the `log` driver stands in for one.
+    $tenant->forceFill(['settings' => [...$tenant->settings, 'sms' => ['driver' => 'log']]])->save();
     $customer = CustomerWorld::make($tenant, ['customer_no' => 10000017, 'phone' => '+8801711111111']);
     $noPhone = CustomerWorld::make($tenant, ['customer_no' => 10000025, 'phone' => null]);
 
@@ -76,4 +78,15 @@ it('queues the statement SMS through the SMS module and needs permission', funct
     $mine = CustomerWorld::make($keeperTenant, ['customer_no' => 10000033]);
     $this->actingAs($keeper)->post("/app/customers/{$mine->uuid}/statement/sms")->assertForbidden();
     $this->get("/app/customers/{$mine->uuid}/statement")->assertForbidden();
+});
+
+it('tells the user the SMS gateway is not set up instead of queueing a statement that cannot go out', function (): void {
+    Queue::fake();
+    [$user, $tenant] = CustomerWorld::actor();
+    $customer = CustomerWorld::make($tenant, ['customer_no' => 10000017, 'phone' => '+8801711111111']);
+
+    $this->actingAs($user)->post("/app/customers/{$customer->uuid}/statement/sms")
+        ->assertRedirect()->assertInertiaFlash('toast.type', 'error')->assertInertiaFlash('toast.message', __('sms.not_configured'));
+    expect(Message::query()->count())->toBe(0);
+    Queue::assertNothingPushed();
 });

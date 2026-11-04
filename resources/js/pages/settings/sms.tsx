@@ -197,6 +197,17 @@ export default function SmsSettingsPage({
                                     </FormField>
                                 ) : null}
                             </div>
+                            <p
+                                className={
+                                    sms.configured
+                                        ? "text-sm font-bold text-success"
+                                        : "text-sm font-bold text-warning"
+                                }
+                            >
+                                {sms.configured
+                                    ? t("sms.provider.status_ready")
+                                    : t("sms.provider.status_missing")}
+                            </p>
 
                             {real ? (
                                 <>

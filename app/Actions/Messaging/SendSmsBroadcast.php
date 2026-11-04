@@ -74,7 +74,7 @@ final readonly class SendSmsBroadcast
             if (! $whatsApp->bulk()) {
                 throw WhatsAppNotConfigured::bulk();
             }
-        } elseif ($settings->driver === 'null') {
+        } elseif (! $settings->isConfigured()) {
             throw SmsNotConfigured::make();
         }
 

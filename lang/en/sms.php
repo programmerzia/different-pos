@@ -10,6 +10,9 @@ return [
     'ad_hoc_queued' => ':count message(s) queued. They show as Queued in the log until the queue worker sends them.',
     'ad_hoc_none' => 'No customer in this selection has a valid mobile number.',
     'not_configured' => 'No SMS provider is configured. Choose one in Settings, SMS.',
+    'notice' => [
+        'not_configured' => 'SMS not sent: the SMS gateway is not set up yet (Settings > SMS).',
+    ],
     'whatsapp' => [
         'not_configured' => 'No WhatsApp provider is configured. Choose one in Settings, Messaging Providers.',
         'bulk_needs_api' => 'WhatsApp click-to-chat opens one chat at a time. Sending to many customers at once needs the WhatsApp Business Cloud API.',

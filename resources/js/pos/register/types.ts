@@ -146,6 +146,7 @@ export type CompletedSale = {
     due: Paisa;
     flags: string[];
     member_auth: string;
+    sms_notice?: string | null;
     receipt_url: string | null;
 };
 

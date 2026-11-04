@@ -74,7 +74,7 @@ final readonly class SendDirectMessage
             if ($handoff && count($customers) > 1) {
                 throw WhatsAppNotConfigured::bulk();
             }
-        } elseif (SmsSettings::fromTenant($tenant)->driver === 'null') {
+        } elseif (! SmsSettings::fromTenant($tenant)->isConfigured()) {
             throw SmsNotConfigured::make();
         }
 

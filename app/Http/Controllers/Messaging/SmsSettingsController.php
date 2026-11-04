@@ -65,6 +65,7 @@ final class SmsSettingsController extends Controller
                 'sid' => $settings->sid,
                 'base_url' => $settings->baseUrl,
                 'has_token' => $settings->apiToken !== null,
+                'configured' => $settings->isConfigured(),
                 'cost_per_segment' => $settings->costPerSegment,
                 'templates' => $templates,
             ],

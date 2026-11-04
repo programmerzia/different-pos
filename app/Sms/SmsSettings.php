@@ -43,7 +43,7 @@ final readonly class SmsSettings
         foreach (Templates::DEFAULTS as $key => $default) {
             $stored = is_array($raw['templates'][$key] ?? null) ? $raw['templates'][$key] : [];
             $body = is_string($stored['body'] ?? null) && trim($stored['body']) !== '' ? $stored['body'] : $default;
-            if (in_array($body, Templates::SUPERSEDED_DEFAULTS[$key] ?? [], true)) {
+            if (in_array($body, Templates::SUPERSEDED_DEFAULTS[$key], true)) {
                 $body = $default;
             }
             $templates[$key] = ['enabled' => (bool) ($stored['enabled'] ?? true), 'body' => $body];
@@ -60,10 +60,30 @@ final readonly class SmsSettings
         );
     }
 
-    /** Automatic messages go out only with a real driver and an enabled template. */
+    /**
+     * True when the gateway can actually deliver: `log` always; a real provider only with its credentials
+     * (an api token that decrypted, plus the SID/sender for ssl_wireless or the base URL for onecodesoft).
+     */
+    public function isConfigured(): bool
+    {
+        return match ($this->driver) {
+            'log' => true,
+            'ssl_wireless' => $this->apiToken !== null && ($this->sid !== '' || $this->senderId !== ''),
+            'onecodesoft' => $this->apiToken !== null && trim($this->baseUrl) !== '',
+            default => false,
+        };
+    }
+
+    /** True when the template is switched on (independent of the gateway). */
+    public function enabled(string $template): bool
+    {
+        return (bool) ($this->templates[$template]['enabled'] ?? false);
+    }
+
+    /** Automatic messages go out only with a working gateway and an enabled template. */
     public function sends(string $template): bool
     {
-        return $this->driver !== 'null' && ($this->templates[$template]['enabled'] ?? false);
+        return $this->isConfigured() && $this->enabled($template);
     }
 
     public function body(string $template): string

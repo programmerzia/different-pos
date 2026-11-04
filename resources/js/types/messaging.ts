@@ -12,6 +12,8 @@ export type SmsSettings = {
     sid: string;
     base_url: string;
     has_token: boolean;
+    /** The gateway can deliver (driver plus credentials); never the key itself. */
+    configured: boolean;
     /** Paisa per SMS part, for the composer's cost estimate. */
     cost_per_segment: number;
     templates: SmsTemplate[];

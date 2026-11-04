@@ -25,6 +25,8 @@ use App\Models\User;
 use App\Reports\ColumnType;
 use App\Reports\ReportColumn;
 use App\Reports\ReportResult;
+use App\Sms\SmsNotice;
+use App\Sms\Templates;
 use App\Support\Export\ExportFormat;
 use App\Support\Export\ExportMeta;
 use App\Support\Export\TabularExport;
@@ -226,6 +228,7 @@ final class ReturnController extends Controller
         )), 'lines');
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('receipts.flash.returned', ['number' => $return->number])]);
+        SmsNotice::flash(Templates::SALE_RETURNED, Customer::query()->find($return->customer_id));
 
         return to_route('returns.show', $return->id);
     }

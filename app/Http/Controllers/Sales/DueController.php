@@ -22,6 +22,8 @@ use App\Models\Sale;
 use App\Reports\ColumnType;
 use App\Reports\ReportColumn;
 use App\Reports\ReportResult;
+use App\Sms\SmsNotice;
+use App\Sms\Templates;
 use App\Support\Export\ExportFormat;
 use App\Support\Export\ExportMeta;
 use App\Support\Export\TabularExport;
@@ -332,6 +334,7 @@ final class DueController extends Controller
         )), 'amount');
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('receipts.flash.collected', ['number' => $payment->number, 'amount' => $amount->format(app()->getLocale())])]);
+        SmsNotice::flash(Templates::PAYMENT_RECEIVED, $model);
 
         return to_route('dues.show', ['customer' => $model->uuid, 'receipt' => $payment->id]);
     }
