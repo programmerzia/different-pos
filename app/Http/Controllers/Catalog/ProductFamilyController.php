@@ -66,7 +66,7 @@ final class ProductFamilyController extends Controller
                 'cost_price' => $canCost ? $p->cost_price->paisa : null,
                 'is_active' => $p->is_active,
             ])->all(),
-            'candidates' => Product::query()->whereNull('family_id')->where('is_active', true)->orderBy('name')->limit(200)->get(['id', 'name', 'sku'])->all(),
+            'candidates' => Product::query()->sellable()->whereNull('family_id')->where('is_active', true)->orderBy('name')->limit(200)->get(['id', 'name', 'sku'])->all(),
             'canViewCost' => $canCost,
         ]);
     }

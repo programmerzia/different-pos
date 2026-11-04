@@ -1,10 +1,14 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Page, PageHeader } from '@/components/page-header';
-import { AlertTriangle, ArrowLeft, Plus, Search, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle, ArrowLeft, Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Kbd } from '@/components/kbd';
 import { MoneyInput } from '@/components/money-input';
+import {
+    ReplacementCart,
+    type CartLine,
+} from '@/components/returns/replacement-cart';
 import { NativeSelect } from '@/components/native-select';
 import { QtyStepper } from '@/components/qty-stepper';
 import { Button } from '@/components/ui/button';
@@ -12,17 +16,22 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { navigateTo } from '@/command/navigate';
-import { timesQty, type Paisa } from '@/engine/money';
+import type { Paisa } from '@/engine/money';
 import { useDigits } from '@/hooks/use-digits';
 import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useT } from '@/i18n';
-import { apiRequest } from '@/lib/api';
 import {
+    checkTender,
+    exchangeNeeds,
+    exchangeResult,
     giveBackValue,
     parseGiveBack,
     settlementSummary,
+    shortLines,
+    type ExchangeQuote,
     type Settlement,
 } from '@/lib/exchange-settlement';
+import { useExchangeQuote } from '@/lib/use-exchange-quote';
 import { cn } from '@/lib/utils';
 import {
     returnValue,
@@ -77,15 +86,6 @@ type Props = {
     reasons: string[];
     can: { exchange: boolean };
 };
-
-type CartLine = {
-    product_id: number;
-    label: string;
-    sku: string;
-    price: Paisa;
-    qty: number;
-};
-type ProductHit = { id: number; label: string; sub: string; price: number };
 
 export default function ReturnCreate(props: Props) {
     const { t } = useT();
@@ -301,9 +301,12 @@ function ReturnForm({
     const [tenderMethod, setTenderMethod] = useState<number | null>(
         methods[0]?.id ?? null,
     );
-    const [tenderAmount, setTenderAmount] = useState<Paisa | null>(null);
+    const [typedAmount, setTypedAmount] = useState<Paisa | null>(null);
     const [tenderRef, setTenderRef] = useState('');
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [submitted, setSubmitted] = useState<{
+        key: string;
+        errors: Record<string, string>;
+    } | null>(null);
     const [busy, setBusy] = useState(false);
 
     const chosen = sale.lines.filter((l) => (qty[l.id] ?? 0) > 0);
@@ -311,56 +314,98 @@ function ReturnForm({
         (sum, l) => sum + returnValue(l.payable, qty[l.id] ?? 0, l.qty),
         0,
     );
-    const cartTotal = cart.reduce(
-        (sum, c) => sum + timesQty(c.price, c.qty),
-        0,
-    );
-    const difference = cartTotal - value;
     const exchanging = settlement === 'exchange';
-    const summary = settlementSummary(settlement, value, cartTotal);
+    const summary = settlementSummary(settlement, value, 0);
     const settlements: { id: Settlement; disabled: boolean }[] = [
         { id: 'refund', disabled: false },
         { id: 'credit', disabled: walkIn },
         ...(can.exchange ? [{ id: 'exchange' as const, disabled: false }] : []),
     ];
-    const tender = tenderAmount ?? Math.max(0, difference);
+
+    const lines = chosen.map((l) => ({
+        sale_item_id: l.id,
+        qty: qty[l.id] ?? 0,
+        restock: restock[l.id] ?? true,
+    }));
+    const items = cart.map((c) => ({ product_id: c.product_id, qty: c.qty }));
+    const needs = exchangeNeeds(chosen.length, cart.length);
+    // The exact figures come from the server; the screen never adds up an exchange itself.
+    const quoteState = useExchangeQuote(
+        exchanging && !sale.window.expired && needs.length === 0
+            ? { sale_id: sale.id, lines, items }
+            : null,
+    );
+    const quote = quoteState.quote;
+    const pays = quote?.pays ?? 0;
+
+    // A new amount to pay (the cart or the return changed) starts the payment over.
+    const [seenPays, setSeenPays] = useState(pays);
+    if (seenPays !== pays) {
+        setSeenPays(pays);
+        setTypedAmount(null);
+    }
+    const received = typedAmount ?? pays;
+    const tenderMethodRow = methods.find((m) => m.id === tenderMethod) ?? null;
+    const tender = checkTender({
+        pays,
+        received,
+        method: tenderMethodRow,
+        reference: tenderRef,
+        walkIn,
+    });
+    const short = quote ? shortLines(quote) : [];
+
     const blocked =
         sale.window.expired ||
         chosen.length === 0 ||
-        (exchanging && cart.length === 0);
+        (exchanging &&
+            (needs.length > 0 ||
+                quote === null ||
+                quoteState.error !== null ||
+                short.length > 0 ||
+                (pays > 0 && tender.problem !== null)));
+
+    // A server refusal is about the form as it was sent: any change to the form clears it.
+    const formKey = JSON.stringify([
+        lines,
+        items,
+        settlement,
+        refundMethod,
+        surplus,
+        reason,
+        note,
+        tenderMethod,
+        received,
+        tenderRef,
+    ]);
+    const errors = submitted?.key === formKey ? submitted.errors : {};
 
     const submit = () => {
         if (blocked || busy) {
             return;
         }
-        const lines = chosen.map((l) => ({
-            sale_item_id: l.id,
-            qty: qty[l.id] ?? 0,
-            restock: restock[l.id] ?? true,
-        }));
+        setSubmitted(null);
         const options = {
             preserveScroll: true,
             onStart: () => setBusy(true),
             onFinish: () => setBusy(false),
-            onError: (e: Record<string, string>) => setErrors(e),
+            onError: (e: Record<string, string>) =>
+                setSubmitted({ key: formKey, errors: e }),
         };
-        if (exchanging) {
+        if (exchanging && quote) {
             router.post(
                 '/app/exchanges',
                 {
                     sale_id: sale.id,
                     lines,
-                    items: cart.map((c) => ({
-                        product_id: c.product_id,
-                        qty: c.qty,
-                    })),
+                    items,
                     tenders:
-                        difference > 0 && tender > 0 && tenderMethod
+                        pays > 0 && received > 0 && tenderMethod
                             ? [
                                   {
                                       payment_method_id: tenderMethod,
-                                      amount: tender,
-                                      reference: tenderRef || null,
+                                      amount: received,
+                                      reference: tenderRef.trim() || null,
                                   },
                               ]
                             : [],
@@ -369,7 +414,7 @@ function ReturnForm({
                         surplus === 'refund' ? refundMethod : null,
                     reason,
                     note: note || null,
-                    expected_total: cartTotal,
+                    expected_total: quote.replacement_total,
                 },
                 options,
             );
@@ -570,7 +615,9 @@ function ReturnForm({
                                                     }
                                                     aria-label={t(
                                                         'returns.qty_for',
-                                                        { name: l.name },
+                                                        {
+                                                            name: l.name,
+                                                        },
                                                     )}
                                                 />
                                             </div>
@@ -587,7 +634,9 @@ function ReturnForm({
                                                 }
                                                 aria-label={t(
                                                     'returns.restock_for',
-                                                    { name: l.name },
+                                                    {
+                                                        name: l.name,
+                                                    },
                                                 )}
                                                 disabled={l.returnable === 0}
                                             />
@@ -611,11 +660,16 @@ function ReturnForm({
                 </section>
 
                 {exchanging ? (
-                    <ReplacementCart cart={cart} setCart={setCart} />
+                    <ReplacementCart
+                        cart={cart}
+                        setCart={setCart}
+                        quoteLines={quote?.lines ?? null}
+                        quoteLoading={quoteState.loading}
+                    />
                 ) : null}
             </div>
 
-            <aside className="flex flex-col gap-4">
+            <aside className="flex flex-col gap-4 lg:sticky lg:top-3 lg:max-h-[calc(100dvh-1.5rem)] lg:self-start lg:overflow-y-auto">
                 <section
                     className="grid gap-3 rounded-lg border bg-card p-4"
                     aria-labelledby="settle-heading"
@@ -652,7 +706,7 @@ function ReturnForm({
                         ))}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                        {sale.due > 0
+                        {sale.due > 0 && !exchanging
                             ? t('returns.due_first', {
                                   due: digits.money(sale.due),
                               })
@@ -715,44 +769,43 @@ function ReturnForm({
                     <h2 id="summary-heading" className="font-semibold">
                         {t('returns.summary')}
                     </h2>
-                    <dl className="grid grid-cols-[1fr_auto] gap-y-1">
-                        <dt className="text-muted-foreground">
-                            {t('returns.value_estimate')}
-                        </dt>
-                        <dd className="num text-right font-semibold">
-                            {digits.money(value)}
-                        </dd>
-                        {exchanging ? (
-                            <>
+                    {exchanging ? (
+                        <ExchangeSummary
+                            needs={needs}
+                            loading={quoteState.loading}
+                            error={quoteState.error}
+                            quote={quote}
+                        />
+                    ) : (
+                        <>
+                            <dl className="grid grid-cols-[1fr_auto] gap-y-1">
                                 <dt className="text-muted-foreground">
-                                    {t('returns.replacement_total')}
+                                    {t('returns.value_estimate')}
                                 </dt>
-                                <dd className="num text-right">
-                                    {digits.money(cartTotal)}
+                                <dd className="num text-right font-semibold">
+                                    {digits.money(value)}
                                 </dd>
-                            </>
-                        ) : null}
-                        <dt
-                            className="border-t pt-1 font-bold"
-                            data-test="settlement-summary"
-                        >
-                            {summary.kind === 'pays'
-                                ? t('returns.customer_pays')
-                                : summary.kind === 'gets'
-                                  ? t('returns.customer_gets')
-                                  : t('returns.even_exchange')}
-                        </dt>
-                        <dd className="num border-t pt-1 text-right font-bold text-primary">
-                            {digits.money(summary.amount)}
-                        </dd>
-                    </dl>
-                    <p className="text-xs text-muted-foreground">
-                        {t('returns.estimate_hint')}
-                    </p>
-                    {exchanging && difference > 0 ? (
+                                <dt
+                                    className="border-t pt-1 font-bold"
+                                    data-test="settlement-summary"
+                                >
+                                    {summary.kind === 'even'
+                                        ? t('returns.even_exchange')
+                                        : t('returns.customer_gets')}
+                                </dt>
+                                <dd className="num border-t pt-1 text-right font-bold text-primary">
+                                    {digits.money(summary.amount)}
+                                </dd>
+                            </dl>
+                            <p className="text-xs text-muted-foreground">
+                                {t('returns.estimate_hint')}
+                            </p>
+                        </>
+                    )}
+                    {exchanging && quote && pays > 0 ? (
                         <div className="grid gap-2 border-t pt-2">
                             <Label htmlFor="tender-method">
-                                {t('returns.pay_difference')}
+                                {t('returns.pay_with')}
                             </Label>
                             <NativeSelect
                                 id="tender-method"
@@ -769,13 +822,15 @@ function ReturnForm({
                                     </option>
                                 ))}
                             </NativeSelect>
+                            <Label htmlFor="tender-amount">
+                                {t('returns.amount_received')}
+                            </Label>
                             <MoneyInput
                                 id="tender-amount"
-                                value={tender}
-                                onChange={setTenderAmount}
+                                value={received}
+                                onChange={(v) => setTypedAmount(v ?? 0)}
                             />
-                            {methods.find((m) => m.id === tenderMethod)
-                                ?.requires_reference ? (
+                            {tenderMethodRow?.requires_reference ? (
                                 <Input
                                     className="min-h-11 md:min-h-9"
                                     value={tenderRef}
@@ -786,9 +841,41 @@ function ReturnForm({
                                     }
                                 />
                             ) : null}
+                            {tender.change > 0 && tender.problem === null ? (
+                                <p
+                                    className="flex justify-between font-semibold"
+                                    data-test="tender-change"
+                                >
+                                    <span>{t('returns.change')}</span>
+                                    <span className="num">
+                                        {digits.money(tender.change)}
+                                    </span>
+                                </p>
+                            ) : null}
+                            {tender.onAccount > 0 && tender.problem === null ? (
+                                <p
+                                    className="text-warning"
+                                    data-test="tender-on-account"
+                                >
+                                    {t('returns.on_account', {
+                                        amount: digits.money(tender.onAccount),
+                                    })}
+                                </p>
+                            ) : null}
+                            {tender.problem ? (
+                                <p
+                                    role="alert"
+                                    className="text-destructive"
+                                    data-test="tender-problem"
+                                >
+                                    {t(`returns.tender_${tender.problem}`, {
+                                        pays: digits.money(pays),
+                                    })}
+                                </p>
+                            ) : null}
                         </div>
                     ) : null}
-                    {exchanging && difference < 0 ? (
+                    {exchanging && quote && quote.gets_back > 0 ? (
                         <div className="grid gap-1.5 border-t pt-2">
                             <Label htmlFor="give-back">
                                 {t('returns.give_back_as')}
@@ -830,6 +917,22 @@ function ReturnForm({
                             </NativeSelect>
                         </div>
                     ) : null}
+                    {short.length > 0 ? (
+                        <div role="alert" className="grid gap-1">
+                            {short.map((l) => (
+                                <InputError
+                                    key={l.product_id}
+                                    message={`${l.name}: ${
+                                        (l.stock ?? 0) <= 0
+                                            ? t('returns.out_of_stock')
+                                            : t('returns.only_n_in_stock', {
+                                                  n: digits.qty(l.stock ?? 0),
+                                              })
+                                    }`}
+                                />
+                            ))}
+                        </div>
+                    ) : null}
                     {errorList.length > 0 ? (
                         <div role="alert" className="grid gap-1">
                             {errorList.map(([key, message]) => (
@@ -856,245 +959,162 @@ function ReturnForm({
     );
 }
 
-function ReplacementCart({
-    cart,
-    setCart,
+/** The exchange summary: only the server's exact figures, or what is still needed to get them. */
+function ExchangeSummary({
+    needs,
+    loading,
+    error,
+    quote,
 }: {
-    cart: CartLine[];
-    setCart: (update: (lines: CartLine[]) => CartLine[]) => void;
+    needs: ('return' | 'replacement')[];
+    loading: boolean;
+    error: string | null;
+    quote: ExchangeQuote | null;
 }) {
     const { t } = useT();
     const digits = useDigits();
-    const [text, setText] = useState('');
-    const [hits, setHits] = useState<ProductHit[]>([]);
-    const [failed, setFailed] = useState(false);
 
-    useEffect(() => {
-        const q = text.trim();
-        if (q.length < 2) {
-            return;
-        }
-        const controller = new AbortController();
-        const timer = setTimeout(() => {
-            apiRequest<{ products: ProductHit[] }>(
-                `/app/api/search?q=${encodeURIComponent(q)}`,
-                { signal: controller.signal },
-            )
-                .then((r) => {
-                    setHits(r.products);
-                    setFailed(false);
-                })
-                .catch(() => !controller.signal.aborted && setFailed(true));
-        }, 200);
-
-        return () => {
-            clearTimeout(timer);
-            controller.abort();
-        };
-    }, [text]);
-
-    const visibleHits = text.trim().length >= 2 ? hits : [];
-
-    const add = (hit: ProductHit) => {
-        setCart((lines) => {
-            const found = lines.find((l) => l.product_id === hit.id);
-
-            return found
-                ? lines.map((l) =>
-                      l.product_id === hit.id ? { ...l, qty: l.qty + 1000 } : l,
-                  )
-                : [
-                      ...lines,
-                      {
-                          product_id: hit.id,
-                          label: hit.label,
-                          sku: hit.sub,
-                          price: hit.price,
-                          qty: 1000,
-                      },
-                  ];
-        });
-        setText('');
-        document.getElementById('replacement-search')?.focus();
-    };
-
-    const total = useMemo(
-        () => cart.reduce((sum, c) => sum + timesQty(c.price, c.qty), 0),
-        [cart],
-    );
-
-    return (
-        <section
-            className="rounded-lg border bg-card p-4"
-            aria-labelledby="replacement-heading"
-        >
-            <h2 id="replacement-heading" className="mb-3 font-semibold">
-                {t('returns.replacement_items')}
-            </h2>
-            <div className="relative">
-                <Search
-                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                    aria-hidden="true"
-                />
-                <Input
-                    id="replacement-search"
-                    type="search"
-                    className="min-h-11 pl-9"
-                    value={text}
-                    placeholder={t('returns.product_search')}
-                    aria-label={t('returns.product_search')}
-                    onChange={(e) => setText(e.target.value)}
-                    onKeyDown={(e) => {
-                        const first = visibleHits[0];
-                        if (e.key === 'Enter' && first) {
-                            e.preventDefault();
-                            add(first);
-                        }
-                    }}
-                />
-            </div>
-            {failed ? (
-                <p className="mt-2 text-sm text-destructive">
-                    {t('palette.error')}
+    if (needs.length > 0) {
+        return (
+            <div data-test="exchange-needs" className="grid gap-1">
+                <p className="text-muted-foreground">
+                    {t('returns.needs_heading')}
                 </p>
-            ) : null}
-            {visibleHits.length > 0 ? (
-                <ul
-                    className="mt-2 grid gap-1"
-                    aria-label={t('returns.product_results')}
-                >
-                    {visibleHits.map((hit) => (
-                        <li key={hit.id}>
-                            <button
-                                type="button"
-                                className="flex min-h-11 w-full items-center justify-between rounded-md border px-3 text-left text-sm hover:border-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-                                onClick={() => add(hit)}
-                            >
-                                <span>
-                                    <span className="font-medium">
-                                        {hit.label}
-                                    </span>
-                                    <span className="num ml-2 text-xs text-muted-foreground">
-                                        {hit.sub}
-                                    </span>
-                                </span>
-                                <span className="num flex items-center gap-2">
-                                    {digits.money(hit.price)}
-                                    <Plus
-                                        className="size-4"
-                                        aria-hidden="true"
-                                    />
-                                </span>
-                            </button>
-                        </li>
+                <ul className="list-disc pl-5">
+                    {needs.map((n) => (
+                        <li key={n}>{t(`returns.need_${n}`)}</li>
                     ))}
                 </ul>
-            ) : null}
-            {cart.length > 0 ? (
-                <table className="mt-3 w-full text-sm">
-                    <caption className="sr-only">
-                        {t('returns.replacement_items')}
-                    </caption>
-                    <thead className="border-b text-muted-foreground">
-                        <tr>
-                            <th scope="col" className="py-2 text-left">
-                                {t('sales.item')}
-                            </th>
-                            <th scope="col" className="py-2 text-center">
-                                {t('returns.qty')}
-                            </th>
-                            <th scope="col" className="py-2 text-right">
-                                {t('sales.line_total')}
-                            </th>
-                            <th scope="col" className="py-2">
-                                <span className="sr-only">
-                                    {t('returns.remove')}
-                                </span>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {cart.map((c) => (
-                            <tr
-                                key={c.product_id}
-                                className="border-b last:border-0"
-                            >
-                                <td className="py-2">
-                                    <div className="font-medium">{c.label}</div>
-                                    <div className="num text-xs text-muted-foreground">
-                                        {c.sku} · {digits.money(c.price)}
-                                    </div>
-                                </td>
-                                <td className="py-2">
-                                    <div className="flex justify-center">
-                                        <QtyStepper
-                                            value={c.qty}
-                                            min={1000}
-                                            step={1000}
-                                            integer
-                                            onChange={(v) =>
-                                                setCart((lines) =>
-                                                    lines.map((l) =>
-                                                        l.product_id ===
-                                                        c.product_id
-                                                            ? { ...l, qty: v }
-                                                            : l,
-                                                    ),
-                                                )
-                                            }
-                                            aria-label={t('returns.qty_for', {
-                                                name: c.label,
-                                            })}
-                                        />
-                                    </div>
-                                </td>
-                                <td className="num py-2 text-right font-semibold">
-                                    {digits.money(timesQty(c.price, c.qty))}
-                                </td>
-                                <td className="py-2 text-right">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-11 md:size-8"
-                                        aria-label={t('returns.remove_named', {
-                                            name: c.label,
-                                        })}
-                                        onClick={() =>
-                                            setCart((lines) =>
-                                                lines.filter(
-                                                    (l) =>
-                                                        l.product_id !==
-                                                        c.product_id,
-                                                ),
-                                            )
-                                        }
-                                    >
-                                        <Trash2 aria-hidden="true" />
-                                    </Button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colSpan={2} className="pt-2 font-semibold">
-                                {t('returns.replacement_total')}
-                            </td>
-                            <td
-                                colSpan={2}
-                                className="num pt-2 text-right font-bold"
-                            >
-                                {digits.money(total)}
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
-            ) : (
-                <p className="mt-3 text-sm text-muted-foreground">
-                    {t('returns.cart_empty')}
+            </div>
+        );
+    }
+    if (error !== null) {
+        return (
+            <p
+                role="alert"
+                className="text-destructive"
+                data-test="quote-error"
+            >
+                {error || t('returns.quote_failed')}
+            </p>
+        );
+    }
+    if (loading || quote === null) {
+        return (
+            <output
+                className="block text-muted-foreground"
+                data-test="quote-loading"
+            >
+                {t('returns.calculating')}
+            </output>
+        );
+    }
+
+    const result = exchangeResult(quote);
+
+    return (
+        <>
+            <dl className="grid grid-cols-[1fr_auto] gap-y-1">
+                <dt className="text-muted-foreground">
+                    {t('returns.items_returned')}
+                </dt>
+                <dd className="num text-right">
+                    {digits.money(quote.return_value)}
+                </dd>
+                <dt className="text-muted-foreground">
+                    {t('returns.replacement_items')}
+                </dt>
+                <dd className="num text-right">
+                    {digits.money(quote.replacement_total)}
+                </dd>
+                {quote.replacement_tax > 0 ? (
+                    <>
+                        <dt className="pl-3 text-xs text-muted-foreground">
+                            {t('returns.includes_vat')}
+                        </dt>
+                        <dd className="num text-right text-xs text-muted-foreground">
+                            {digits.money(quote.replacement_tax)}
+                        </dd>
+                    </>
+                ) : null}
+                {quote.group_discount > 0 ? (
+                    <>
+                        <dt className="pl-3 text-xs text-muted-foreground">
+                            {t('returns.after_group_discount')}
+                        </dt>
+                        <dd className="num text-right text-xs text-muted-foreground">
+                            −{digits.money(quote.group_discount)}
+                        </dd>
+                    </>
+                ) : null}
+                {result.kind === 'surplus' ? (
+                    <>
+                        {result.dueCleared > 0 ? (
+                            <>
+                                <dt
+                                    className="border-t pt-1 font-bold"
+                                    data-test="settlement-summary"
+                                >
+                                    {t('returns.on_old_due')}
+                                </dt>
+                                <dd className="num border-t pt-1 text-right font-bold text-primary">
+                                    {digits.money(result.dueCleared)}
+                                </dd>
+                            </>
+                        ) : null}
+                        {result.getsBack > 0 ? (
+                            <>
+                                <dt
+                                    className={cn(
+                                        'font-bold',
+                                        result.dueCleared === 0 &&
+                                            'border-t pt-1',
+                                    )}
+                                    data-test={
+                                        result.dueCleared === 0
+                                            ? 'settlement-summary'
+                                            : undefined
+                                    }
+                                >
+                                    {t('returns.customer_gets')}
+                                </dt>
+                                <dd
+                                    className={cn(
+                                        'num text-right font-bold text-primary',
+                                        result.dueCleared === 0 &&
+                                            'border-t pt-1',
+                                    )}
+                                >
+                                    {digits.money(result.getsBack)}
+                                </dd>
+                            </>
+                        ) : null}
+                    </>
+                ) : (
+                    <>
+                        <dt
+                            className="border-t pt-1 font-bold"
+                            data-test="settlement-summary"
+                        >
+                            {result.kind === 'pays'
+                                ? t('returns.customer_pays')
+                                : t('returns.even_exchange')}
+                        </dt>
+                        <dd className="num border-t pt-1 text-right font-bold text-primary">
+                            {result.kind === 'pays'
+                                ? digits.money(result.amount)
+                                : null}
+                        </dd>
+                    </>
+                )}
+            </dl>
+            {quote.original_due > 0 && quote.surplus === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                    {t('returns.old_due_stays', {
+                        due: digits.money(quote.original_due),
+                    })}
                 </p>
-            )}
-        </section>
+            ) : null}
+        </>
     );
 }

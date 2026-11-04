@@ -29,7 +29,7 @@ final readonly class ProductLookup
         $term = mb_substr(trim($term), 0, 60);
 
         if ($term !== '') {
-            $exact = Product::query()->where('is_active', true)
+            $exact = Product::query()->sellable()->where('is_active', true)
                 ->where(fn (Builder $q) => $q->where('barcode', $term)->orWhere('sku', $term))
                 ->orderByRaw('barcode = ? desc', [$term])
                 ->first();
@@ -38,7 +38,7 @@ final readonly class ProductLookup
             }
         }
 
-        $query = Product::query()->where('is_active', true);
+        $query = Product::query()->sellable()->where('is_active', true);
         if ($categoryId !== null) {
             $query->where('category_id', $categoryId);
         }
@@ -72,7 +72,7 @@ final readonly class ProductLookup
             }
         }
 
-        $products = Product::query()->where('is_active', true)
+        $products = Product::query()->sellable()->where('is_active', true)
             ->where(fn (Builder $q) => $q->whereIn('id', array_values($productIds))->orWhereIn('family_id', array_values($familyIds)))
             ->with(['option1Value', 'option2Value'])
             ->orderBy('option1_value_id')->orderBy('option2_value_id')->orderBy('id')

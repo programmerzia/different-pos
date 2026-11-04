@@ -22,6 +22,7 @@ it('renders every settings hub section for the owner', function (string $url, st
     'branches' => ['/app/settings/branches', 'settings/branches'],
     'registers' => ['/app/settings/registers', 'settings/registers'],
     'payment methods' => ['/app/settings/payment-methods', 'settings/payment-methods'],
+    'couriers' => ['/app/settings/couriers', 'settings/couriers'],
     'taxes' => ['/app/settings/taxes', 'settings/taxes'],
     'units' => ['/app/settings/units', 'settings/units'],
     'sms' => ['/app/settings/sms', 'settings/sms'],

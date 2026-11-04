@@ -46,6 +46,7 @@ const product: ProductDetail = {
     barcode: '8941001',
     hs_code: null,
     type: 'standard',
+    item_type: 'finished',
     category_id: 1,
     brand_id: null,
     unit_id: 3,
@@ -186,6 +187,66 @@ describe('ProductDialog', () => {
             unit_id: 3,
             barcode: null,
         });
+    });
+
+    it('hides the retail price and variants for a raw material and posts a zero price', () => {
+        open();
+
+        fireEvent.change(screen.getByLabelText(t('products.item_type')), {
+            target: { value: 'raw_material' },
+        });
+
+        expect(
+            screen.queryByLabelText(`${t('products.mrp_label')} *`),
+        ).toBeNull();
+        expect(
+            screen.queryByLabelText(t('products.wholesale_label')),
+        ).toBeNull();
+        expect(screen.queryByLabelText(t('products.type'))).toBeNull();
+        expect(screen.getByText(t('products.raw_hint'))).toBeTruthy();
+        expect(
+            screen.getByLabelText(t('products.raw_cost_label')),
+        ).toBeTruthy();
+
+        fireEvent.change(screen.getByLabelText(`${t('products.name_en')} *`), {
+            target: { value: 'Cotton fabric' },
+        });
+        fireEvent.change(
+            screen.getByLabelText(`${t('products.sku_label')} *`),
+            { target: { value: 'FAB-1' } },
+        );
+        fireEvent.change(screen.getByLabelText(t('products.raw_cost_label')), {
+            target: { value: '450' },
+        });
+        fireEvent.click(
+            screen.getByRole('button', { name: t('products.save_product') }),
+        );
+
+        expect(visit).toHaveBeenCalledTimes(1);
+        const [, opts] = visit.mock.calls[0] as [
+            string,
+            { data: Record<string, unknown> },
+        ];
+        expect(opts.data).toMatchObject({
+            item_type: 'raw_material',
+            type: 'standard',
+            sale_price: 0,
+            cost_price: 45000,
+            track_stock: true,
+        });
+    });
+
+    it('offers the inline brand "+" only with permission', () => {
+        open();
+        expect(
+            screen.queryByRole('button', { name: t('products.brand_add') }),
+        ).toBeNull();
+        cleanup();
+
+        open({ canCreateBrand: true });
+        expect(
+            screen.getByRole('button', { name: t('products.brand_add') }),
+        ).toBeTruthy();
     });
 
     it('closes at once on Esc when nothing changed', () => {

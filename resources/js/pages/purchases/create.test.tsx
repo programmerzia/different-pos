@@ -63,4 +63,47 @@ describe('PurchaseCreate initial state', () => {
 
         expect(screen.getByText(t('purchases.blocked_vendor'))).toBeTruthy();
     });
+
+    it('offers "New item" and the All / Raw materials / Products filter only with products.create', () => {
+        render(
+            <PurchaseCreate
+                vendors={[{ id: 1, name: 'Acme Textiles' }]}
+                paymentMethods={[]}
+                canPay={false}
+                canCreateItem
+                units={[
+                    {
+                        id: 1,
+                        name: 'Metre',
+                        short_name: 'm',
+                        allows_decimal: true,
+                    },
+                ]}
+                today="2026-11-03"
+            />,
+        );
+        expect(
+            screen.getByRole('button', {
+                name: new RegExp(t('purchases.new_item')),
+            }),
+        ).toBeTruthy();
+        expect(
+            screen.getByRole('button', { name: t('purchases.kind_raw') }),
+        ).toBeTruthy();
+        cleanup();
+
+        render(
+            <PurchaseCreate
+                vendors={[{ id: 1, name: 'Acme Textiles' }]}
+                paymentMethods={[]}
+                canPay={false}
+                today="2026-11-03"
+            />,
+        );
+        expect(
+            screen.queryByRole('button', {
+                name: new RegExp(t('purchases.new_item')),
+            }),
+        ).toBeNull();
+    });
 });

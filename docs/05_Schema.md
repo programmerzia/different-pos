@@ -157,6 +157,7 @@ products [tenant] SD
   variant_label VARCHAR(100) NULL          -- denormalised "M / Black" for search, receipts, sync
   variant_key VARCHAR(40) GENERATED ALWAYS AS (CONCAT_WS('-', option1_value_id, option2_value_id)) STORED
   type VARCHAR(16) DEFAULT 'standard'      -- standard|service (service: track_stock=0)
+  item_type VARCHAR(20) DEFAULT 'finished' -- finished|raw_material (CHECK). A raw material is bought and stocked, never sold: sale_price 0, wholesale/min price NULL, standalone (no family), standard + track_stock=1; never offered by the POS lookup and refused by CompleteSale/CreateExchange (InvalidSaleDocument::rawMaterial). finished → raw_material is refused once the product has a sale_items row
   name VARCHAR(200), name_bn VARCHAR(200) NULL
   sku VARCHAR(64), barcode VARCHAR(64) NULL     -- barcode must not start with 'MC' (reserved: membership cards)
   hs_code VARCHAR(12) NULL                 -- optional, VAT
@@ -176,7 +177,7 @@ products [tenant] SD
   UNIQUE(tenant_id, sku), UNIQUE(tenant_id, barcode), INDEX(tenant_id, sync_version)
   UNIQUE(family_id, variant_key)          -- one product per combination (NULL family → not enforced)
   -- invariant: a variant's option values belong to its family's option1/option2; family products share unit_id
-  INDEX(tenant_id, category_id), INDEX(tenant_id, brand_id), INDEX(tenant_id, is_active)
+  INDEX(tenant_id, category_id), INDEX(tenant_id, brand_id), INDEX(tenant_id, is_active), INDEX(tenant_id, item_type)
   FULLTEXT(name, name_bn, sku, barcode)    -- POS search (ngram parser for Bangla)
 ```
 
@@ -316,7 +317,7 @@ stock_movements [tenant][B]                -- APPEND-ONLY ledger (no updates, no
 
 stock_adjustments [tenant][B]
   id, uuid UNIQUE, tenant_id, branch_id, number VARCHAR(30)
-  reason VARCHAR(24)                       -- damage|loss|found|opening|correction|stocktake|other
+  reason VARCHAR(24)                       -- damage|loss|found|opening|correction|stocktake|production_use|other (CHECK)
   stocktake_id BIGINT UNSIGNED NULL        -- FK→stocktakes once they exist (Phase D: plain column)
   note TEXT NULL, adjusted_at TIMESTAMP
   created_by, created_at, updated_at
@@ -352,6 +353,8 @@ stock_transfer_items
   qty_sent DECIMAL(14,3), qty_received DECIMAL(14,3) NULL, unit_cost BIGINT, short_reason VARCHAR(255) NULL
   UNIQUE(stock_transfer_id, product_id)
 ```
+
+> Raw materials (2026-11-04, migration `2026_11_04_000200_add_raw_materials`): adds `products.item_type` (existing rows stay `finished`) with `products_item_type_check` and `INDEX(tenant_id, item_type)`, and widens `stock_adjustments_reason_check` with `production_use` ("Used in production": how raw material consumption is recorded; there is no production module, bill of materials or automatic consumption). Stock valuation and low stock include raw materials; dead stock excludes them. Auto SKUs (`SkuAllocator`, used when a product is created without a SKU, e.g. the GRN's inline "New item"): `RM-000001` for raw materials, `SKU-000001` for finished products, next free number per tenant.
 
 > Transfers (2.19): `CreateStockTransfer` writes the row as `in_transit` with `sent_at`/`sent_by` (no draft step yet), issues `transfer_out` FIFO from `from_branch_id` and stores the weighted FIFO cost on `unit_cost`; the destination's `branch_stocks.qty_in_transit` carries the sent quantity until `ReceiveStockTransfer` (destination branch context only) books `transfer_in` batches for `qty_received` (`source_type=transfer_in`, `source_id=stock_transfer_items.id`) and releases it. `qty_received < qty_sent` needs `short_reason`. Migration `2026_11_04_000100_create_stock_transfers_tables`.
 
@@ -488,6 +491,11 @@ payment_methods [tenant]
   account_id BIGINT UNSIGNED NULL          -- where money lands; FK→accounts once §7 exists (Phase D: plain column)
   requires_reference BOOL DEFAULT 0, sort_order INT, is_active BOOL DEFAULT 1, timestamps
   -- seeded: Cash, Card, bKash, Nagad, Rocket, Bank transfer, Customer credit, Exchange credit (system, no account)
+
+couriers [tenant]                           -- delivery couriers; sales keep the courier as text (sales.courier_name), no FK
+  id, tenant_id, name VARCHAR(80), phone VARCHAR(30) NULL, is_default BOOL DEFAULT 0, is_active BOOL DEFAULT 1, timestamps
+  default_guard BIGINT UNSIGNED NULL VIRTUAL = IF(is_default=1, tenant_id, NULL) UNIQUE   -- at most one default per tenant
+  UNIQUE(tenant_id, name)                  -- not Syncable: the POS never pulls it; SaveCourier/SetDefaultCourier clear the old default under lock
 
 payments [tenant][B]                        -- one money movement (in from customer / out to vendor or refund)
   id, uuid UNIQUE, tenant_id, branch_id, number VARCHAR(30)

@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace App\Actions\Catalog;
 
+use App\Enums\ProductItemType;
 use App\Enums\ProductType;
 use App\Exceptions\Domain\InvalidCatalogData;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\SaleItem;
 use App\Models\TaxRate;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Support\Audit\Audit;
 use App\Support\Catalog\BarcodeAllocator;
+use App\Support\Catalog\SkuAllocator;
 use App\Support\Catalog\Values;
 use App\Support\Database\Transaction;
 use App\Support\Money\Money;
@@ -27,7 +30,7 @@ use App\Support\Quantity\Quantity;
  *
  * @phpstan-type ProductData array{
  *     name?: string, name_bn?: string|null, sku?: string, barcode?: string|null, hs_code?: string|null,
- *     type?: ProductType|string, category_id?: int|null, brand_id?: int|null, unit_id?: int,
+ *     type?: ProductType|string, item_type?: ProductItemType|string, category_id?: int|null, brand_id?: int|null, unit_id?: int,
  *     tax_rate_id?: int|null, default_vendor_id?: int|null, sale_price?: Money|string,
  *     cost_price?: Money|string, min_sale_price?: Money|string|null,
  *     wholesale_price?: Money|string|null, min_sale_qty?: Quantity|string,
@@ -37,7 +40,7 @@ use App\Support\Quantity\Quantity;
  */
 final readonly class SaveProduct
 {
-    public function __construct(private BarcodeAllocator $barcodes) {}
+    public function __construct(private BarcodeAllocator $barcodes, private SkuAllocator $skus) {}
 
     /** @param ProductData $data */
     public function handle(User $actor, array $data, ?Product $product = null): Product
@@ -51,16 +54,24 @@ final readonly class SaveProduct
             if ($name === '') {
                 throw InvalidCatalogData::required('Name');
             }
+            $rawItemType = $data['item_type'] ?? ($created ? ProductItemType::Finished : $product->item_type);
+            $itemType = $rawItemType instanceof ProductItemType ? $rawItemType : (ProductItemType::tryFrom($rawItemType) ?? throw InvalidCatalogData::invalid('Unknown item type.'));
+            $raw = $itemType === ProductItemType::RawMaterial;
+
             $sku = trim((string) ($data['sku'] ?? ($created ? '' : $product->sku)));
             if ($sku === '') {
-                throw InvalidCatalogData::required('SKU');
+                $sku = $created ? $this->skus->next($itemType) : throw InvalidCatalogData::required('SKU');
             }
             $this->assertSkuFree($sku, $created ? null : $product->id);
 
+            // A raw material is bought and stocked, never sold: no retail price.
             $attributes = [
                 'name' => $name,
                 'sku' => $sku,
-                'sale_price' => Values::money($data['sale_price'] ?? ($created ? null : $product->sale_price) ?? throw InvalidCatalogData::required('Sale price')),
+                'item_type' => $itemType,
+                'sale_price' => $raw
+                    ? Money::zero()
+                    : Values::money($data['sale_price'] ?? ($created ? null : $product->sale_price) ?? throw InvalidCatalogData::required('Sale price')),
             ];
             foreach (['name_bn', 'hs_code', 'image_path', 'description', 'is_active'] as $key) {
                 if (array_key_exists($key, $data)) {
@@ -80,10 +91,18 @@ final readonly class SaveProduct
                     $attributes[$key] = Values::quantity($data[$key]);
                 }
             }
+            if ($raw) {
+                $attributes['min_sale_price'] = null;
+                $attributes['wholesale_price'] = null;
+            }
             $rawType = $data['type'] ?? ($created ? ProductType::Standard : $product->type);
             $type = $rawType instanceof ProductType ? $rawType : (ProductType::tryFrom($rawType) ?? throw InvalidCatalogData::invalid('Unknown product type.'));
             $attributes['type'] = $type;
             $attributes['track_stock'] = $type === ProductType::Service ? false : (bool) ($data['track_stock'] ?? ($created ? true : $product->track_stock));
+            if ($raw) {
+                $this->assertCanBeRawMaterial($product, $created, $type);
+                $attributes['track_stock'] = true;
+            }
 
             $this->assertNonNegative($attributes);
             $this->assertReferences($data, $attributes, $created);
@@ -116,6 +135,17 @@ final readonly class SaveProduct
 
             return $product;
         });
+    }
+
+    /** A raw material is a standalone, stock-tracked item that has never been sold. */
+    private function assertCanBeRawMaterial(Product $product, bool $created, ProductType $type): void
+    {
+        if ($type === ProductType::Service || (! $created && $product->family_id !== null)) {
+            throw InvalidCatalogData::rawMaterialNeedsStandalone();
+        }
+        if (! $created && $product->item_type === ProductItemType::Finished && SaleItem::query()->where('product_id', $product->id)->exists()) {
+            throw InvalidCatalogData::rawMaterialHasSales($product->name);
+        }
     }
 
     private function assertSkuFree(string $sku, ?int $exceptId): void

@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Actions\Cards\IssueCard;
 use App\Actions\Customers\SaveCustomer;
 use App\Enums\PaymentMethodType;
+use App\Enums\ProductItemType;
 use App\Enums\StockMovementType;
 use App\Models\Branch;
 use App\Models\Customer;
@@ -49,6 +50,7 @@ final class E2eSeeder extends Seeder
             PaymentMethod::factory()->create(['tenant_id' => $tenant->id, 'name' => 'Cash', 'type' => PaymentMethodType::Cash]);
             Register::factory()->create(['tenant_id' => $tenant->id, 'branch_id' => $branch->id, 'name' => 'Counter 1', 'code' => 'R01']);
             $unit = Unit::factory()->create(['tenant_id' => $tenant->id, 'name' => 'Piece', 'short_name' => 'pc']);
+            Unit::factory()->create(['tenant_id' => $tenant->id, 'name' => 'Metre', 'short_name' => 'm', 'allows_decimal' => true]);
 
             $ledger = app(StockLedger::class);
             foreach ([['E2E-TEE', 'E2E Tee', 45_000], ['E2E-CAP', 'E2E Cap', 30_000], ['E2E-BAG', 'E2E Bag', 120_000]] as [$sku, $name, $price]) {
@@ -69,6 +71,24 @@ final class E2eSeeder extends Seeder
                     ['type' => 'e2e', 'id' => 1],
                 ));
             }
+
+            // A raw material (never offered for sale) and a finished product with no stock, for the exchange screen.
+            $linen = Product::factory()->create([
+                'tenant_id' => $tenant->id,
+                'unit_id' => $unit->id,
+                'sku' => 'E2E-RAW',
+                'name' => 'Seeded Linen Roll',
+                'item_type' => ProductItemType::RawMaterial,
+                'sale_price' => Money::ofPaisa(0),
+            ]);
+            Transaction::run(fn () => $ledger->receive($linen, $branch, Quantity::ofUnits(20), Money::ofPaisa(20_000), StockMovementType::Purchase, null, ['type' => 'e2e', 'id' => 1]));
+            Product::factory()->create([
+                'tenant_id' => $tenant->id,
+                'unit_id' => $unit->id,
+                'sku' => 'E2E-OUT',
+                'name' => 'Seeded Sold-Out Tee',
+                'sale_price' => Money::ofPaisa(35_000),
+            ]);
 
             $save = app(SaveCustomer::class);
             $member = $save->handle($owner, ['name' => 'Rina Member', 'phone' => '01711000001']);

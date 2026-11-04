@@ -12,5 +12,6 @@ enum AdjustmentReason: string
     case Opening = 'opening';
     case Correction = 'correction';
     case Stocktake = 'stocktake';
+    case ProductionUse = 'production_use';
     case Other = 'other';
 }

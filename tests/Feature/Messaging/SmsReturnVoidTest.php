@@ -59,7 +59,7 @@ it('queues a return SMS with the amount handed back and the remaining due', func
     $message = Message::query()->sole();
     expect($message->event)->toBe('sale_returned')
         ->and($message->customer_id)->toBe($customer->id)
-        ->and($message->body)->toBe('Dear Rahim, your return on invoice '.$sale->number.' is recorded: ৳1,500.00. Remaining due ৳0.00. — '.$world->tenant->name);
+        ->and($message->body)->toBe('Dear Rahim, your return on invoice '.$sale->number.' is recorded: Tk 1,500.00. Remaining due Tk 0.00. - '.$world->tenant->name);
     Queue::assertPushed(SendSms::class, 1);
 });
 
@@ -74,7 +74,7 @@ it('queues a void SMS with the invoice total', function (): void {
 
     $message = Message::query()->sole();
     expect($message->event)->toBe('sale_voided')
-        ->and($message->body)->toBe('Dear Karim, invoice '.$sale->number.' (৳1,500.00) has been cancelled. — '.$world->tenant->name);
+        ->and($message->body)->toBe('Dear Karim, invoice '.$sale->number.' (Tk 1,500.00) has been cancelled. - '.$world->tenant->name);
 });
 
 it('sends nothing when the template is off, the driver is null, or the customer is a walk-in or has no phone', function (): void {

@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Casts\MoneyCast;
 use App\Casts\QuantityCast;
+use App\Enums\ProductItemType;
 use App\Enums\ProductType;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasUuid;
@@ -14,6 +15,7 @@ use App\Models\Concerns\Syncable;
 use App\Support\Money\Money;
 use App\Support\Quantity\Quantity;
 use Database\Factories\ProductFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -33,6 +35,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $variant_label
  * @property string $variant_key
  * @property ProductType $type
+ * @property ProductItemType $item_type
  * @property string $name
  * @property string|null $name_bn
  * @property string $sku
@@ -68,12 +71,30 @@ final class Product extends Model
     /** @use HasFactory<ProductFactory> */
     use HasFactory;
 
+    protected $attributes = ['item_type' => 'finished'];
+
     protected $fillable = [
-        'family_id', 'option1_value_id', 'option2_value_id', 'variant_label', 'type', 'name', 'name_bn', 'sku',
+        'family_id', 'option1_value_id', 'option2_value_id', 'variant_label', 'type', 'item_type', 'name', 'name_bn', 'sku',
         'barcode', 'hs_code', 'category_id', 'brand_id', 'unit_id', 'tax_rate_id', 'default_vendor_id', 'sale_price',
         'cost_price', 'min_sale_price', 'wholesale_price', 'min_sale_qty', 'reorder_level', 'track_stock', 'image_path', 'description',
         'is_active', 'legacy_id', 'created_by', 'updated_by',
     ];
+
+    /**
+     * Products that may appear on a sale: everything except raw materials.
+     *
+     * @param  Builder<Product>  $query
+     * @return Builder<Product>
+     */
+    public function scopeSellable(Builder $query): Builder
+    {
+        return $query->where('products.item_type', ProductItemType::Finished->value);
+    }
+
+    public function isRawMaterial(): bool
+    {
+        return $this->item_type === ProductItemType::RawMaterial;
+    }
 
     /** @return BelongsTo<ProductFamily, $this> */
     public function family(): BelongsTo
@@ -133,6 +154,7 @@ final class Product extends Model
     {
         return [
             'type' => ProductType::class,
+            'item_type' => ProductItemType::class,
             'sale_price' => MoneyCast::class,
             'cost_price' => MoneyCast::class,
             'min_sale_price' => MoneyCast::class,

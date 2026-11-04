@@ -18,6 +18,7 @@ use App\Models\Tenant;
 use App\Sms\SendCustomerStatement;
 use App\Sms\SendSms;
 use App\Sms\SmsSender;
+use App\Sms\SmsSettings;
 use App\Sms\Templates;
 use App\Support\Money\Money;
 use App\Support\Tenancy\TenantContext;
@@ -61,12 +62,45 @@ it('queues one SendSms with the rendered body for a named customer', function ()
 
     Queue::assertPushed(SendSms::class, 1);
     $message = Message::query()->sole();
-    expect($message->body)->toBe('Thank you Rahim! Invoice '.$sale->number.' total ৳1,500.00, paid ৳1,000.00, due ৳500.00. — '.$world->tenant->name)
+    expect($message->body)->toBe('Thank you Rahim! Invoice '.$sale->number.' total Tk 1,500.00, paid Tk 1,000.00, due Tk 500.00. View: '.route('receipts.public', $sale->public_token).' - '.$world->tenant->name)
         ->and($message->phone)->toBe('+8801712345678')
         ->and($message->status)->toBe(MessageStatus::Queued)
         ->and($message->tenant_id)->toBe($world->tenant->id)
         ->and($message->customer_id)->toBe($customer->id)
         ->and($message->event)->toBe('sale_completed');
+});
+
+it('puts the absolute public receipt link in the sale SMS, and that link opens without login', function (): void {
+    Queue::fake();
+    config(['app.url' => 'http://pos.example.test']);
+    app('url')->forceRootUrl('http://pos.example.test');
+    $world = smsWorld();
+    $customer = $world->customer(['name' => 'Rahim', 'phone' => '01712345678']);
+
+    $sale = $world->sell([$world->line(shirt($world), 1)], [$world->tender('cash', 100_000)], $customer);
+
+    expect($sale->public_token)->toMatch('/^[A-Za-z0-9]{32}$/');
+    $url = 'http://pos.example.test/r/'.$sale->public_token;
+    $message = Message::query()->sole();
+    expect($message->body)->toContain('View: '.$url.' - ');
+
+    auth()->logout();
+    $this->get('/r/'.$sale->public_token)->assertOk()->assertSee($sale->number);
+});
+
+it('upgrades the stored previous default body to the new default but leaves a customised body alone', function (): void {
+    $old = Templates::SUPERSEDED_DEFAULTS['sale_completed'][0];
+    $world = smsWorld(['driver' => 'log', 'templates' => ['sale_completed' => ['enabled' => true, 'body' => $old]]]);
+    expect(SmsSettings::fromTenant($world->tenant)->body('sale_completed'))->toBe(Templates::DEFAULTS['sale_completed'])
+        ->and(Templates::DEFAULTS['sale_completed'])->toContain('{link}');
+
+    $custom = smsWorld(['driver' => 'log', 'templates' => ['sale_completed' => ['enabled' => true, 'body' => $old.' Visit again']]]);
+    expect(SmsSettings::fromTenant($custom->tenant)->body('sale_completed'))->toBe($old.' Visit again');
+
+    Queue::fake();
+    $customer = $custom->customer(['name' => 'Rahim', 'phone' => '01712345678']);
+    $custom->sell([$custom->line(shirt($custom), 1)], [$custom->tender('cash', 100_000)], $customer);
+    expect(Message::query()->sole()->body)->not->toContain('/r/');
 });
 
 it('queues nothing for a walk-in sale, a customer without a phone, a disabled template or no provider', function (): void {
@@ -95,7 +129,7 @@ it('sends a collected payment as a payment-received SMS', function (): void {
 
     $message = Message::query()->sole();
     expect($message->event)->toBe('payment_received')
-        ->and($message->body)->toBe('Dear Karim, we received ৳500.00. Remaining due ৳1,000.00. — '.$world->tenant->name);
+        ->and($message->body)->toBe('Dear Karim, we received Tk 500.00. Remaining due Tk 1,000.00. - '.$world->tenant->name);
 });
 
 it('the job sends through the driver, records the reference and runs under the tenant context', function (): void {

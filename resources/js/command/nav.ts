@@ -262,6 +262,12 @@ export const NAV_SECTIONS: NavSection[] = [
                         permission: 'settings.manage',
                     },
                     {
+                        id: 'settings.couriers',
+                        labelKey: 'nav.couriers',
+                        href: '/app/settings/couriers',
+                        permission: 'settings.manage',
+                    },
+                    {
                         id: 'settings.taxes',
                         labelKey: 'nav.taxes',
                         href: '/app/settings/taxes',

@@ -41,7 +41,7 @@ it('provisions a business with everything a first sale needs and invites the Own
         expect(Branch::query()->pluck('code')->all())->toBe(['MAIN'])
             ->and(Register::query()->withoutBranchScope()->where('branch_id', $result->branch->id)->pluck('code')->all())->toBe(['R1'])
             ->and(PaymentMethod::query()->pluck('type')->map(fn ($t) => $t->value)->sort()->values()->all())->toBe(['cash', 'customer_credit', 'exchange_credit'])
-            ->and(Unit::query()->pluck('short_name')->all())->toBe(['pcs'])
+            ->and(Unit::query()->pluck('short_name')->all())->toBe(['kg', 'm', 'pcs', 'yd'])
             ->and(Role::query()->where('tenant_id', $tenant->id)->where('is_system', true)->count())->toBe(5);
 
         $walkIn = Customer::query()->where('is_walk_in', true)->firstOrFail();

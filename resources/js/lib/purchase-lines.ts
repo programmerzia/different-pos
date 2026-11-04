@@ -8,21 +8,38 @@ export type Line = {
     qty: QtyMilli;
     unit_cost: Paisa;
     discount: Paisa;
+    /** Raw materials are never sold: no retail price on their bill line. */
+    item_type?: 'finished' | 'raw_material';
+    /** Short unit name shown beside the quantity (m, kg, pcs). */
+    unit?: string | null;
 };
 
-export const lineNet = (l: Line): Paisa => subtractMoney(timesQty(l.unit_cost, l.qty), l.discount);
+export const lineNet = (l: Line): Paisa =>
+    subtractMoney(timesQty(l.unit_cost, l.qty), l.discount);
 
-export function purchaseTotals(lines: Line[], discount: Paisa, shipping: Paisa) {
+export function purchaseTotals(
+    lines: Line[],
+    discount: Paisa,
+    shipping: Paisa,
+) {
     const subtotal = addMoney(0, ...lines.map(lineNet));
 
-    return { subtotal, total: subtractMoney(addMoney(subtotal, shipping), discount) };
+    return {
+        subtotal,
+        total: subtractMoney(addMoney(subtotal, shipping), discount),
+    };
 }
 
 /** Adds a scanned product: the same product again bumps its quantity by one unit. */
-export function addLine(lines: Line[], product: Omit<Line, 'qty' | 'discount'>): Line[] {
+export function addLine(
+    lines: Line[],
+    product: Omit<Line, 'qty' | 'discount'>,
+): Line[] {
     const at = lines.findIndex((l) => l.product_id === product.product_id);
     if (at >= 0) {
-        return lines.map((l, i) => (i === at ? { ...l, qty: l.qty + 1000 } : l));
+        return lines.map((l, i) =>
+            i === at ? { ...l, qty: l.qty + 1000 } : l,
+        );
     }
 
     return [...lines, { ...product, qty: 1000, discount: 0 }];

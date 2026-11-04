@@ -305,27 +305,28 @@ final readonly class CreateSaleReturn
             $credited = $exchangeApplied ?? Money::zero();
             $rest = $value->minus($credited);
             $mode = $surplusMode;
-        } else {
-            $offset = $sale->due->compareTo($value) < 0 ? $sale->due : $value;
-            if ($offset->paisa > 0) {
-                $this->accounts->recordPayment(
-                    $actor,
-                    $return->number.'/C',
-                    PaymentDirection::In,
-                    $party,
-                    $this->accounts->systemMethod(PaymentMethodType::CustomerCredit),
-                    $offset,
-                    $now,
-                    [[AllocatableType::Sale, $sale->id, $offset]],
-                    note: 'return '.$return->number,
-                );
-                $sale->paid = $sale->paid->plus($offset);
-                $sale->due = $sale->due->minus($offset);
-                $sale->payment_status = $sale->due->isZero() ? PaymentStatus::Paid : PaymentStatus::Partial;
-                $sale->save();
-                $credited = $offset;
-                $rest = $value->minus($offset);
-            }
+        }
+
+        // What is left clears this invoice's due first: never hand back money the customer has not paid.
+        $offset = $sale->due->compareTo($rest) < 0 ? $sale->due : $rest;
+        if ($offset->paisa > 0) {
+            $this->accounts->recordPayment(
+                $actor,
+                $return->number.'/C',
+                PaymentDirection::In,
+                $party,
+                $this->accounts->systemMethod(PaymentMethodType::CustomerCredit),
+                $offset,
+                $now,
+                [[AllocatableType::Sale, $sale->id, $offset]],
+                note: 'return '.$return->number,
+            );
+            $sale->paid = $sale->paid->plus($offset);
+            $sale->due = $sale->due->minus($offset);
+            $sale->payment_status = $sale->due->isZero() ? PaymentStatus::Paid : PaymentStatus::Partial;
+            $sale->save();
+            $credited = $credited->plus($offset);
+            $rest = $rest->minus($offset);
         }
 
         $refunded = Money::zero();

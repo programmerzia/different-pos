@@ -10,13 +10,16 @@ use App\Models\User;
 use App\Support\Audit\Audit;
 use App\Support\Database\Transaction;
 
-/** Creates or updates a brand; without $brand the name is deduped case-insensitively (a hit is updated). */
+/**
+ * Creates or updates a brand; without $brand the name is deduped case-insensitively (a hit is updated).
+ * With $rejectDuplicate (inline create) a live brand of the same name is refused instead; a deleted one is restored.
+ */
 final readonly class SaveBrand
 {
     /** @param array{name?: string, is_active?: bool} $data */
-    public function handle(User $actor, array $data, ?Brand $brand = null): Brand
+    public function handle(User $actor, array $data, ?Brand $brand = null, bool $rejectDuplicate = false): Brand
     {
-        return Transaction::run(function () use ($actor, $data, $brand): Brand {
+        return Transaction::run(function () use ($actor, $data, $brand, $rejectDuplicate): Brand {
             $brand = $brand instanceof Brand ? Brand::query()->findOrFail($brand->id) : null;
             $name = trim((string) ($data['name'] ?? $brand->name ?? ''));
             if ($name === '') {
@@ -28,7 +31,7 @@ final readonly class SaveBrand
                 ->when($brand instanceof Brand, fn ($q) => $q->whereKeyNot($brand?->id))
                 ->first();
 
-            if ($same instanceof Brand && $brand instanceof Brand) {
+            if ($same instanceof Brand && ($brand instanceof Brand || ($rejectDuplicate && ! $same->trashed()))) {
                 throw InvalidCatalogData::duplicate('brand', $name);
             }
             $brand ??= $same;

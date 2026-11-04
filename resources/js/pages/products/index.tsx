@@ -59,6 +59,8 @@ type Row = {
     sku: string;
     barcode: string | null;
     variant_label: string | null;
+    item_type: 'finished' | 'raw_material';
+    unit: string | null;
     family_id: number | null;
     family_uuid: string | null;
     category: string | null;
@@ -283,6 +285,11 @@ export default function ProductsIndex({
                         <div className="font-semibold text-foreground">
                             {r.name}
                             {r.variant_label ? ` · ${r.variant_label}` : ''}
+                            {r.item_type === 'raw_material' ? (
+                                <span className="ml-1.5 rounded-sm bg-info-soft px-1.5 py-0.5 align-middle text-[10px] font-bold text-info">
+                                    {t('products.raw_material_chip')}
+                                </span>
+                            ) : null}
                         </div>
                         {r.name_bn ? (
                             <div
@@ -590,6 +597,23 @@ export default function ProductsIndex({
                                 ],
                                 onChange: (v) => table.setFilter('category', v),
                             },
+                            {
+                                key: 'type',
+                                label: t('products.item_type'),
+                                value: filters['type'] ?? '',
+                                options: [
+                                    option('', 'products.type_all'),
+                                    option(
+                                        'finished',
+                                        'products.item_finished',
+                                    ),
+                                    option(
+                                        'raw_material',
+                                        'products.item_raw_material',
+                                    ),
+                                ],
+                                onChange: (v) => table.setFilter('type', v),
+                            },
                         ]}
                         moreFilters={{
                             count: moreCount,
@@ -688,6 +712,7 @@ export default function ProductsIndex({
                     families={editor.families}
                     options={form}
                     canViewCost={canViewCost}
+                    canCreateBrand={can('products.create')}
                     listQuery={query}
                     onClose={closeDialog}
                 />

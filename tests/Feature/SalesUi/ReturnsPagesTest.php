@@ -5,8 +5,10 @@ declare(strict_types=1);
 use App\Enums\RefundMode;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\BranchStock;
+use App\Models\CustomerGroup;
 use App\Models\Sale;
 use App\Models\SaleReturn;
+use App\Models\TaxRate;
 use App\Support\Tenancy\TenantContext;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Fixtures\SalesUi;
@@ -179,4 +181,64 @@ it('loads the wizard dialog alone, never another tenant\'s sale', function (): v
         'X-Inertia-Partial-Component' => 'returns/index',
         'X-Inertia-Partial-Data' => 'wizard',
     ])->get(route('returns.index', ['wizard_q' => 'Karim']))->assertForbidden();
+});
+
+it('quotes exactly what the exchange then saves, with group discount and VAT', function (): void {
+    $group = CustomerGroup::factory()->create(['tenant_id' => $this->world->tenant->id, 'discount_bp' => 1000]);
+    $vat = TaxRate::factory()->create(['tenant_id' => $this->world->tenant->id, 'rate_bp' => 1500]);
+    $taxed = $this->world->product(150_000, 60_000, ['name' => 'Taxed coat', 'tax_rate_id' => $vat->id]);
+    $this->world->stock($taxed, 5, 60_000);
+    $this->customer->update(['customer_group_id' => $group->id]);
+    $payload = [
+        'sale_id' => $this->sale->id,
+        'lines' => [['sale_item_id' => $this->item->id, 'qty' => 1000, 'restock' => true]],
+        'items' => [['product_id' => $taxed->id, 'qty' => 1000]],
+    ];
+    $manager = $this->world->user('Manager');
+
+    $quote = $this->actingAs($manager)->postJson(route('exchanges.quote'), $payload)->assertOk();
+    expect(SaleReturn::query()->count())->toBe(0);
+
+    $this->actingAs($manager)->post(route('exchanges.store'), [
+        ...$payload,
+        'tenders' => [['payment_method_id' => $this->world->methods['cash']->id, 'amount' => $quote->json('pays')]],
+        'surplus_mode' => 'refund',
+        'reason' => 'size',
+    ])->assertRedirect();
+
+    $return = SaleReturn::query()->sole();
+    $replacement = Sale::query()->findOrFail($return->exchange_sale_id);
+    expect($quote->json('replacement_total'))->toBe($replacement->total->paisa)
+        ->and($quote->json('return_value'))->toBe($return->total->paisa)
+        ->and($quote->json('group_discount'))->toBeGreaterThan(0)
+        ->and($replacement->due->paisa)->toBe(0)
+        ->and($replacement->sync_flags ?? [])->not->toContain('price_mismatch');
+});
+
+it('quotes stock shortages, the due cleared and what comes back', function (): void {
+    $scarce = $this->world->product(10_000, 4_000, ['name' => 'Scarce']);
+    $this->world->stock($scarce, 1, 4_000);
+
+    $quote = $this->actingAs($this->world->user('Manager'))->postJson(route('exchanges.quote'), [
+        'sale_id' => $this->sale->id,
+        'lines' => [['sale_item_id' => $this->item->id, 'qty' => 1000, 'restock' => true]],
+        'items' => [['product_id' => $scarce->id, 'qty' => 2000]],
+    ])->assertOk();
+
+    expect($quote->json('lines.0.short'))->toBeTrue()
+        ->and($quote->json('lines.0.stock'))->toBe(1000)
+        ->and($quote->json('surplus'))->toBe($quote->json('due_cleared') + $quote->json('gets_back'));
+});
+
+it('refuses a raw material in the quote and guards who and which sale can be quoted', function (): void {
+    $fabric = $this->world->product(0, 25_000, ['name' => 'Fabric', 'item_type' => 'raw_material']);
+    $payload = [
+        'sale_id' => $this->sale->id,
+        'lines' => [['sale_item_id' => $this->item->id, 'qty' => 1000, 'restock' => true]],
+        'items' => [['product_id' => $fabric->id, 'qty' => 1000]],
+    ];
+
+    $this->actingAs($this->world->user('Manager'))->postJson(route('exchanges.quote'), $payload)->assertUnprocessable()->assertJsonValidationErrors('lines');
+    $this->actingAs($this->world->user('Stock Keeper'))->postJson(route('exchanges.quote'), $payload)->assertForbidden();
+    $this->actingAs($this->world->user('Manager'))->postJson(route('exchanges.quote'), [...$payload, 'sale_id' => 99_999_999])->assertUnprocessable()->assertJsonValidationErrors('sale_id');
 });

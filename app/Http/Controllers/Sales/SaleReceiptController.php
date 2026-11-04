@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Sales;
 
+use App\Enums\SaleStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Sales\Concerns\PresentsSales;
+use App\Models\Courier;
 use App\Models\Payment;
 use App\Models\Sale;
 use App\Models\SaleReturn;
+use App\Support\Receipts\ChalanCourier;
 use App\Support\Receipts\ReceiptBuilder;
 use App\Support\Receipts\ReceiptRenderer;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -36,21 +39,45 @@ final class SaleReceiptController extends Controller
         return $this->respond($request, $paper === 'a4' ? 'a4' : 'thermal', $this->builder->sale($model, $locale), $paper, 'sales.receipt', $model->id);
     }
 
-    /** Delivery chalan: A4 only, quantities without any money. */
+    /** Delivery chalan: A4 only, quantities plus the COD amount (the due) when there is one. */
     public function chalan(Request $request, int $sale): Response
     {
         $model = Sale::query()->findOrFail($sale);
         $this->authorize('view', $model);
         $locale = $this->useLocale($request);
-        $chalan = $this->builder->chalan($model, $locale);
+        $requested = $request->query('courier');
+        $requestedId = is_string($requested) && ctype_digit($requested) && strlen($requested) < 19 ? (int) $requested : null;
+        $courier = ChalanCourier::resolve($model, $requestedId);
+        $cod = $request->query('cod') !== '0';
+        $chalan = $this->builder->chalan($model, $locale, $courier, $cod);
         $other = $locale === 'bn' ? 'en' : 'bn';
+        // Print-only choice: carried through the language switch and the other couriers' links.
+        $picked = $requestedId !== null && $courier !== null && Courier::query()->whereKey($requestedId)->where('is_active', true)->exists() ? $requestedId : null;
+
+        $toolbar = [[
+            'label' => $other === 'bn' ? 'বাংলা' : 'English',
+            'url' => route('sales.chalan', self::query([$model->id, 'lang' => $other, 'courier' => $picked, 'cod' => $cod ? null : 0, 'print' => $request->boolean('print') ? 1 : null])),
+            'active' => false,
+        ]];
+        $choices = Courier::query()->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get();
+        if ($choices->count() > 1) {
+            foreach ($choices as $choice) {
+                $toolbar[] = [
+                    'label' => __('receipts.chalan.courier').': '.$choice->name,
+                    'url' => route('sales.chalan', self::query([$model->id, 'lang' => $locale, 'courier' => $choice->id, 'cod' => $cod ? null : 0, 'print' => $request->boolean('print') ? 1 : null])),
+                    'active' => $courier !== null && mb_strtolower($courier['name']) === mb_strtolower($choice->name),
+                ];
+            }
+        }
+
+        // COD on/off applies only to a sale that owes something; a paid or voided one never offers it.
+        if ($model->status !== SaleStatus::Voided && $model->due->paisa > 0) {
+            $toggle = static fn (bool $on): string => route('sales.chalan', self::query([$model->id, 'lang' => $locale, 'courier' => $picked, 'cod' => $on ? null : 0, 'print' => $request->boolean('print') ? 1 : null]));
+            $toolbar[] = ['label' => __('receipts.chalan.cod_toggle').': '.__('receipts.chalan.'.($cod ? 'cod_on' : 'cod_off')), 'url' => $toggle(! $cod), 'active' => false];
+        }
 
         $html = $this->renderer->html('chalan', $chalan, 'a4', [
-            'toolbar' => [[
-                'label' => $other === 'bn' ? 'বাংলা' : 'English',
-                'url' => route('sales.chalan', [$model->id, 'lang' => $other]),
-                'active' => false,
-            ]],
+            'toolbar' => $toolbar,
             'autoprint' => $request->boolean('print'),
         ]);
 
@@ -75,6 +102,17 @@ final class SaleReceiptController extends Controller
         $locale = $this->useLocale($request);
 
         return $this->respond($request, 'payment', $this->builder->payment($model, $locale), $paper, 'payments.receipt', $model->id);
+    }
+
+    /**
+     * Drops the null entries only (array_filter would also drop cod=0).
+     *
+     * @param  array<int|string, mixed>  $params
+     * @return array<int|string, mixed>
+     */
+    private static function query(array $params): array
+    {
+        return array_filter($params, static fn (mixed $value): bool => $value !== null);
     }
 
     private function useLocale(Request $request): string

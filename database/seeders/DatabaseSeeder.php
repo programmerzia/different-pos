@@ -72,6 +72,10 @@ final class DatabaseSeeder extends Seeder
             app(TenantContext::class)->run($tenant, $branches[0], function (): void {
                 PaymentMethod::query()->firstOrCreate(['type' => PaymentMethodType::Cash], ['name' => 'Cash', 'requires_reference' => false, 'sort_order' => 1, 'is_active' => true]);
                 Unit::query()->firstOrCreate(['short_name' => 'pcs'], ['name' => 'Piece', 'allows_decimal' => false, 'is_active' => true]);
+                // Fabric and other raw materials are bought by length or weight.
+                foreach (['m' => 'Metre', 'yd' => 'Yard', 'kg' => 'Kilogram'] as $short => $name) {
+                    Unit::query()->firstOrCreate(['short_name' => $short], ['name' => $name, 'allows_decimal' => true, 'is_active' => true]);
+                }
 
                 if (! Customer::query()->where('is_walk_in', true)->exists()) {
                     $walkIn = new Customer;

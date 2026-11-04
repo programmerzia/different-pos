@@ -65,6 +65,8 @@ final class DeadStock extends AbstractReport
             ->where('products.tenant_id', $this->tenantId())
             ->where('branches.tenant_id', $this->tenantId())
             ->whereNull('products.deleted_at')
+            // Raw materials are never sold, so they are not "unsold stock".
+            ->where('products.item_type', 'finished')
             ->where('branch_stocks.qty_on_hand', '>', 0)
             ->where(function ($q) use ($cutoff): void {
                 $q->whereNull('ls.last_sold_at')->orWhere('ls.last_sold_at', '<', $cutoff);

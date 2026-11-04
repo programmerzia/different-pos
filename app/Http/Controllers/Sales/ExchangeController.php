@@ -14,12 +14,15 @@ use App\Enums\RefundMode;
 use App\Http\Controllers\Concerns\TranslatesDomainErrors;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Sales\Concerns\PresentsSales;
+use App\Http\Requests\Sales\QuoteExchangeRequest;
 use App\Http\Requests\Sales\StoreExchangeRequest;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Support\Money\Money;
 use App\Support\Quantity\Quantity;
+use App\Support\Sales\ExchangeQuote;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 
@@ -27,6 +30,27 @@ use Inertia\Inertia;
 final class ExchangeController extends Controller
 {
     use AuthorizesRequests, PresentsSales, TranslatesDomainErrors;
+
+    /** POST /app/exchanges/quote: the exact amounts before saving; writes nothing. */
+    public function quote(QuoteExchangeRequest $request, ExchangeQuote $quote): JsonResponse
+    {
+        $this->authorize('create', SaleReturn::class);
+        $this->authorize('create', Sale::class);
+
+        $items = [];
+        foreach ((array) $request->input('items', []) as $item) {
+            if (is_array($item)) {
+                $items[] = new SaleLineDraft((int) $item['product_id'], Quantity::ofMilli((int) $item['qty']));
+            }
+        }
+
+        return response()->json($this->guarded(fn (): array => $quote->for(
+            $this->actor($request),
+            $request->integer('sale_id'),
+            $this->returnLines($request),
+            new SaleDraft(lines: $items, tenders: []),
+        ), 'lines'));
+    }
 
     public function store(StoreExchangeRequest $request, CreateExchange $exchange): RedirectResponse
     {

@@ -6,6 +6,7 @@ import {
     ImageIcon,
     Images,
     Layers,
+    Plus,
     Tag,
     Upload,
     Wand2,
@@ -29,6 +30,7 @@ import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { GroupDialog, type Family } from './group-dialog';
+import { InlineBrandDialog } from './inline-brand-dialog';
 import { ImagePickerDialog, type LibraryImage } from './image-picker-dialog';
 import {
     defaultVariantDraft,
@@ -49,6 +51,7 @@ export type ProductDetail = {
     barcode: string | null;
     hs_code: string | null;
     type: 'standard' | 'service';
+    item_type: 'finished' | 'raw_material';
     category_id: number | null;
     brand_id: number | null;
     unit_id: number;
@@ -106,6 +109,8 @@ function initialState(
         barcode: product?.barcode ?? '',
         hs_code: product?.hs_code ?? '',
         type: product?.type ?? ('standard' as 'standard' | 'service'),
+        item_type:
+            product?.item_type ?? ('finished' as 'finished' | 'raw_material'),
         category_id: product?.category_id ?? null,
         brand_id: product?.brand_id ?? null,
         unit_id: product?.unit_id ?? options.units[0]?.id ?? null,
@@ -134,6 +139,7 @@ export function ProductDialog({
     families = [],
     options,
     canViewCost,
+    canCreateBrand = false,
     listQuery = '',
     onClose,
 }: {
@@ -141,6 +147,8 @@ export function ProductDialog({
     families?: Family[];
     options: ProductFormOptions;
     canViewCost: boolean;
+    /** `products.create`: shows the "+" that adds a brand without leaving the form. */
+    canCreateBrand?: boolean;
     listQuery?: string;
     onClose: () => void;
 }) {
@@ -148,6 +156,8 @@ export function ProductDialog({
     const editing = product !== null;
     const [initial] = useState(() => initialState(product, options));
     const [f, setF] = useState(initial);
+    const [brands, setBrands] = useState(options.brands);
+    const [brandOpen, setBrandOpen] = useState(false);
     const [errors, setErrors] = useState<Errors>({});
     const [processing, setProcessing] = useState(false);
     const [image, setImage] = useState<File | null>(null);
@@ -164,7 +174,8 @@ export function ProductDialog({
         () => gridFor(variantOptions, draft, f.sku),
         [variantOptions, draft, f.sku],
     );
-    const withVariants = !editing && variantRows.length > 0;
+    const raw = f.item_type === 'raw_material';
+    const withVariants = !editing && !raw && variantRows.length > 0;
     const clearVariants = () =>
         setDraft((d) => ({ ...d, values1: [], values2: [], rows: [] }));
     const [groupOpen, setGroupOpen] = useState(false);
@@ -207,7 +218,7 @@ export function ProductDialog({
         if (f.unit_id === null) {
             found['unit_id'] = t('products.err_unit');
         }
-        if (f.sale_price === null) {
+        if (!raw && f.sale_price === null) {
             found['sale_price'] = t('products.err_price');
         }
 
@@ -230,7 +241,18 @@ export function ProductDialog({
             ...f,
             hs_code: f.hs_code || null,
             barcode: withVariants ? null : f.barcode || null,
-            track_stock: f.type === 'service' ? false : f.track_stock,
+            // A raw material is bought and stocked, never sold: no retail price, always standard and tracked.
+            ...(raw
+                ? {
+                      type: 'standard',
+                      sale_price: 0,
+                      wholesale_price: null,
+                      min_sale_price: null,
+                      track_stock: true,
+                  }
+                : {
+                      track_stock: f.type === 'service' ? false : f.track_stock,
+                  }),
             cost_price: canViewCost ? f.cost_price : null,
         };
         if (image) {
@@ -306,6 +328,7 @@ export function ProductDialog({
 
     const err = (key: string): string | undefined => errors[key] || undefined;
     const margin =
+        !raw &&
         canViewCost &&
         f.cost_price !== null &&
         f.cost_price > 0 &&
@@ -459,31 +482,56 @@ export function ProductDialog({
                                             label={t('products.brand_label')}
                                             error={err('brand_id')}
                                         >
-                                            <select
-                                                id="product-brand_id"
-                                                className={cn(control, 'px-2')}
-                                                value={f.brand_id ?? ''}
-                                                onChange={(e) =>
-                                                    set(
-                                                        'brand_id',
-                                                        idOrNull(
-                                                            e.target.value,
-                                                        ),
-                                                    )
-                                                }
-                                            >
-                                                <option value="">
-                                                    {t('common.none')}
-                                                </option>
-                                                {options.brands.map((o) => (
-                                                    <option
-                                                        key={o.id}
-                                                        value={o.id}
-                                                    >
-                                                        {o.name}
+                                            <div className="mt-1 flex gap-1.5">
+                                                <select
+                                                    id="product-brand_id"
+                                                    className={cn(
+                                                        control,
+                                                        'mt-0 min-w-0 flex-1 px-2',
+                                                    )}
+                                                    value={f.brand_id ?? ''}
+                                                    onChange={(e) =>
+                                                        set(
+                                                            'brand_id',
+                                                            idOrNull(
+                                                                e.target.value,
+                                                            ),
+                                                        )
+                                                    }
+                                                >
+                                                    <option value="">
+                                                        {t('common.none')}
                                                     </option>
-                                                ))}
-                                            </select>
+                                                    {brands.map((o) => (
+                                                        <option
+                                                            key={o.id}
+                                                            value={o.id}
+                                                        >
+                                                            {o.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {canCreateBrand ? (
+                                                    <button
+                                                        type="button"
+                                                        title={t(
+                                                            'products.brand_add',
+                                                        )}
+                                                        aria-label={t(
+                                                            'products.brand_add',
+                                                        )}
+                                                        onClick={() =>
+                                                            setBrandOpen(true)
+                                                        }
+                                                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-surface-sunken outline-none hover:bg-border focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 [@media(pointer:coarse)]:size-11"
+                                                    >
+                                                        <Plus
+                                                            className="size-3.5"
+                                                            aria-hidden="true"
+                                                        />
+                                                    </button>
+                                                ) : null}
+                                            </div>
                                         </Field>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
@@ -647,35 +695,81 @@ export function ProductDialog({
                                             </Field>
                                         ) : null}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Field
-                                            id="product-type"
-                                            label={t('products.type')}
-                                            error={err('type')}
-                                        >
-                                            <select
-                                                id="product-type"
-                                                className={cn(control, 'px-2')}
-                                                value={f.type}
-                                                onChange={(e) =>
-                                                    set(
-                                                        'type',
-                                                        e.target.value as
-                                                            | 'standard'
-                                                            | 'service',
-                                                    )
+                                    <Field
+                                        id="product-item_type"
+                                        label={t('products.item_type')}
+                                        error={err('item_type')}
+                                        hint={
+                                            raw
+                                                ? t('products.raw_hint')
+                                                : undefined
+                                        }
+                                    >
+                                        <select
+                                            id="product-item_type"
+                                            className={cn(control, 'px-2')}
+                                            value={f.item_type}
+                                            onChange={(e) => {
+                                                const next = e.target
+                                                    .value as typeof f.item_type;
+                                                setF((prev) => ({
+                                                    ...prev,
+                                                    item_type: next,
+                                                    ...(next === 'raw_material'
+                                                        ? { type: 'standard' }
+                                                        : {}),
+                                                }));
+                                                if (next === 'raw_material') {
+                                                    clearVariants();
                                                 }
+                                            }}
+                                        >
+                                            <option value="finished">
+                                                {t('products.item_finished')}
+                                            </option>
+                                            <option value="raw_material">
+                                                {t(
+                                                    'products.item_raw_material',
+                                                )}
+                                            </option>
+                                        </select>
+                                    </Field>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {!raw ? (
+                                            <Field
+                                                id="product-type"
+                                                label={t('products.type')}
+                                                error={err('type')}
                                             >
-                                                <option value="standard">
-                                                    {t(
-                                                        'products.type_standard',
+                                                <select
+                                                    id="product-type"
+                                                    className={cn(
+                                                        control,
+                                                        'px-2',
                                                     )}
-                                                </option>
-                                                <option value="service">
-                                                    {t('products.type_service')}
-                                                </option>
-                                            </select>
-                                        </Field>
+                                                    value={f.type}
+                                                    onChange={(e) =>
+                                                        set(
+                                                            'type',
+                                                            e.target.value as
+                                                                | 'standard'
+                                                                | 'service',
+                                                        )
+                                                    }
+                                                >
+                                                    <option value="standard">
+                                                        {t(
+                                                            'products.type_standard',
+                                                        )}
+                                                    </option>
+                                                    <option value="service">
+                                                        {t(
+                                                            'products.type_service',
+                                                        )}
+                                                    </option>
+                                                </select>
+                                            </Field>
+                                        ) : null}
                                         <Field
                                             id="product-hs_code"
                                             label={t('products.hs_code')}
@@ -783,7 +877,15 @@ export function ProductDialog({
                                         {canViewCost ? (
                                             <Field
                                                 id="product-cost_price"
-                                                label={t('products.cost_label')}
+                                                label={
+                                                    raw
+                                                        ? t(
+                                                              'products.raw_cost_label',
+                                                          )
+                                                        : t(
+                                                              'products.cost_label',
+                                                          )
+                                                }
                                                 error={err('cost_price')}
                                             >
                                                 <div className="mt-1">
@@ -804,56 +906,62 @@ export function ProductDialog({
                                                 </div>
                                             </Field>
                                         ) : null}
-                                        <Field
-                                            id="product-sale_price"
-                                            label={`${t('products.mrp_label')} *`}
-                                            error={err('sale_price')}
-                                        >
-                                            <div className="mt-1">
-                                                <MoneyInput
-                                                    id="product-sale_price"
-                                                    className={cn(
-                                                        box,
-                                                        'pl-8 text-right font-bold text-primary',
-                                                        err('sale_price') &&
-                                                            invalidControl,
-                                                    )}
-                                                    value={f.sale_price}
-                                                    invalid={Boolean(
-                                                        err('sale_price'),
-                                                    )}
-                                                    onChange={(v) =>
-                                                        set('sale_price', v)
-                                                    }
-                                                />
-                                            </div>
-                                        </Field>
+                                        {!raw ? (
+                                            <Field
+                                                id="product-sale_price"
+                                                label={`${t('products.mrp_label')} *`}
+                                                error={err('sale_price')}
+                                            >
+                                                <div className="mt-1">
+                                                    <MoneyInput
+                                                        id="product-sale_price"
+                                                        className={cn(
+                                                            box,
+                                                            'pl-8 text-right font-bold text-primary',
+                                                            err('sale_price') &&
+                                                                invalidControl,
+                                                        )}
+                                                        value={f.sale_price}
+                                                        invalid={Boolean(
+                                                            err('sale_price'),
+                                                        )}
+                                                        onChange={(v) =>
+                                                            set('sale_price', v)
+                                                        }
+                                                    />
+                                                </div>
+                                            </Field>
+                                        ) : null}
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
-                                        <Field
-                                            id="product-wholesale_price"
-                                            label={t(
-                                                'products.wholesale_label',
-                                            )}
-                                            error={err('wholesale_price')}
-                                        >
-                                            <div className="mt-1">
-                                                <MoneyInput
-                                                    id="product-wholesale_price"
-                                                    className={cn(
-                                                        box,
-                                                        'pl-8 text-right font-bold',
-                                                    )}
-                                                    value={f.wholesale_price}
-                                                    onChange={(v) =>
-                                                        set(
-                                                            'wholesale_price',
-                                                            v,
-                                                        )
-                                                    }
-                                                />
-                                            </div>
-                                        </Field>
+                                        {!raw ? (
+                                            <Field
+                                                id="product-wholesale_price"
+                                                label={t(
+                                                    'products.wholesale_label',
+                                                )}
+                                                error={err('wholesale_price')}
+                                            >
+                                                <div className="mt-1">
+                                                    <MoneyInput
+                                                        id="product-wholesale_price"
+                                                        className={cn(
+                                                            box,
+                                                            'pl-8 text-right font-bold',
+                                                        )}
+                                                        value={
+                                                            f.wholesale_price
+                                                        }
+                                                        onChange={(v) =>
+                                                            set(
+                                                                'wholesale_price',
+                                                                v,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                            </Field>
+                                        ) : null}
                                         <Field
                                             id="product-tax_rate_id"
                                             label={t('products.vat_label')}
@@ -888,170 +996,207 @@ export function ProductDialog({
                                         </Field>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Field
-                                            id="product-min_sale_price"
-                                            label={t('products.min_sale_price')}
-                                            error={err('min_sale_price')}
-                                            hint={t(
-                                                'products.min_sale_price_hint',
-                                            )}
-                                        >
-                                            <div className="mt-1">
-                                                <MoneyInput
-                                                    id="product-min_sale_price"
-                                                    className={cn(
-                                                        box,
-                                                        'pl-8 text-right',
-                                                    )}
-                                                    value={f.min_sale_price}
-                                                    onChange={(v) =>
-                                                        set('min_sale_price', v)
-                                                    }
-                                                />
-                                            </div>
-                                        </Field>
-                                    </div>
-
-                                    {/* Where the mockup has "Applicable Sizes / Colors". */}
-                                    <div>
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className={labelClass}>
-                                                {t('products.variants')}
-                                            </span>
-                                            {!editing ? (
-                                                <button
-                                                    type="button"
-                                                    role="switch"
-                                                    id="product-with_variants"
-                                                    aria-checked={withVariants}
-                                                    title={t(
-                                                        'products.has_variants_hint',
-                                                    )}
-                                                    onClick={() => {
-                                                        if (withVariants) {
-                                                            clearVariants();
-                                                        } else {
-                                                            document
-                                                                .querySelector<HTMLElement>(
-                                                                    '#product-variant-chips fieldset button',
-                                                                )
-                                                                ?.focus();
-                                                        }
-                                                    }}
-                                                    className="flex items-center gap-1.5 rounded-md text-[11px] font-semibold text-muted-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [@media(pointer:coarse)]:min-h-11"
-                                                >
-                                                    {t('products.has_variants')}
-                                                    <span
-                                                        aria-hidden="true"
-                                                        className={cn(
-                                                            'relative inline-flex h-4 w-7 items-center rounded-full transition-colors',
-                                                            withVariants
-                                                                ? 'bg-primary'
-                                                                : 'bg-border',
-                                                        )}
-                                                    >
-                                                        <span
-                                                            className={cn(
-                                                                'size-3 rounded-full bg-surface shadow-xs transition-transform',
-                                                                withVariants
-                                                                    ? 'translate-x-3.5'
-                                                                    : 'translate-x-0.5',
-                                                            )}
-                                                        />
-                                                    </span>
-                                                </button>
-                                            ) : null}
-                                        </div>
-                                        {editing ? (
-                                            <div className="mt-1 flex flex-wrap items-center gap-2 rounded-lg border bg-surface-sunken p-2 text-[11px]">
-                                                {product.variant_label ? (
-                                                    <span>
-                                                        {t(
-                                                            'products.variant_of',
-                                                            {
-                                                                code:
-                                                                    product.family_code ??
-                                                                    '',
-                                                                label: product.variant_label,
-                                                            },
-                                                        )}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-muted-foreground">
-                                                        {t('products.no_style')}
-                                                    </span>
+                                    {!raw ? (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Field
+                                                id="product-min_sale_price"
+                                                label={t(
+                                                    'products.min_sale_price',
                                                 )}
-                                                {product.family_uuid !==
-                                                null ? (
-                                                    <Link
-                                                        href={`/app/products/families/${product.family_uuid}`}
-                                                        className="ml-auto inline-flex items-center gap-1 font-semibold text-primary hover:underline"
-                                                    >
-                                                        <Layers
-                                                            className="size-3"
-                                                            aria-hidden="true"
-                                                        />
-                                                        {t(
-                                                            'products.open_family',
-                                                        )}
-                                                    </Link>
-                                                ) : families.length > 0 ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setGroupOpen(true)
-                                                        }
-                                                        className="ml-auto inline-flex items-center gap-1 font-semibold text-primary hover:underline"
-                                                    >
-                                                        <Layers
-                                                            className="size-3"
-                                                            aria-hidden="true"
-                                                        />
-                                                        {t('products.group')}
-                                                    </button>
-                                                ) : null}
-                                            </div>
-                                        ) : (
-                                            <div
-                                                id="product-variant-chips"
-                                                className="mt-1"
+                                                error={err('min_sale_price')}
+                                                hint={t(
+                                                    'products.min_sale_price_hint',
+                                                )}
                                             >
-                                                <VariantBuilder
-                                                    layout="chips"
-                                                    options={variantOptions}
-                                                    onOptionsChange={
-                                                        setVariantOptions
-                                                    }
-                                                    draft={draft}
-                                                    onChange={setDraft}
-                                                    familyCode={f.sku}
-                                                    canViewCost={canViewCost}
-                                                />
+                                                <div className="mt-1">
+                                                    <MoneyInput
+                                                        id="product-min_sale_price"
+                                                        className={cn(
+                                                            box,
+                                                            'pl-8 text-right',
+                                                        )}
+                                                        value={f.min_sale_price}
+                                                        onChange={(v) =>
+                                                            set(
+                                                                'min_sale_price',
+                                                                v,
+                                                            )
+                                                        }
+                                                    />
+                                                </div>
+                                            </Field>
+                                        </div>
+                                    ) : null}
+
+                                    {!raw ? (
+                                        <>
+                                            {/* Where the mockup has "Applicable Sizes / Colors". */}
+                                            <div>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span
+                                                        className={labelClass}
+                                                    >
+                                                        {t('products.variants')}
+                                                    </span>
+                                                    {!editing ? (
+                                                        <button
+                                                            type="button"
+                                                            role="switch"
+                                                            id="product-with_variants"
+                                                            aria-checked={
+                                                                withVariants
+                                                            }
+                                                            title={t(
+                                                                'products.has_variants_hint',
+                                                            )}
+                                                            onClick={() => {
+                                                                if (
+                                                                    withVariants
+                                                                ) {
+                                                                    clearVariants();
+                                                                } else {
+                                                                    document
+                                                                        .querySelector<HTMLElement>(
+                                                                            '#product-variant-chips fieldset button',
+                                                                        )
+                                                                        ?.focus();
+                                                                }
+                                                            }}
+                                                            className="flex items-center gap-1.5 rounded-md text-[11px] font-semibold text-muted-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [@media(pointer:coarse)]:min-h-11"
+                                                        >
+                                                            {t(
+                                                                'products.has_variants',
+                                                            )}
+                                                            <span
+                                                                aria-hidden="true"
+                                                                className={cn(
+                                                                    'relative inline-flex h-4 w-7 items-center rounded-full transition-colors',
+                                                                    withVariants
+                                                                        ? 'bg-primary'
+                                                                        : 'bg-border',
+                                                                )}
+                                                            >
+                                                                <span
+                                                                    className={cn(
+                                                                        'size-3 rounded-full bg-surface shadow-xs transition-transform',
+                                                                        withVariants
+                                                                            ? 'translate-x-3.5'
+                                                                            : 'translate-x-0.5',
+                                                                    )}
+                                                                />
+                                                            </span>
+                                                        </button>
+                                                    ) : null}
+                                                </div>
+                                                {editing ? (
+                                                    <div className="mt-1 flex flex-wrap items-center gap-2 rounded-lg border bg-surface-sunken p-2 text-[11px]">
+                                                        {product.variant_label ? (
+                                                            <span>
+                                                                {t(
+                                                                    'products.variant_of',
+                                                                    {
+                                                                        code:
+                                                                            product.family_code ??
+                                                                            '',
+                                                                        label: product.variant_label,
+                                                                    },
+                                                                )}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-muted-foreground">
+                                                                {t(
+                                                                    'products.no_style',
+                                                                )}
+                                                            </span>
+                                                        )}
+                                                        {product.family_uuid !==
+                                                        null ? (
+                                                            <Link
+                                                                href={`/app/products/families/${product.family_uuid}`}
+                                                                className="ml-auto inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+                                                            >
+                                                                <Layers
+                                                                    className="size-3"
+                                                                    aria-hidden="true"
+                                                                />
+                                                                {t(
+                                                                    'products.open_family',
+                                                                )}
+                                                            </Link>
+                                                        ) : families.length >
+                                                          0 ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setGroupOpen(
+                                                                        true,
+                                                                    )
+                                                                }
+                                                                className="ml-auto inline-flex items-center gap-1 font-semibold text-primary hover:underline"
+                                                            >
+                                                                <Layers
+                                                                    className="size-3"
+                                                                    aria-hidden="true"
+                                                                />
+                                                                {t(
+                                                                    'products.group',
+                                                                )}
+                                                            </button>
+                                                        ) : null}
+                                                    </div>
+                                                ) : (
+                                                    <div
+                                                        id="product-variant-chips"
+                                                        className="mt-1"
+                                                    >
+                                                        <VariantBuilder
+                                                            layout="chips"
+                                                            options={
+                                                                variantOptions
+                                                            }
+                                                            onOptionsChange={
+                                                                setVariantOptions
+                                                            }
+                                                            draft={draft}
+                                                            onChange={setDraft}
+                                                            familyCode={f.sku}
+                                                            canViewCost={
+                                                                canViewCost
+                                                            }
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
+                                        </>
+                                    ) : null}
 
                                     {/* Where the mockup has the branch stock row: min qty and reorder level. */}
                                     <div className="grid grid-cols-2 gap-2 border-t pt-2">
-                                        <Field
-                                            id="product-min_sale_qty"
-                                            label={t('products.min_sale_qty')}
-                                            error={err('min_sale_qty')}
-                                        >
-                                            <div className="mt-1">
-                                                <QtyStepper
-                                                    id="product-min_sale_qty"
-                                                    value={f.min_sale_qty}
-                                                    onChange={(v) =>
-                                                        set('min_sale_qty', v)
-                                                    }
-                                                    aria-label={t(
-                                                        'products.min_sale_qty',
-                                                    )}
-                                                />
-                                            </div>
-                                        </Field>
+                                        {!raw ? (
+                                            <Field
+                                                id="product-min_sale_qty"
+                                                label={t(
+                                                    'products.min_sale_qty',
+                                                )}
+                                                error={err('min_sale_qty')}
+                                            >
+                                                <div className="mt-1">
+                                                    <QtyStepper
+                                                        id="product-min_sale_qty"
+                                                        value={f.min_sale_qty}
+                                                        onChange={(v) =>
+                                                            set(
+                                                                'min_sale_qty',
+                                                                v,
+                                                            )
+                                                        }
+                                                        aria-label={t(
+                                                            'products.min_sale_qty',
+                                                        )}
+                                                    />
+                                                </div>
+                                            </Field>
+                                        ) : null}
                                         {f.type === 'standard' ? (
                                             <Field
                                                 id="product-reorder_level"
@@ -1083,7 +1228,7 @@ export function ProductDialog({
                                         )}
                                     </div>
                                     <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
-                                        {f.type === 'standard' ? (
+                                        {f.type === 'standard' && !raw ? (
                                             <label
                                                 htmlFor="product-track_stock"
                                                 className="flex items-center gap-2 [@media(pointer:coarse)]:min-h-11"
@@ -1181,6 +1326,28 @@ export function ProductDialog({
                 description={t('products.discard_hint')}
                 confirmLabel={t('products.discard')}
                 onConfirm={onClose}
+            />
+
+            <InlineBrandDialog
+                open={brandOpen}
+                onOpenChange={setBrandOpen}
+                onCreated={(brand) => {
+                    setBrands((prev) =>
+                        prev.some((b) => b.id === brand.id)
+                            ? prev
+                            : [...prev, brand].sort((x, y) =>
+                                  x.name.localeCompare(y.name),
+                              ),
+                    );
+                    set('brand_id', brand.id);
+                    window.setTimeout(
+                        () =>
+                            document
+                                .getElementById('product-brand_id')
+                                ?.focus(),
+                        0,
+                    );
+                }}
             />
 
             {editing && families.length > 0 ? (

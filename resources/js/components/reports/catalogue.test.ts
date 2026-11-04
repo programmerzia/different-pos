@@ -70,6 +70,8 @@ describe('report catalogue', () => {
         expect(money.map((c) => c.id)).toEqual([
             'daily_cash_summary',
             'pnl_statement',
+            'collections_by_user',
+            'expenses_by_category',
         ]);
     });
 });

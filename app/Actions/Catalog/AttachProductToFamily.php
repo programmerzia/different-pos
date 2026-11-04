@@ -21,6 +21,9 @@ final readonly class AttachProductToFamily
             $family = ProductFamily::query()->whereKey($family->id)->lockForUpdate()->firstOrFail();
             $product = Product::query()->findOrFail($product->id);
 
+            if ($product->isRawMaterial()) {
+                throw InvalidCatalogData::rawMaterialNeedsStandalone();
+            }
             if ($product->family_id !== null) {
                 throw InvalidCatalogData::invalid('The product already belongs to a family.');
             }

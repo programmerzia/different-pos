@@ -71,6 +71,8 @@ use Illuminate\Support\Str;
  * = line + group discount; line_total = qty × unit_price − discount (+ tax when VAT is exclusive);
  * order_discount stays on the header, so total = Σ line_total − order_discount + rounding.
  * Tender payments are numbered `{sale number}/{n}`.
+ *
+ * @phpstan-import-type CartTotals from PriceCalculator
  */
 final readonly class CompleteSale
 {
@@ -130,14 +132,90 @@ final readonly class CompleteSale
         }
 
         $branch = $this->context->branch();
-        $tenant = $this->context->tenant();
-        $approver = $draft->approver;
-        $overrides = [];
 
         $customer = $draft->customerId === null
             ? $this->accounts->walkIn()
             : Customer::query()->findOrFail($draft->customerId);
         $register = $draft->registerId === null ? null : Register::query()->findOrFail($draft->registerId);
+
+        ['products' => $products, 'taxRates' => $taxRates, 'taxInclusive' => $taxInclusive, 'soldAt' => $soldAt, 'priced' => $priced, 'overrides' => $overrides]
+            = $this->price($actor, $draft, $customer);
+
+        $total = Money::ofPaisa($priced['order']['grand_total']);
+        $exchangeCredit = Money::zero();
+        if ($exchangeValue instanceof Money && ! $exchangeValue->isNegative()) {
+            $exchangeCredit = $exchangeValue->compareTo($total) < 0 ? $exchangeValue : $total;
+        }
+
+        [$tenders, $change] = $this->tenders($draft, $customer, $total->minus($exchangeCredit));
+
+        $paid = $exchangeCredit;
+        foreach ($tenders as $tender) {
+            $paid = $paid->plus($tender['amount']);
+        }
+        if ($total->minus($paid)->paisa > 0 && $customer->is_walk_in) {
+            throw CreditLimitExceeded::walkIn();
+        }
+
+        $flags = [];
+        $memberAuth = $this->memberAuth($actor, $draft, $customer, $origin, $flags);
+        $clientTotals = null;
+        if ($draft->expectedTotal instanceof Money && ! $draft->expectedTotal->equals($total)) {
+            $flags[] = 'price_mismatch';
+            $clientTotals = ['total' => $draft->expectedTotal->paisa];
+        }
+
+        return new PreparedSale(
+            draft: $draft,
+            origin: $origin,
+            branch: $branch,
+            customer: $customer,
+            register: $register,
+            products: $products,
+            taxRates: $taxRates,
+            taxInclusive: $taxInclusive,
+            priced: $priced,
+            soldAt: $soldAt,
+            tenders: $tenders,
+            change: $change,
+            exchangeCredit: $exchangeCredit,
+            flags: $flags,
+            clientTotals: $clientTotals,
+            clientUuid: $draft->clientUuid ?? (string) Str::uuid7(),
+            overrides: array_values(array_unique($overrides)),
+            memberAuth: $memberAuth,
+        );
+    }
+
+    /**
+     * What the replacement cart of an exchange costs, for the quote the screen shows: the same pricing and
+     * rules as a sale, without tenders or writes.
+     *
+     * @return CartTotals
+     */
+    public function priceOnly(User $actor, SaleDraft $draft): array
+    {
+        if ($draft->lines === []) {
+            throw InvalidSaleDocument::noLines();
+        }
+        $customer = $draft->customerId === null
+            ? $this->accounts->walkIn()
+            : Customer::query()->findOrFail($draft->customerId);
+
+        return $this->price($actor, $draft, $customer)['priced'];
+    }
+
+    /**
+     * Products, tax, group discount and the rules on them (discount cap, below cost, back-date).
+     *
+     * @return array{products: list<Product>, taxRates: list<int>, taxInclusive: bool, soldAt: CarbonImmutable, priced: CartTotals, overrides: list<string>}
+     */
+    private function price(User $actor, SaleDraft $draft, Customer $customer): array
+    {
+        $branch = $this->context->branch();
+        $tenant = $this->context->tenant();
+        $approver = $draft->approver;
+        $overrides = [];
 
         $products = $this->products($draft);
         $taxRates = $this->taxRates($products);
@@ -187,50 +265,7 @@ final readonly class CompleteSale
         $this->checkDiscounts($actor, $approver, $priced, $overrides);
         $this->checkCost($actor, $approver, $draft, $products, $priced, $overrides);
 
-        $total = Money::ofPaisa($priced['order']['grand_total']);
-        $exchangeCredit = Money::zero();
-        if ($exchangeValue instanceof Money && ! $exchangeValue->isNegative()) {
-            $exchangeCredit = $exchangeValue->compareTo($total) < 0 ? $exchangeValue : $total;
-        }
-
-        [$tenders, $change] = $this->tenders($draft, $customer, $total->minus($exchangeCredit));
-
-        $paid = $exchangeCredit;
-        foreach ($tenders as $tender) {
-            $paid = $paid->plus($tender['amount']);
-        }
-        if ($total->minus($paid)->paisa > 0 && $customer->is_walk_in) {
-            throw CreditLimitExceeded::walkIn();
-        }
-
-        $flags = [];
-        $memberAuth = $this->memberAuth($actor, $draft, $customer, $origin, $flags);
-        $clientTotals = null;
-        if ($draft->expectedTotal instanceof Money && ! $draft->expectedTotal->equals($total)) {
-            $flags[] = 'price_mismatch';
-            $clientTotals = ['total' => $draft->expectedTotal->paisa];
-        }
-
-        return new PreparedSale(
-            draft: $draft,
-            origin: $origin,
-            branch: $branch,
-            customer: $customer,
-            register: $register,
-            products: $products,
-            taxRates: $taxRates,
-            taxInclusive: $taxInclusive,
-            priced: $priced,
-            soldAt: $soldAt,
-            tenders: $tenders,
-            change: $change,
-            exchangeCredit: $exchangeCredit,
-            flags: $flags,
-            clientTotals: $clientTotals,
-            clientUuid: $draft->clientUuid ?? (string) Str::uuid7(),
-            overrides: array_values(array_unique($overrides)),
-            memberAuth: $memberAuth,
-        );
+        return ['products' => $products, 'taxRates' => $taxRates, 'taxInclusive' => $taxInclusive, 'soldAt' => $soldAt, 'priced' => $priced, 'overrides' => $overrides];
     }
 
     /**
@@ -469,6 +504,12 @@ final readonly class CompleteSale
         $missing = array_values(array_diff($ids, array_keys($found)));
         if ($missing !== []) {
             throw (new ModelNotFoundException)->setModel(Product::class, $missing);
+        }
+        // Raw materials are never sold, whatever a (possibly stale or tampered) client sends; this also covers the exchange's replacement sale.
+        foreach ($found as $product) {
+            if ($product->isRawMaterial()) {
+                throw InvalidSaleDocument::rawMaterial($product->name);
+            }
         }
 
         return array_map(static fn (SaleLineDraft $line): Product => $found[$line->productId], $draft->lines);

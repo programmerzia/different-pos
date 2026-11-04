@@ -66,7 +66,8 @@
         "saas_platform_admin": "SaaS Platform Admin",
         "active_role": "Active role",
         "shortcuts_guide": "Shortcuts Guide",
-        "user_manual": "User manual"
+        "user_manual": "User manual",
+        "couriers": "Couriers"
     },
     "tabs": {
         "label": "Primary",
@@ -591,6 +592,14 @@
             "cards-issued": {
                 "title": "Membership cards issued",
                 "desc": "Cards issued in the period per customer group: new, reissued and their status today."
+            },
+            "expenses-by-category": {
+                "title": "Expenses by category",
+                "desc": "Expenses per category. Needs the money module."
+            },
+            "sync-exceptions": {
+                "title": "Offline sync exceptions",
+                "desc": "Price mismatch, stock oversell and unverified member flags. Needs offline sync."
             }
         },
         "col": {
@@ -1577,7 +1586,10 @@
         "label": "Scan or type a barcode / SKU",
         "matches": "Matching products",
         "not_found": "No product matches \"{{code}}\".",
-        "placeholder": "Scan a barcode or type a SKU / name, then Enter"
+        "placeholder": "Scan a barcode or type a SKU / name, then Enter",
+        "create_item": "New item \"{{name}}\"",
+        "type_raw": "Raw material",
+        "type_finished": "Product"
     },
     "products": {
         "title": "Products",
@@ -1724,7 +1736,21 @@
         "has_variants_hint": "On when sizes or colours are ticked: a product is created for every combination",
         "applicable": "Applicable {{name}}",
         "option_size": "Size",
-        "option_colour": "Colour"
+        "option_colour": "Colour",
+        "item_type": "Item type",
+        "type_all": "All types",
+        "item_finished": "Finished product",
+        "item_raw_material": "Raw material",
+        "raw_material_chip": "Raw material",
+        "raw_hint": "Bought and stocked, never sold: no retail price, and it never shows on the register.",
+        "raw_cost_label": "Cost per unit (BDT)",
+        "raw_unit_hint": "Pick the unit you buy by (metre, yard, kg). Decimal quantities need a unit that allows them.",
+        "brand_add": "Add brand",
+        "brand_new_title": "New brand",
+        "brand_new_hint": "The brand is added to the list and selected for this product.",
+        "brand_name": "Brand name",
+        "err_brand_name": "Enter a brand name.",
+        "brand_failed": "The brand could not be saved. Try again."
     },
     "categories": {
         "title": "Categories",
@@ -1975,7 +2001,18 @@
         "back": "Back to Purchases",
         "receive_hint_keys": "Ctrl+Enter saves the GRN · F2 focuses the scanner",
         "blocked_vendor": "Pick a vendor from the list to continue.",
-        "blocked_lines": "Add at least one product line to continue."
+        "blocked_lines": "Add at least one product line to continue.",
+        "kind_label": "Show items",
+        "kind_all": "All",
+        "kind_raw": "Raw materials",
+        "kind_products": "Products",
+        "new_item": "New item",
+        "new_item_title": "New item",
+        "new_item_hint": "Creates the item and adds it to this bill. The SKU is generated for you.",
+        "new_item_add": "Create and add",
+        "new_item_failed": "The item could not be created. Try again.",
+        "err_item_name": "Enter the item name.",
+        "not_sold": "Not sold"
     },
     "stock": {
         "title": "Stock",
@@ -2129,7 +2166,8 @@
             "opening": "Opening stock",
             "correction": "Correction",
             "stocktake": "Stocktake",
-            "other": "Other"
+            "other": "Other",
+            "production_use": "Used in production"
         },
         "create_title": "Stock Adjustment",
         "create_subtitle": "Write off damaged, lost or found stock; every line is audited against the ledger",
@@ -2296,6 +2334,12 @@
             "variant_option": {
                 "created": "Variant option created",
                 "updated": "Variant option updated"
+            },
+            "courier": {
+                "created": "Courier created",
+                "updated": "Courier updated",
+                "deleted": "Courier deleted",
+                "default_set": "Default courier set"
             }
         }
     },
@@ -3092,11 +3136,9 @@
         "refund_method": "Refund with",
         "summary": "Summary",
         "value_estimate": "Return value (estimate)",
-        "replacement_total": "Replacement total",
         "customer_pays": "Customer pays",
         "customer_gets": "Customer gets back",
         "estimate_hint": "The server values the return exactly (discounts and VAT) when you save.",
-        "pay_difference": "Pay the difference",
         "save": "Save return",
         "save_exchange": "Save exchange",
         "replacement_items": "Replacement items",
@@ -3111,7 +3153,7 @@
         "replacement": "Replacement sale",
         "customer_paid": "Customer paid",
         "customer_got": "Customer got back",
-        "print": "Print receipt",
+        "print": "Print return receipt",
         "print_a4": "Print A4",
         "all_reasons": "All reasons",
         "all_staff": "All staff",
@@ -3178,7 +3220,31 @@
         "ledger_subtitle": "Audit log of customer returns, size exchanges, defect write-offs and refund methods",
         "even_exchange": "Even exchange",
         "give_back_as": "Give the difference back as",
-        "give_back_refund": "Refund by {{method}}"
+        "give_back_refund": "Refund by {{method}}",
+        "needs_heading": "To price the exchange you still need to:",
+        "need_return": "Pick what comes back (enter a quantity)",
+        "need_replacement": "Add what the customer takes instead",
+        "calculating": "Calculating the exact amounts…",
+        "quote_failed": "The amounts could not be calculated. Check the connection and try again.",
+        "items_returned": "Items returned",
+        "includes_vat": "includes VAT",
+        "after_group_discount": "after group discount",
+        "on_old_due": "Applied to the old invoice's due",
+        "old_due_stays": "The old invoice's due of {{due}} stays as it is.",
+        "pay_with": "Pay with",
+        "amount_received": "Amount received",
+        "change": "Change to give",
+        "on_account": "{{amount}} stays on account as due",
+        "tender_walk_in_short": "A walk-in customer must pay in full.",
+        "tender_reference": "Enter the payment reference.",
+        "tender_overpay_non_cash": "Only cash can give change. Receive exactly {{pays}} with this method, or choose cash.",
+        "only_n_in_stock": "Only {{n}} in stock",
+        "out_of_stock": "Out of stock",
+        "in_stock": "{{n}} in stock",
+        "stock_untracked": "Stock not tracked",
+        "no_products": "No product matches.",
+        "print_new_invoice": "Print new invoice",
+        "replacement_chalan": "Delivery chalan"
     },
     "dues": {
         "title": "Dues",
@@ -3305,7 +3371,8 @@
             "users_roles": "Users & Roles",
             "audit": "Audit Log",
             "profile": "My Profile",
-            "security": "Security"
+            "security": "Security",
+            "couriers": "Couriers"
         },
         "desc": {
             "business_profile": "Shop identity, VAT BIN & address",
@@ -3328,14 +3395,16 @@
             "users_roles": "Staff, PINs & permissions",
             "audit": "Who changed what, and when",
             "profile": "Your name, email & password",
-            "security": "Two-factor & passkeys"
+            "security": "Two-factor & passkeys",
+            "couriers": "Delivery couriers & default"
         },
         "desc_long": {
             "branches": "Manage your shops and how each one prints and sells",
             "registers_devices": "Counters that sell, and the devices paired with them",
             "tax_vat": "VAT rates applied to products and receipts",
             "units": "How quantities are counted and shown",
-            "payment_methods": "Cash, mobile wallets, cards and customer credit"
+            "payment_methods": "Cash, mobile wallets, cards and customer credit",
+            "couriers": "Couriers used for delivery chalans; the default prints on every chalan"
         }
     },
     "help": {
@@ -3480,5 +3549,15 @@
         "health_disk_free": "{{free}} free of {{total}}",
         "health_disk_unknown": "Unavailable",
         "driver": "driver: {{name}}"
+    },
+    "couriers": {
+        "title": "Couriers",
+        "new": "New courier",
+        "edit": "Edit courier",
+        "default": "Default",
+        "set_default": "Set as default",
+        "make_default": "Default courier (prints on the chalan)",
+        "delete_title": "Delete this courier?",
+        "delete_hint": "Past sales keep their courier name. If this is the default, the chalan courier box stays blank until you pick another default."
     }
 }

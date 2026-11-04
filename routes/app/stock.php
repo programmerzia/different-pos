@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Purchasing\PurchaseController;
+use App\Http\Controllers\Purchasing\PurchaseItemController;
 use App\Http\Controllers\Stock\AdjustmentController;
 use App\Http\Controllers\Stock\StockController;
 use App\Http\Controllers\Stock\TransferController;
@@ -43,6 +44,7 @@ Route::get('purchases/export.{format}', [PurchaseController::class, 'export'])->
 Route::get('purchases/create', [PurchaseController::class, 'create'])->name('purchases.create');
 Route::get('purchases/lookup', [PurchaseController::class, 'lookup'])->name('purchases.lookup');
 Route::post('purchases', [PurchaseController::class, 'store'])->name('purchases.store');
+Route::post('purchases/items', [PurchaseItemController::class, 'store'])->name('purchases.items.store');
 Route::get('purchases/{purchase}', [PurchaseController::class, 'show'])->name('purchases.show');
 Route::post('purchases/{purchase}/cancel', [PurchaseController::class, 'cancel'])->name('purchases.cancel');
 Route::post('purchases/{purchase}/payments', [PurchaseController::class, 'pay'])->name('purchases.pay');

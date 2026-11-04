@@ -26,4 +26,14 @@ final class InvalidCatalogData extends DomainException
     {
         return new self('Barcodes starting with MC are reserved for membership cards.');
     }
+
+    public static function rawMaterialHasSales(string $name): self
+    {
+        return new self(sprintf('"%s" has been sold, so it cannot become a raw material.', $name));
+    }
+
+    public static function rawMaterialNeedsStandalone(): self
+    {
+        return new self('A raw material is a standalone, stock-tracked item: it cannot be a service or belong to a variant family.');
+    }
 }

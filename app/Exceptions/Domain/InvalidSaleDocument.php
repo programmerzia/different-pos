@@ -93,4 +93,9 @@ final class InvalidSaleDocument extends DomainException
     {
         return new self('The replacement sale of an exchange must be for the customer of the original sale.');
     }
+
+    public static function rawMaterial(string $name): self
+    {
+        return new self(sprintf('"%s" is a raw material and cannot be sold.', $name));
+    }
 }

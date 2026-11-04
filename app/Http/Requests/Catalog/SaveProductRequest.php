@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Catalog;
 
+use App\Enums\ProductItemType;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\Http\ScopedExists;
@@ -29,6 +30,7 @@ final class SaveProductRequest extends FormRequest
             'track_stock' => $this->boolean('track_stock', true),
             'is_active' => $this->boolean('is_active', true),
             'remove_image' => $this->boolean('remove_image'),
+            'item_type' => $this->input('item_type') ?: ProductItemType::Finished->value,
         ]);
     }
 
@@ -36,6 +38,7 @@ final class SaveProductRequest extends FormRequest
     public function rules(): array
     {
         $creating = ! $this->route('product') instanceof Product;
+        $raw = $this->input('item_type') === ProductItemType::RawMaterial->value;
 
         return [
             'name' => ['required', 'string', 'max:190'],
@@ -44,12 +47,14 @@ final class SaveProductRequest extends FormRequest
             'barcode' => ['nullable', 'string', 'max:64'],
             'hs_code' => ['nullable', 'string', 'max:32'],
             'type' => ['required', Rule::in(['standard', 'service'])],
+            'item_type' => ['required', Rule::enum(ProductItemType::class)],
             'category_id' => ['nullable', 'integer', ScopedExists::in('categories', softDeletes: true)],
             'brand_id' => ['nullable', 'integer', ScopedExists::in('brands', softDeletes: true)],
             'unit_id' => ['required', 'integer', ScopedExists::in('units')],
             'tax_rate_id' => ['nullable', 'integer', ScopedExists::in('tax_rates')],
             'default_vendor_id' => ['nullable', 'integer', ScopedExists::in('vendors', softDeletes: true)],
-            'sale_price' => ['required', 'integer', 'min:0'],
+            // A raw material has no retail price (stored as 0).
+            'sale_price' => [$raw ? 'nullable' : 'required', 'integer', 'min:0'],
             'cost_price' => ['nullable', 'integer', 'min:0'],
             'min_sale_price' => ['nullable', 'integer', 'min:0'],
             'wholesale_price' => ['nullable', 'integer', 'min:0'],
@@ -62,7 +67,7 @@ final class SaveProductRequest extends FormRequest
             'remove_image' => ['boolean'],
             // Reuse a photo already on one of this tenant's products (the image picker); no file copy.
             'existing_image' => ['nullable', 'string', 'max:255', ScopedExists::in('products', 'image_path', softDeletes: true)],
-            'variants' => [$creating ? 'nullable' : 'prohibited', 'array'],
+            'variants' => [$creating && ! $raw ? 'nullable' : 'prohibited', 'array'],
             'variants.option1_id' => ['required_with:variants', 'integer', ScopedExists::in('variant_options')],
             'variants.option2_id' => ['nullable', 'integer', 'different:variants.option1_id', ScopedExists::in('variant_options')],
             'variants.rows' => ['required_with:variants', 'array', 'min:1', 'max:200'],

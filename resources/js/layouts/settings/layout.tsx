@@ -22,6 +22,7 @@ import {
     Smartphone,
     Store,
     Tag,
+    Truck,
     UserRound,
 } from 'lucide-react';
 import {
@@ -123,6 +124,12 @@ const SECTIONS: Section[] = [
         id: 'payment_methods',
         icon: CreditCard,
         href: '/app/settings/payment-methods',
+        permission: 'settings.manage',
+    },
+    {
+        id: 'couriers',
+        icon: Truck,
+        href: '/app/settings/couriers',
         permission: 'settings.manage',
     },
     { id: 'receipt_printers', icon: Printer, permission: 'settings.manage' },

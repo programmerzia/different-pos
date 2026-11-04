@@ -340,7 +340,7 @@ export const en: Manual = {
                     blocks: [
                         {
                             type: 'p',
-                            text: 'Press [[F4]] and type at least 2 characters: a **customer number** (with or without #; 8 digits finds exactly, 4 to 7 digits finds by prefix), the **last digits of a phone** (at least 3), or a **name or shop name** in English or Bangla. Only active customers appear. "Walk-in (remove customer)" detaches the customer again.',
+                            text: 'Press [[F4]] and type at least 2 characters: a **customer number** (with or without #; the last 3 or more digits also work, so 9231 finds 1000 9231; 8 digits finds exactly, 4 to 7 digits finds by prefix), the **last digits of a phone** (at least 3), or a **name or shop name** in English or Bangla. Only active customers appear. "Walk-in (remove customer)" detaches the customer again.',
                         },
                         {
                             type: 'bullets',
@@ -401,7 +401,7 @@ export const en: Manual = {
                             type: 'bullets',
                             items: [
                                 'The **Sale completed** card shows Total, Received, Change and Due with **Print receipt** and **New sale** ([[F1]]).',
-                                'The receipt opens in a new tab at the branch paper size (80 mm or 58 mm) and prints through the browser dialog. [[Ctrl+P]] reprints the last receipt of this session. **Delivery chalan** ([[Alt+C]]) opens an A4 delivery note for the same sale: CH-invoice number, items and quantities with Vehicle, Driver and signature lines, and no prices or payments.',
+                                "The receipt opens in a new tab at the branch paper size (80 mm or 58 mm) and prints through the browser dialog. [[Ctrl+P]] reprints the last receipt of this session. **Delivery chalan** ([[Alt+C]]) opens an A4 delivery note for the same sale: CH-invoice number, items and quantities with signature lines, and no prices or payments. The only amount is the **COD amount** (the sale's due), printed when the sale still owes money; a paid sale prints no COD box.",
                                 'A completed sale cannot be edited. Same-day mistakes are **voided** from Sales history; later ones are handled as a **return**.',
                             ],
                         },
@@ -468,7 +468,7 @@ export const en: Manual = {
                                 },
                                 {
                                     keys: 'd',
-                                    label: 'Print the courier delivery chalan (A4): cut off the top label and attach it to the parcel, with the packing list below it (quantities only, no prices)',
+                                    label: "Print the courier delivery chalan (A4): cut off the top label and attach it to the parcel, with the packing list below it (quantities only; the COD amount is the sale's due and shows only when something is due)",
                                 },
                                 {
                                     keys: 'r',
@@ -551,7 +551,7 @@ export const en: Manual = {
                     blocks: [
                         {
                             type: 'p',
-                            text: 'Choose **Direct item exchange** in step 3 (or press [[X]] in the invoice dialog). Add the replacement items by name, SKU or barcode. The return value pays for them; if the customer owes more, take the difference with one payment method; if the return is worth more, give the surplus back as a refund or store credit. Press **Save exchange**: the return and the new sale (to the same customer) are saved together.',
+                            text: "Choose **Direct item exchange** in step 3 (or press [[X]] in the invoice dialog). First enter the quantity coming back, then search the replacement items by name, SKU or barcode: the list shows every size or colour with its price and stock, and an item that is out of stock (or a raw material) cannot be added. Use the arrow keys and Enter to pick. The amounts come from the server as you work, so they include VAT and any group discount and are exactly what will be charged. The summary ends with one line: **Customer pays** (take the money with one payment method; the amount received starts at the exact amount, cash gives change, and a named customer can leave part of it as due on account while a walk-in must pay in full), **Even exchange**, or, when the return is worth more, what is **applied to the old invoice's due** and what the **customer gets back** (as a refund or store credit). Press **Save exchange** (it stays disabled until the amounts are ready and every item is in stock): the return and the new sale (to the same customer) are saved together. The saved exchange page prints the return receipt, the new invoice ([[I]]) and its delivery chalan ([[D]]).",
                         },
                     ],
                 },
@@ -736,7 +736,7 @@ export const en: Manual = {
                     blocks: [
                         {
                             type: 'p',
-                            text: 'Four templates are sent automatically when switched on in SMS settings, to a named customer with a mobile number: **Sale completed**, **Payment received** (after a due collection), **Sale returned** (after a return, with the amount handed back; an exchange sends none) and **Sale voided** (after a void). Statement summaries are sent by hand from the statement page. Messages are only sent when a provider is configured.',
+                            text: 'Four templates are sent automatically when switched on in SMS settings, to a named customer with a mobile number: **Sale completed** (with a link to the invoice that the customer can open without signing in; add `{link}` to a customised text to include it), **Payment received** (after a due collection), **Sale returned** (after a return, with the amount handed back; an exchange sends none) and **Sale voided** (after a void). Statement summaries are sent by hand from the statement page. Messages are only sent when a provider is configured.',
                         },
                     ],
                 },
@@ -858,6 +858,10 @@ export const en: Manual = {
                             type: 'p',
                             text: 'The **Category Management** tab of the Products page creates, renames and deletes categories (with a parent category) and brands. Categories drive the chips at the register and the sales-by-category report.',
                         },
+                        {
+                            type: 'p',
+                            text: 'In the product form, the **+** beside **Brand** adds a brand on the spot (needs permission to create products). It is selected for the product and the form keeps everything you typed. A brand name that already exists is refused.',
+                        },
                     ],
                 },
             ],
@@ -917,6 +921,24 @@ export const en: Manual = {
             permission: ['purchases.view', 'vendors.view'],
             navIds: ['purchases', 'vendors'],
             sections: [
+                {
+                    id: 'raw-materials',
+                    title: 'Buying fabric and other raw materials',
+                    blocks: [
+                        {
+                            type: 'p',
+                            text: 'Fabric, trims and other raw materials are items of the type **Raw material**. They are bought and kept in stock like any product, but they are **never sold**: they do not appear at the register, in exchanges or on a sale. Set the type in the product form (**Item type**); a raw material has no retail price, so its cost is the price, and it needs a **unit** (metre, yard, kg) that allows decimals if you buy fractions. A product that has already been sold cannot be changed into a raw material.',
+                        },
+                        {
+                            type: 'bullets',
+                            items: [
+                                'In the GRN, the search finds both raw materials and products, each marked with its type. Use **All / Raw materials / Products** above the search to narrow it. Raw material lines show no retail price and accept decimal quantities (for example 12.5 m).',
+                                'Item not in the list? Press **New item** ([[F3]], or "New item" in the command palette) or the "New item" offer under the search. Give a name, the type (raw material by default), the unit and the cost; the SKU is generated and the item is added to the bill. You need permission to create products.',
+                                'Raw material stock is reduced with a **Stock adjustment** (reason **Used in production**). The Products list can be filtered by **Item type**. Stock valuation and Low stock include raw materials; Dead stock does not.',
+                            ],
+                        },
+                    ],
+                },
                 {
                     id: 'receive',
                     title: 'Receiving a purchase (GRN)',
@@ -1103,6 +1125,7 @@ export const en: Manual = {
                             type: 'bullets',
                             items: [
                                 '**Payment methods:** name, type (cash, card, mobile wallet, bank, customer credit, exchange credit), **requires reference** (TrxID), sort order. Only active methods appear at the register.',
+                                '**Couriers** (Settings, Couriers): name, phone, active, and one **default** that prints in the Courier box of the delivery chalan (Parcels is filled in by hand; the courier supplies tracking number, booking date and weight on its own slip). On the chalan page you can pick another courier, or switch **COD: on / off** (for a customer on credit), for that print only; the sale does not change.',
                                 '**Taxes:** VAT rates in % with one default rate.',
                                 '**Units:** name, short name and whether fractions are allowed (kg, metre).',
                             ],

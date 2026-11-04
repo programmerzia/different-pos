@@ -102,6 +102,9 @@ final readonly class ProvisionTenant
                 $this->tenders->handle($tenant);
                 PaymentMethod::query()->create(['name' => 'Cash', 'type' => PaymentMethodType::Cash, 'requires_reference' => false, 'sort_order' => 1, 'is_active' => true]);
                 Unit::query()->create(['name' => 'Piece', 'short_name' => 'pcs', 'allows_decimal' => false, 'is_active' => true]);
+                foreach (['m' => 'Metre', 'yd' => 'Yard', 'kg' => 'Kilogram'] as $short => $name) {
+                    Unit::query()->create(['name' => $name, 'short_name' => $short, 'allows_decimal' => true, 'is_active' => true]);
+                }
 
                 $this->roles->handle($tenant);
 

@@ -136,11 +136,13 @@ final readonly class ReceiptBuilder
 
     /**
      * Delivery chalan: what travels with the goods. Quantities only, deliberately no price, discount,
-     * VAT, total, due or payment (the driver and the recipient never see money).
+     * VAT, total or payment. The one money figure is the COD amount, the sale's due, printed only when the sale
+     * is not voided, owes something and $cod is true (the print-only toggle).
      *
-     * @return array{kind: 'chalan', locale: string, shop: Shop, number: string, barcode: string, qr: string, invoice_number: string, date: string, voided: bool, void_reason: string|null, customer: array{name: string, shop_name: string|null, phone: string|null, address: string|null}|null, lines: list<array{name: string, sku: string, unit: string, qty: string}>, total_qty: string, has_returns: bool}
+     * @param  array{name: string, phone: string|null}|null  $courier  resolved by ChalanCourier; null leaves the box blank
+     * @return array{kind: 'chalan', locale: string, shop: Shop, number: string, barcode: string, qr: string, invoice_number: string, date: string, voided: bool, void_reason: string|null, customer: array{name: string, shop_name: string|null, phone: string|null, address: string|null}|null, lines: list<array{name: string, sku: string, unit: string, qty: string}>, total_qty: string, has_returns: bool, courier: array{name: string, phone: string|null}|null, cod: string|null}
      */
-    public function chalan(Sale $sale, string $locale): array
+    public function chalan(Sale $sale, string $locale, ?array $courier = null, bool $cod = true): array
     {
         $sale->loadMissing(['items.product.unit', 'customer.geoDistrict', 'customer.geoUpazila']);
         /** @var list<SaleItem> $items */
@@ -191,6 +193,8 @@ final readonly class ReceiptBuilder
             'lines' => $lines,
             'total_qty' => $this->qty($total, $locale),
             'has_returns' => $returns,
+            'courier' => $courier,
+            'cod' => $cod && $sale->status !== SaleStatus::Voided && $sale->due->paisa > 0 ? $this->money($sale->due, $locale) : null,
         ];
     }
 

@@ -1,4 +1,4 @@
-import { Ban, Eye, UserPlus } from 'lucide-react';
+import { Ban, Eye, Star, Truck, UserPlus } from 'lucide-react';
 import { actions } from './actions';
 
 let registered = false;
@@ -29,6 +29,25 @@ export function registerAdminActions(): void {
             permission: 'audit.view',
             requires: 'handler',
             run: ({ row, handlers }) => handlers?.['audit.details']?.(row),
+        },
+        {
+            id: 'courier.default',
+            entity: 'courier',
+            labelKey: 'couriers.set_default',
+            icon: Star,
+            permission: 'settings.manage',
+            requires: 'handler',
+            visible: (row: { is_default?: boolean; is_active?: boolean }) =>
+                row.is_default !== true && row.is_active === true,
+            run: ({ row, handlers }) => handlers?.['courier.default']?.(row),
+        },
+        {
+            id: 'cmd.new_courier',
+            entity: null,
+            labelKey: 'couriers.new',
+            icon: Truck,
+            permission: 'settings.manage',
+            href: '/app/settings/couriers?new=1',
         },
         {
             id: 'cmd.new_user',

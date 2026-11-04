@@ -35,6 +35,7 @@ Route::get('returns/{return}', [ReturnController::class, 'show'])->whereNumber('
 Route::get('returns/{return}/receipt', [SaleReceiptController::class, 'saleReturn'])->whereNumber('return')->name('returns.receipt');
 
 Route::get('exchanges/create', [ReturnController::class, 'createExchange'])->name('exchanges.create');
+Route::post('exchanges/quote', [ExchangeController::class, 'quote'])->name('exchanges.quote');
 Route::post('exchanges', [ExchangeController::class, 'store'])->name('exchanges.store');
 
 Route::get('dues', [DueController::class, 'index'])->name('dues.index');

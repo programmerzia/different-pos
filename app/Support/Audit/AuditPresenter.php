@@ -6,6 +6,7 @@ namespace App\Support\Audit;
 
 use App\Models\Activity;
 use App\Models\Branch;
+use App\Models\Courier;
 use App\Models\Customer;
 use App\Models\PaymentMethod;
 use App\Models\Product;
@@ -45,6 +46,7 @@ final readonly class AuditPresenter
         StockAdjustment::class => ['stock_adjustments', 'number', null],
         Vendor::class => ['vendors', 'name', null],
         PaymentMethod::class => ['payment_methods', 'name', null],
+        Courier::class => ['couriers', 'name', null],
         Tenant::class => ['tenants', 'name', null],
     ];
 

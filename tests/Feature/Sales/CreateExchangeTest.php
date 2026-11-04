@@ -160,3 +160,31 @@ it('exchanges the same product (a swap for a fresh piece)', function (): void {
     expect($result->difference->paisa)->toBe(0)->and(($this->onHand)($this->m))->toBe('4.000');
     expect(Customer::query()->where('is_walk_in', true)->sole()->balance->paisa)->toBe(0);
 });
+
+it('clears the unpaid invoice with the surplus instead of refunding unpaid money', function (): void {
+    $customer = $this->world->customer();
+    $sale = $this->world->sell([$this->world->line($this->m)], [], $customer);
+
+    $result = ($this->exchange)($sale, $this->kids);
+
+    expect(Payment::query()->where('direction', PaymentDirection::Out)->count())->toBe(0)
+        ->and($result->return->refunded->paisa)->toBe(0)
+        ->and($result->return->credited->paisa)->toBe(150_000)
+        ->and($sale->refresh()->due->paisa)->toBe(100_000)
+        ->and($result->sale->due->paisa)->toBe(0)
+        ->and($customer->refresh()->balance->paisa)->toBe(100_000);
+});
+
+it('refunds only what is left after the invoice due is cleared', function (): void {
+    $customer = $this->world->customer();
+    $cheap = $this->world->product(60_000, 20_000);
+    $this->world->stock($cheap, 5, 20_000);
+    $sale = $this->world->sell([$this->world->line($this->m)], [$this->world->tender('cash', 100_000)], $customer);
+
+    $result = ($this->exchange)($sale, $cheap);
+
+    expect($sale->refresh()->due->paisa)->toBe(0)
+        ->and($result->return->refunded->paisa)->toBe(40_000)
+        ->and($result->return->credited->paisa)->toBe(110_000)
+        ->and($customer->refresh()->balance->paisa)->toBe(0);
+});

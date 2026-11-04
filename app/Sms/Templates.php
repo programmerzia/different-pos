@@ -18,11 +18,34 @@ final class Templates
     public const string SALE_VOIDED = 'sale_voided';
 
     public const array DEFAULTS = [
-        self::SALE_COMPLETED => 'Thank you {customer}! Invoice {invoice} total ৳{total}, paid ৳{paid}, due ৳{due}. — {shop}',
-        self::PAYMENT_RECEIVED => 'Dear {customer}, we received ৳{amount}. Remaining due ৳{due}. — {shop}',
-        self::DUE_REMINDER => 'Dear {customer}, your outstanding due is ৳{due}. Please pay at your earliest convenience. — {shop}',
-        self::SALE_RETURNED => 'Dear {customer}, your return on invoice {invoice} is recorded: ৳{amount}. Remaining due ৳{due}. — {shop}',
-        self::SALE_VOIDED => 'Dear {customer}, invoice {invoice} (৳{total}) has been cancelled. — {shop}',
+        self::SALE_COMPLETED => 'Thank you {customer}! Invoice {invoice} total Tk {total}, paid Tk {paid}, due Tk {due}. View: {link} - {shop}',
+        self::PAYMENT_RECEIVED => 'Dear {customer}, we received Tk {amount}. Remaining due Tk {due}. - {shop}',
+        self::DUE_REMINDER => 'Dear {customer}, your outstanding due is Tk {due}. Please pay at your earliest convenience. - {shop}',
+        self::SALE_RETURNED => 'Dear {customer}, your return on invoice {invoice} is recorded: Tk {amount}. Remaining due Tk {due}. - {shop}',
+        self::SALE_VOIDED => 'Dear {customer}, invoice {invoice} (Tk {total}) has been cancelled. - {shop}',
+    ];
+
+    /**
+     * Earlier default bodies per template. A tenant whose stored body is exactly one of these never customised
+     * it, so SmsSettings treats it as the current default (a customised body is left alone).
+     */
+    public const array SUPERSEDED_DEFAULTS = [
+        self::SALE_COMPLETED => [
+            'Thank you {customer}! Invoice {invoice} total ৳{total}, paid ৳{paid}, due ৳{due}. — {shop}',
+            'Thank you {customer}! Invoice {invoice} total ৳{total}, paid ৳{paid}, due ৳{due}. View: {link} — {shop}',
+        ],
+        self::PAYMENT_RECEIVED => [
+            'Dear {customer}, we received ৳{amount}. Remaining due ৳{due}. — {shop}',
+        ],
+        self::DUE_REMINDER => [
+            'Dear {customer}, your outstanding due is ৳{due}. Please pay at your earliest convenience. — {shop}',
+        ],
+        self::SALE_RETURNED => [
+            'Dear {customer}, your return on invoice {invoice} is recorded: ৳{amount}. Remaining due ৳{due}. — {shop}',
+        ],
+        self::SALE_VOIDED => [
+            'Dear {customer}, invoice {invoice} (৳{total}) has been cancelled. — {shop}',
+        ],
     ];
 
     /**
@@ -37,7 +60,7 @@ final class Templates
 
     /** Placeholders per template (also the legend on the settings page). */
     public const array PLACEHOLDERS = [
-        self::SALE_COMPLETED => ['customer', 'shop', 'invoice', 'total', 'paid', 'due'],
+        self::SALE_COMPLETED => ['customer', 'shop', 'invoice', 'total', 'paid', 'due', 'link'],
         self::PAYMENT_RECEIVED => ['customer', 'shop', 'amount', 'due', 'balance'],
         self::DUE_REMINDER => ['customer', 'shop', 'due', 'balance'],
         self::SALE_RETURNED => ['customer', 'shop', 'invoice', 'amount', 'due', 'balance'],

@@ -8,6 +8,7 @@ use App\Models\BranchStock;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Concerns\BelongsToBranch;
+use App\Models\Courier;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\DocumentSequence;
@@ -39,7 +40,7 @@ dataset('tenant models', [
     ProductFamily::class, Product::class,
     BranchStock::class, StockBatch::class, StockMovement::class, StockAdjustment::class,
     Purchase::class,
-    PaymentMethod::class, Register::class, Sale::class, Payment::class, SaleReturn::class,
+    PaymentMethod::class, Courier::class, Register::class, Sale::class, Payment::class, SaleReturn::class,
     DocumentSequence::class, Message::class,
 ]);
 

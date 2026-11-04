@@ -30,12 +30,15 @@ final readonly class CustomerSearch
         $query = Customer::query()->where('is_walk_in', false);
 
         if ($numeric) {
+            if (strlen($digits) < 3) {
+                return new Collection;
+            }
             $national = ltrim(str_starts_with($digits, '880') ? substr($digits, 3) : $digits, '0');
             $query->where(function ($q) use ($digits, $national): void {
                 if (strlen($digits) === 8) {
                     $q->orWhere('customer_no', (int) $digits);
-                } elseif (strlen($digits) >= 4 && strlen($digits) < 8) {
-                    $q->orWhere('customer_no', 'like', $digits.'%');
+                } else {
+                    $q->orWhereNumberMatches($digits);
                 }
                 if (strlen($national) >= 3) {
                     $q->orWhere('phone', 'like', '%'.$national)->orWhere('alt_phone', 'like', '%'.$national);
@@ -43,6 +46,9 @@ final readonly class CustomerSearch
             });
             if (strlen($digits) === 8) {
                 $query->orderByRaw('customer_no = ? desc', [(int) $digits]);
+            } elseif (strlen($digits) >= 3) {
+                // A number ending in these digits comes before a phone that does.
+                $query->orderByRaw('customer_no like ? desc', ['%'.$digits]);
             }
         } else {
             $likeRaw = '%'.addcslashes($term, '%_\\').'%';

@@ -1,12 +1,24 @@
 import { Head, Link } from '@inertiajs/react';
 import { Page, PageHeader } from '@/components/page-header';
-import { ArrowLeft, CheckCircle2, Package, PlusCircle, X } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import {
+    ArrowLeft,
+    CheckCircle2,
+    Package,
+    PackagePlus,
+    PlusCircle,
+    X,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FormField } from '@/components/form-field';
+import { actions } from '@/command/actions';
 import { Kbd } from '@/components/kbd';
 import { MoneyInput } from '@/components/money-input';
 import { NativeSelect } from '@/components/native-select';
 import type { PaymentMethodOption } from '@/components/pay-dialog';
+import {
+    NewItemDialog,
+    type UnitOption,
+} from '@/components/purchases/new-item-dialog';
 import { QtyStepper } from '@/components/qty-stepper';
 import { ScanField, type ScanProduct } from '@/components/scan-field';
 import { Button } from '@/components/ui/button';
@@ -36,11 +48,16 @@ export default function PurchaseCreate({
     vendors,
     paymentMethods,
     canPay,
+    canCreateItem = false,
+    units = [],
     today,
 }: {
     vendors: VendorOption[];
     paymentMethods: PaymentMethodOption[];
     canPay: boolean;
+    /** `products.create`: shows "New item" (and its shortcut). */
+    canCreateItem?: boolean;
+    units?: UnitOption[];
     today: string;
 }) {
     const { t } = useT();
@@ -59,6 +76,12 @@ export default function PurchaseCreate({
     const [date, setDate] = useState(today);
     const [note, setNote] = useState('');
     const [lines, setLines] = useState<Line[]>([]);
+    /** The line adder's segmented filter: both kinds, raw materials only, or products only. */
+    const [kind, setKind] = useState<'' | 'raw_material' | 'finished'>('');
+    const [newItem, setNewItem] = useState<{ open: boolean; name: string }>({
+        open: false,
+        name: '',
+    });
     /** Retail price per product (the mockup's "Retail MRP" column and margin chip). */
     const [retail, setRetail] = useState<Record<number, number>>({});
     const [discount, setDiscount] = useState<number | null>(null);
@@ -76,7 +99,9 @@ export default function PurchaseCreate({
     const balance = Math.max(totals.total - (paid ?? 0), 0);
 
     const onPick = (p: ScanProduct) => {
-        setRetail((prev) => ({ ...prev, [p.id]: p.sale_price }));
+        if (p.item_type !== 'raw_material') {
+            setRetail((prev) => ({ ...prev, [p.id]: p.sale_price }));
+        }
         setLines((prev) =>
             addLine(prev, {
                 product_id: p.id,
@@ -85,6 +110,8 @@ export default function PurchaseCreate({
                     : p.name,
                 sku: p.sku,
                 unit_cost: p.cost_price,
+                item_type: p.item_type ?? 'finished',
+                unit: p.unit ?? null,
             }),
         );
     };
@@ -130,6 +157,20 @@ export default function PurchaseCreate({
                 if (ready) receive();
             },
         },
+        ...(canCreateItem
+            ? [
+                  {
+                      id: 'purchase.new_item',
+                      keys: 'f3',
+                      labelKey: 'purchases.new_item',
+                      allowInInput: true,
+                      handler: (e: KeyboardEvent) => {
+                          e.preventDefault();
+                          setNewItem({ open: true, name: '' });
+                      },
+                  },
+              ]
+            : []),
         {
             id: 'purchase.scan',
             keys: 'f2',
@@ -141,6 +182,22 @@ export default function PurchaseCreate({
             },
         },
     ]);
+
+    // Command palette entry while this page is open (hidden without products.create).
+    useEffect(
+        () =>
+            canCreateItem
+                ? actions.register({
+                      id: 'purchase.new_item',
+                      entity: null,
+                      labelKey: 'purchases.new_item',
+                      icon: PackagePlus,
+                      permission: 'products.create',
+                      run: () => setNewItem({ open: true, name: '' }),
+                  })
+                : () => undefined,
+        [canCreateItem],
+    );
 
     const err = (key: string) => errors[key] || undefined;
     const lineError = Object.entries(errors).find(([k]) =>
@@ -257,10 +314,61 @@ export default function PurchaseCreate({
                                 <Kbd keys="f2" className="ml-1" />
                             </span>
                         </div>
+                        <fieldset className="m-0 flex min-w-0 flex-wrap items-center gap-1.5 border-0 p-0">
+                            <legend className="sr-only">
+                                {t('purchases.kind_label')}
+                            </legend>
+                            {(
+                                [
+                                    ['', 'purchases.kind_all'],
+                                    ['raw_material', 'purchases.kind_raw'],
+                                    ['finished', 'purchases.kind_products'],
+                                ] as const
+                            ).map(([value, key]) => (
+                                <button
+                                    key={value}
+                                    type="button"
+                                    aria-pressed={kind === value}
+                                    onClick={() => setKind(value)}
+                                    className={cn(
+                                        'min-h-11 rounded-full border px-3 text-[11px] font-semibold outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 md:min-h-8',
+                                        kind === value
+                                            ? 'border-primary bg-primary text-primary-foreground'
+                                            : 'bg-surface text-muted-foreground hover:bg-surface-sunken',
+                                    )}
+                                >
+                                    {t(key)}
+                                </button>
+                            ))}
+                            {canCreateItem ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="ml-auto min-h-11 md:min-h-8"
+                                    onClick={() =>
+                                        setNewItem({ open: true, name: '' })
+                                    }
+                                >
+                                    <PackagePlus aria-hidden="true" />
+                                    {t('purchases.new_item')}
+                                    <Kbd keys="f3" className="ml-1" />
+                                </Button>
+                            ) : null}
+                        </fieldset>
                         <ScanField
                             ref={scan}
-                            lookupUrl="/app/purchases/lookup"
+                            lookupUrl={`/app/purchases/lookup${kind === '' ? '' : `?type=${kind}`}`}
                             onPick={onPick}
+                            {...(canCreateItem
+                                ? {
+                                      onCreate: (typed: string) =>
+                                          setNewItem({
+                                              open: true,
+                                              name: typed,
+                                          }),
+                                  }
+                                : {})}
                         />
                         {lineError ? (
                             <p role="alert" className="text-destructive">
@@ -355,7 +463,17 @@ export default function PurchaseCreate({
                                                         scope="row"
                                                         className="px-3 py-1.5 text-left font-semibold text-foreground"
                                                     >
-                                                        <div>{l.name}</div>
+                                                        <div>
+                                                            {l.name}
+                                                            {l.item_type ===
+                                                            'raw_material' ? (
+                                                                <span className="ml-1.5 rounded-sm bg-info-soft px-1.5 py-0.5 align-middle text-[10px] font-bold text-info">
+                                                                    {t(
+                                                                        'scan.type_raw',
+                                                                    )}
+                                                                </span>
+                                                            ) : null}
+                                                        </div>
                                                         <div className="num text-[10px] font-normal text-muted-foreground">
                                                             {l.sku}
                                                         </div>
@@ -371,6 +489,11 @@ export default function PurchaseCreate({
                                                             }
                                                             aria-label={`${t('purchases.qty')} ${l.name}`}
                                                         />
+                                                        {l.unit ? (
+                                                            <span className="ml-1 text-[10px] text-muted-foreground">
+                                                                {l.unit}
+                                                            </span>
+                                                        ) : null}
                                                     </td>
                                                     <td className="px-3 py-1.5">
                                                         <MoneyInput
@@ -405,7 +528,12 @@ export default function PurchaseCreate({
                                                     </td>
                                                     <td className="num px-3 py-1.5 text-right text-success">
                                                         {mrp === undefined
-                                                            ? '—'
+                                                            ? l.item_type ===
+                                                              'raw_material'
+                                                                ? t(
+                                                                      'purchases.not_sold',
+                                                                  )
+                                                                : '—'
                                                             : digits.money(mrp)}
                                                         {mrp !== undefined &&
                                                         l.unit_cost > 0 ? (
@@ -626,6 +754,20 @@ export default function PurchaseCreate({
                     </div>
                 </form>
             </Page>
+            {canCreateItem && newItem.open ? (
+                <NewItemDialog
+                    open={newItem.open}
+                    onOpenChange={(open) =>
+                        setNewItem((prev) => ({ ...prev, open }))
+                    }
+                    units={units}
+                    initialName={newItem.name}
+                    onCreated={(item) => {
+                        onPick(item);
+                        scan.current?.focus();
+                    }}
+                />
+            ) : null}
         </>
     );
 }

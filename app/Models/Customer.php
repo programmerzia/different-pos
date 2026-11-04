@@ -16,6 +16,7 @@ use App\Models\Geo\GeoUnion;
 use App\Models\Geo\GeoUpazila;
 use App\Support\Money\Money;
 use Database\Factories\CustomerFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -97,6 +98,24 @@ final class Customer extends Model
     public function mergedInto(): BelongsTo
     {
         return $this->belongsTo(Customer::class, 'merged_into_id');
+    }
+
+    /**
+     * OR-matches the customer number by its start or its end. Every number starts with the same digits
+     * (1000…), so staff usually know only the last ones. Fewer than three digits match too many customers.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeOrWhereNumberMatches(Builder $query, string $digits): Builder
+    {
+        if (strlen($digits) < 3 || strlen($digits) > 8 || ! ctype_digit($digits)) {
+            return $query;
+        }
+
+        return $query->orWhere(static fn (Builder $number): Builder => $number
+            ->where('customer_no', 'like', $digits.'%')
+            ->orWhere('customer_no', 'like', '%'.$digits));
     }
 
     /** @return BelongsTo<GeoDivision, $this> */

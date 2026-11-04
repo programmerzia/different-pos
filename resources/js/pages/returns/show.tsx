@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, FileText, Printer } from 'lucide-react';
+import { ArrowLeft, FileText, Printer, Truck } from 'lucide-react';
 import { Fragment } from 'react';
 import { Kbd } from '@/components/kbd';
 import { StatusBadge } from '@/components/status-badge';
@@ -57,6 +57,11 @@ export default function ReturnShow({
     const digits = useDigits();
     const print80 = () => openPrint(salesUrl.returnReceipt(r.id, '80'));
     const printA4 = () => openPrint(salesUrl.returnReceipt(r.id, 'a4'));
+    // sales.receipt and sales.chalan take the numeric sale id of the replacement sale.
+    const printInvoice = () =>
+        exchange ? openPrint(salesUrl.receipt(exchange.id, '80')) : undefined;
+    const printChalan = () =>
+        exchange ? openPrint(salesUrl.chalan(exchange.id)) : undefined;
 
     useHotkeys('page', [
         {
@@ -71,6 +76,22 @@ export default function ReturnShow({
             labelKey: 'returns.print_a4',
             handler: printA4,
         },
+        ...(exchange
+            ? [
+                  {
+                      id: 'return.print_invoice',
+                      keys: 'i',
+                      labelKey: 'returns.print_new_invoice',
+                      handler: printInvoice,
+                  },
+                  {
+                      id: 'return.chalan',
+                      keys: 'd',
+                      labelKey: 'returns.replacement_chalan',
+                      handler: printChalan,
+                  },
+              ]
+            : []),
         {
             id: 'return.back',
             keys: 'alt+arrowleft',
@@ -148,6 +169,36 @@ export default function ReturnShow({
                                 className="ml-1 hidden md:inline-flex"
                             />
                         </Button>
+                        {exchange ? (
+                            <>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="min-h-11 md:min-h-9"
+                                    onClick={printInvoice}
+                                >
+                                    <Printer aria-hidden="true" />{' '}
+                                    {t('returns.print_new_invoice')}{' '}
+                                    <Kbd
+                                        keys="i"
+                                        className="ml-1 hidden md:inline-flex"
+                                    />
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="min-h-11 md:min-h-9"
+                                    onClick={printChalan}
+                                >
+                                    <Truck aria-hidden="true" />{' '}
+                                    {t('returns.replacement_chalan')}{' '}
+                                    <Kbd
+                                        keys="d"
+                                        className="ml-1 hidden md:inline-flex"
+                                    />
+                                </Button>
+                            </>
+                        ) : null}
                     </div>
                 </div>
 

@@ -1,5 +1,18 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
+import {
+    act,
+    cleanup,
+    fireEvent,
+    render,
+    screen,
+} from '@testing-library/react';
+import {
+    afterEach,
+    beforeEach,
+    describe,
+    expect,
+    it,
+    vi,
+} from 'vite-plus/test';
 import { ScanField } from '@/components/scan-field';
 
 const product = {
@@ -46,14 +59,19 @@ describe('ScanField type-ahead', () => {
         });
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(String(fetchMock.mock.calls[0]?.[0])).toBe('/app/purchases/lookup?code=tee');
+        expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+            '/app/purchases/lookup?code=tee',
+        );
         fireEvent.click(screen.getByRole('button', { name: /Cotton Tee/ }));
         expect(onPick).toHaveBeenCalledWith(product);
     });
 
     it('does not search for a single character and Enter still does the exact lookup', async () => {
         const onPick = vi.fn();
-        fetchMock.mockResolvedValue({ ok: true, json: async () => ({ exact: true, products: [product] }) });
+        fetchMock.mockResolvedValue({
+            ok: true,
+            json: async () => ({ exact: true, products: [product] }),
+        });
         render(<ScanField lookupUrl="/x" onPick={onPick} />);
 
         fireEvent.change(field(), { target: { value: 't' } });
@@ -83,5 +101,52 @@ describe('ScanField type-ahead', () => {
         fireEvent.keyDown(field(), { key: 'ArrowDown' });
         fireEvent.keyDown(field(), { key: 'Enter' });
         expect(onPick).toHaveBeenCalledWith(product);
+    });
+
+    it('marks each match with its type and keeps a type filter already in the URL', async () => {
+        fetchMock.mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                exact: false,
+                products: [
+                    { ...product, item_type: 'raw_material', unit: 'm' },
+                ],
+            }),
+        });
+        render(
+            <ScanField
+                lookupUrl="/app/purchases/lookup?type=raw_material"
+                onPick={vi.fn()}
+            />,
+        );
+
+        fireEvent.change(field(), { target: { value: 'tee' } });
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(300);
+        });
+
+        expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+            '/app/purchases/lookup?type=raw_material&code=tee',
+        );
+        expect(screen.getByText('Raw material')).toBeTruthy();
+    });
+
+    it('offers to create the item when nothing matches', async () => {
+        fetchMock.mockResolvedValue({
+            ok: true,
+            json: async () => ({ exact: false, products: [] }),
+        });
+        const onCreate = vi.fn();
+        render(
+            <ScanField lookupUrl="/x" onPick={vi.fn()} onCreate={onCreate} />,
+        );
+
+        fireEvent.change(field(), { target: { value: 'linen' } });
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(300);
+        });
+        fireEvent.click(screen.getByRole('button', { name: /linen/ }));
+
+        expect(onCreate).toHaveBeenCalledWith('linen');
     });
 });

@@ -33,6 +33,7 @@ use App\Support\Sales\DueAging;
 use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -152,7 +153,8 @@ final class DueController extends Controller
             $query->whereIn('customer_id', Customer::query()->withTrashed()->select('id')->where(fn ($c) => $c
                 ->where('name', 'like', $like)
                 ->orWhere('shop_name', 'like', $like)
-                ->when(strlen($digits) >= 4, fn ($c) => $c->orWhere('phone', 'like', '%'.$digits)->orWhere('customer_no', 'like', $digits.'%'))));
+                ->when(strlen($digits) >= 4, fn ($c) => $c->orWhere('phone', 'like', '%'.$digits))
+                ->orWhereNumberMatches($digits)));
         }
         if (isset($table->filters['group'])) {
             $query->whereIn('customer_id', Customer::query()->withTrashed()->select('id')->where('customer_group_id', (int) $table->filters['group']));
@@ -181,7 +183,7 @@ final class DueController extends Controller
     {
         $this->authorize('viewAny', Customer::class);
         $table = $this->listTable($request);
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Sale> $groups */
+        /** @var Collection<int, Sale> $groups */
         $groups = $table->applySort($this->listQuery($table, $this->bucketBindings()))->get();
         $accounts = app(CustomerAccounts::class);
         $tz = $this->timezone();

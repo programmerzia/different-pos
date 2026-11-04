@@ -14,6 +14,7 @@ use App\Models\Brand;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -43,8 +44,14 @@ final class BrandController extends Controller
         ]);
     }
 
-    public function store(SaveTaxonomyRequest $request, SaveBrand $save): RedirectResponse
+    public function store(SaveTaxonomyRequest $request, SaveBrand $save): RedirectResponse|JsonResponse
     {
+        if ($request->expectsJson()) {
+            // Inline create from the product form: a same-named brand is a field error, and the new brand comes back as JSON.
+            $brand = $this->guarded(fn (): Brand => $save->handle($this->actor($request), $this->data($request), null, rejectDuplicate: true), 'name');
+
+            return response()->json(['id' => $brand->id, 'name' => $brand->name], 201);
+        }
         $this->guarded(fn (): Brand => $save->handle($this->actor($request), $this->data($request)));
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Brand saved.')]);
 

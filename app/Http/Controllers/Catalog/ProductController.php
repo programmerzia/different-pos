@@ -9,6 +9,7 @@ use App\Actions\Catalog\GenerateFamilyVariants;
 use App\Actions\Catalog\SaveProduct;
 use App\Actions\Catalog\SaveProductFamily;
 use App\Enums\DeleteOutcome;
+use App\Enums\ProductItemType;
 use App\Http\Controllers\Concerns\TranslatesDomainErrors;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Catalog\SaveProductRequest;
@@ -106,7 +107,7 @@ final class ProductController extends Controller
         $filtered = $this->filtered($table);
         $page = $table->paginate((clone $filtered)
             ->selectRaw('products.*, COALESCE(branch_stocks.qty_on_hand, 0) AS on_hand')
-            ->with(['category:id,name', 'brand:id,name', 'family:id,uuid']));
+            ->with(['category:id,name', 'brand:id,name', 'family:id,uuid', 'unit:id,short_name']));
 
         $branches = $this->stockColumns->branchesFor($user);
         /** @var list<Product> $items */
@@ -148,7 +149,7 @@ final class ProductController extends Controller
         return TableQuery::fromRequest(
             $request,
             sortable: ['name', 'sku', 'barcode', 'sale_price', 'on_hand', ...($canCost ? ['cost_price'] : [])],
-            filterable: ['category', 'brand', 'status', 'stock', 'added'],
+            filterable: ['category', 'brand', 'status', 'stock', 'added', 'type'],
             defaultSort: 'name',
         );
     }
@@ -251,6 +252,9 @@ final class ProductController extends Controller
         }
         if (isset($table->filters['brand'])) {
             $query->where('products.brand_id', (int) $table->filters['brand']);
+        }
+        if (($itemType = ProductItemType::tryFrom((string) ($table->filters['type'] ?? ''))) instanceof ProductItemType) {
+            $query->where('products.item_type', $itemType->value);
         }
         $onHand = 'COALESCE(branch_stocks.qty_on_hand, 0)';
         $low = static fn (Builder $q): Builder => $q->where('products.track_stock', true)
@@ -376,12 +380,13 @@ final class ProductController extends Controller
             'barcode' => $v['barcode'] ?? null,
             'hs_code' => $v['hs_code'] ?? null,
             'type' => $v['type'],
+            'item_type' => $v['item_type'],
             'category_id' => $v['category_id'] ?? null,
             'brand_id' => $v['brand_id'] ?? null,
             'unit_id' => (int) $v['unit_id'],
             'tax_rate_id' => $v['tax_rate_id'] ?? null,
             'default_vendor_id' => $v['default_vendor_id'] ?? null,
-            'sale_price' => Money::ofPaisa((int) $v['sale_price']),
+            'sale_price' => Money::ofPaisa((int) ($v['sale_price'] ?? 0)),
             'min_sale_price' => isset($v['min_sale_price']) ? Money::ofPaisa((int) $v['min_sale_price']) : null,
             'wholesale_price' => isset($v['wholesale_price']) ? Money::ofPaisa((int) $v['wholesale_price']) : null,
             'min_sale_qty' => Quantity::ofMilli((int) ($v['min_sale_qty'] ?? 0)),

@@ -52,7 +52,7 @@ it('seeds the store logins, repeatably, each with the right role and branches', 
         PaymentMethod::query()->where('tenant_id', $tenant->id)->where('type', PaymentMethodType::Cash)->count(),
         Unit::query()->where('tenant_id', $tenant->id)->count(),
         Customer::query()->where('tenant_id', $tenant->id)->where('is_walk_in', true)->count(),
-    ]))->toBe([2, 1, 1, 1]);
+    ]))->toBe([2, 1, 4, 1]);
 
     // Owners hold two branches, so they choose one first; a manager has one and goes straight in.
     $this->actingAs($owner)->get('/app')->assertRedirect();

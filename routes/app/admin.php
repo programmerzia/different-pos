@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\BusinessSettingsController;
+use App\Http\Controllers\Admin\CourierController;
 use App\Http\Controllers\Admin\PaymentMethodController;
 use App\Http\Controllers\Admin\RegisterController;
 use App\Http\Controllers\Admin\RoleController;
@@ -34,6 +35,12 @@ Route::prefix('settings')->group(function (): void {
         Route::get('payment-methods', [PaymentMethodController::class, 'index'])->name('payment-methods.index');
         Route::post('payment-methods', [PaymentMethodController::class, 'store'])->name('payment-methods.store');
         Route::put('payment-methods/{method}', [PaymentMethodController::class, 'update'])->whereNumber('method')->name('payment-methods.update');
+
+        Route::get('couriers', [CourierController::class, 'index'])->name('couriers.index');
+        Route::post('couriers', [CourierController::class, 'store'])->name('couriers.store');
+        Route::put('couriers/{courier}', [CourierController::class, 'update'])->whereNumber('courier')->name('couriers.update');
+        Route::post('couriers/{courier}/default', [CourierController::class, 'makeDefault'])->whereNumber('courier')->name('couriers.default');
+        Route::delete('couriers/{courier}', [CourierController::class, 'destroy'])->whereNumber('courier')->name('couriers.destroy');
 
         Route::get('taxes', [TaxRateController::class, 'index'])->name('taxes.index');
         Route::post('taxes', [TaxRateController::class, 'store'])->name('taxes.store');

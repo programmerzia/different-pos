@@ -1,5 +1,6 @@
 {{-- Courier delivery chalan (A4): a parcel label to cut off and attach, then the packing list. Quantities
-     only: no price, discount, VAT, total, due or payment. Courier details and COD are filled in by hand. --}}
+     only: no price, discount, VAT, total or payment. The courier box prints the resolved courier; parcels is filled in by hand;
+     the COD box prints the due amount and exists only while the sale owes something (and COD is not switched off). --}}
 @extends('receipts.layout')
 
 @section('title', __('receipts.chalan.title').' '.$r['number'])
@@ -25,10 +26,10 @@
         .to-address { font-size: 1.25em; }
         .label-qr svg { display: block; width: 30mm; height: 30mm; margin-left: auto; }
         .label-from { padding: 2mm 3mm; }
-        .label-fields { display: grid; grid-template-columns: repeat(3, 1fr); }
-        .label-fields > div { padding: 2mm 3mm 7mm; border-left: 1px solid black; }
-        .label-fields > div:nth-child(3n + 1) { border-left: 0; }
-        .label-fields > div:nth-child(n + 4) { border-top: 1px solid black; }
+        .label-fields { display: grid; grid-template-columns: repeat(var(--cols), 1fr); }
+        .label-fields > div { padding: 2mm 3mm 9mm; border-left: 1px solid black; }
+        .label-fields > div:first-child { border-left: 0; }
+        .cod-amount { font-size: 1.6em; font-weight: 700; }
         .fill { border-bottom: 1px solid black; height: 8mm; }
         .cut { display: flex; align-items: center; gap: 2mm; margin: 4mm 0; font-size: .85em; }
         .cut::before, .cut::after { content: ''; flex: 1; border-top: 1px dashed black; }
@@ -80,13 +81,21 @@
             @if ($phone)· <span class="num">{{ __('receipts.phone') }}: {{ $phone }}</span>@endif
         </div>
 
-        <div class="label-fields">
-            <div class="small strong">{{ __('receipts.chalan.courier') }}</div>
-            <div class="small strong">{{ __('receipts.chalan.tracking_no') }}</div>
-            <div class="small strong">{{ __('receipts.chalan.booking_date') }}</div>
+        <div class="label-fields" style="--cols: {{ $r['cod'] !== null ? 3 : 2 }};">
+            <div>
+                <div class="small strong">{{ __('receipts.chalan.courier') }}</div>
+                @if ($r['courier'])
+                    <div class="strong">{{ $r['courier']['name'] }}</div>
+                    @if ($r['courier']['phone'])<div class="small num">{{ $r['courier']['phone'] }}</div>@endif
+                @endif
+            </div>
             <div class="small strong">{{ __('receipts.chalan.parcels') }}</div>
-            <div class="small strong">{{ __('receipts.chalan.weight') }}</div>
-            <div class="small strong">{{ __('receipts.chalan.cod') }}</div>
+            @if ($r['cod'] !== null)
+                <div>
+                    <div class="small strong">{{ __('receipts.chalan.cod') }}</div>
+                    <div class="cod-amount num">{{ $r['cod'] }}</div>
+                </div>
+            @endif
         </div>
     </section>
 

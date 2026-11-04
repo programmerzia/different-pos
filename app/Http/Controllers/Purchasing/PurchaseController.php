@@ -8,6 +8,7 @@ use App\Actions\Purchasing\CancelPurchase;
 use App\Actions\Purchasing\PayVendor;
 use App\Actions\Purchasing\ReceivePurchase;
 use App\Enums\AllocatableType;
+use App\Enums\ProductItemType;
 use App\Enums\PurchaseStatus;
 use App\Enums\StockSourceType;
 use App\Exceptions\Domain\DomainException;
@@ -23,6 +24,7 @@ use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\StockBatch;
+use App\Models\Unit;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Reports\ColumnType;
@@ -217,6 +219,8 @@ final class PurchaseController extends Controller
             'vendors' => Vendor::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'paymentMethods' => PaymentMethod::query()->forVendorPayments()->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
             'canPay' => $this->actor($request)->can('payments.pay'),
+            'canCreateItem' => $this->actor($request)->can('create', Product::class),
+            'units' => Unit::query()->orderBy('name')->get(['id', 'name', 'short_name', 'allows_decimal']),
             'today' => BusinessDay::today($this->timezone()),
         ]);
     }
@@ -226,7 +230,10 @@ final class PurchaseController extends Controller
     {
         $this->authorize('create', Purchase::class);
 
-        return response()->json($lookup->find((string) $request->query('code', ''), $this->actor($request)->can('products.view_cost')));
+        // `type=raw_material|finished` narrows the GRN's segmented filter; anything else searches both kinds.
+        $only = ProductItemType::tryFrom((string) $request->query('type', ''));
+
+        return response()->json($lookup->find((string) $request->query('code', ''), $this->actor($request)->can('products.view_cost'), $only));
     }
 
     public function store(ReceivePurchaseRequest $request, ReceivePurchase $receive): RedirectResponse

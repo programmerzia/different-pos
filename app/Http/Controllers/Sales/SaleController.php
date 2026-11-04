@@ -235,7 +235,8 @@ final class SaleController extends Controller
                 ->orWhereIn('customer_id', Customer::query()->withTrashed()->select('id')->where(fn ($c) => $c
                     ->where('name', 'like', $like)
                     ->orWhere('shop_name', 'like', $like)
-                    ->when(strlen($digits) >= 4, fn ($c) => $c->orWhere('phone', 'like', '%'.$digits)->orWhere('customer_no', 'like', $digits.'%')))));
+                    ->when(strlen($digits) >= 4, fn ($c) => $c->orWhere('phone', 'like', '%'.$digits))
+                    ->orWhereNumberMatches($digits))));
         }
 
         return $query;

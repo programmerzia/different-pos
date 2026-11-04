@@ -67,7 +67,7 @@ function routePermissions(): array
         'messages.index' => ['sms.view'], 'messages.preview' => ['sms.send'],
         'settings.sms.edit' => ['settings.manage'],
         'settings.audit' => ['audit.view'], 'settings.backups' => ['backup.view'], 'settings.backups.download' => ['backup.run'], 'api.backups.show' => ['backup.view'], 'settings.business' => ['settings.manage'], 'branches.index' => ['settings.manage'],
-        'registers.index' => ['settings.manage'], 'payment-methods.index' => ['settings.manage'], 'taxes.index' => ['settings.manage'],
+        'registers.index' => ['settings.manage'], 'payment-methods.index' => ['settings.manage'], 'couriers.index' => ['settings.manage'], 'taxes.index' => ['settings.manage'],
         'units.index' => ['settings.manage'], 'users.index' => ['users.manage'], 'users.create' => ['users.manage'],
         'users.edit' => ['users.manage'], 'roles.index' => ['users.manage'],
 

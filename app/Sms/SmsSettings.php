@@ -43,6 +43,9 @@ final readonly class SmsSettings
         foreach (Templates::DEFAULTS as $key => $default) {
             $stored = is_array($raw['templates'][$key] ?? null) ? $raw['templates'][$key] : [];
             $body = is_string($stored['body'] ?? null) && trim($stored['body']) !== '' ? $stored['body'] : $default;
+            if (in_array($body, Templates::SUPERSEDED_DEFAULTS[$key] ?? [], true)) {
+                $body = $default;
+            }
             $templates[$key] = ['enabled' => (bool) ($stored['enabled'] ?? true), 'body' => $body];
         }
 
