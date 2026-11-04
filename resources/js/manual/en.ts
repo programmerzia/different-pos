@@ -401,7 +401,7 @@ export const en: Manual = {
                             type: 'bullets',
                             items: [
                                 'The **Sale completed** card shows Total, Received, Change and Due with **Print receipt** and **New sale** ([[F1]]).',
-                                'The receipt opens in a new tab at the branch paper size (80 mm or 58 mm) and prints through the browser dialog. [[Ctrl+P]] reprints the last receipt of this session.',
+                                'The receipt opens in a new tab at the branch paper size (80 mm or 58 mm) and prints through the browser dialog. [[Ctrl+P]] reprints the last receipt of this session. **Delivery chalan** ([[Alt+C]]) opens an A4 delivery note for the same sale: CH-invoice number, items and quantities with Vehicle, Driver and signature lines, and no prices or payments.',
                                 'A completed sale cannot be edited. Same-day mistakes are **voided** from Sales history; later ones are handled as a **return**.',
                             ],
                         },
@@ -465,6 +465,10 @@ export const en: Manual = {
                                 {
                                     keys: 'p',
                                     label: 'Print the 80 mm receipt ([[Alt+P]] 58 mm, [[Shift+P]] A4)',
+                                },
+                                {
+                                    keys: 'd',
+                                    label: 'Print the delivery chalan (A4, quantities only, no prices) to send with the goods',
                                 },
                                 {
                                     keys: 'r',
@@ -732,7 +736,7 @@ export const en: Manual = {
                     blocks: [
                         {
                             type: 'p',
-                            text: 'Two templates are sent automatically when switched on in SMS settings: **Sale completed** (to a named customer with a mobile number) and **Payment received** (after a due collection). Statement summaries are sent by hand from the statement page. Messages are only sent when a provider is configured.',
+                            text: 'Four templates are sent automatically when switched on in SMS settings, to a named customer with a mobile number: **Sale completed**, **Payment received** (after a due collection), **Sale returned** (after a return, with the amount handed back; an exchange sends none) and **Sale voided** (after a void). Statement summaries are sent by hand from the statement page. Messages are only sent when a provider is configured.',
                         },
                     ],
                 },
@@ -773,8 +777,9 @@ export const en: Manual = {
                         {
                             type: 'bullets',
                             items: [
-                                'Settings → SMS. Provider: **None (SMS off)**, **Log only (testing)** or **SSL Wireless**.',
+                                'Settings → SMS. Provider: **None (SMS off)**, **Log only (testing)**, **SSL Wireless** or **OneCodeSoft**.',
                                 'For SSL Wireless enter the Sender ID, the API token (stored encrypted, never shown again) and optionally the base URL and sender name.',
+                                'For OneCodeSoft enter the base URL and API key from its Dashboard > API (the key is stored encrypted, never shown again). The sender name is optional: leave it blank and OneCodeSoft picks an approved sender.',
                                 '**Price per SMS part** is used only for the cost estimate in the composer.',
                                 'Per template: **Send automatically**, the text (up to 480 characters) or **Use default text**.',
                                 '**Send test SMS** sends one message to a number of your choice to confirm the gateway works.',
@@ -1047,7 +1052,7 @@ export const en: Manual = {
                             items: [
                                 'Period presets: Today, Yesterday, **This week (Saturday to today)**, This month, Last quarter, **Fiscal year (from 1 July)**, or a custom range of up to 366 days. "As of today" reports take no period.',
                                 'Reports show your current branch; with the all-branches permission you can choose one branch or all branches.',
-                                'Cost and profit columns appear only with the profit permission. **Export CSV** needs the export permission. **Print** uses the browser dialog.',
+                                'Cost and profit columns appear only with the profit permission. **Export** (CSV, Excel or PDF) needs the export permission. **Print** uses the browser dialog.',
                             ],
                         },
                     ],
@@ -1230,7 +1235,7 @@ export const en: Manual = {
                                 'Customer PIN verification at the register and PIN reset.',
                                 'Branch transfers and stocktakes.',
                                 'WhatsApp sending from the SMS hub, scheduled messages and a due-reminder schedule.',
-                                'Barcode label printing, Excel and PDF exports, and the remaining reports (discounts, low stock, dead stock, vendor payables, profit & loss, VAT Mushak 6.3).',
+                                'Barcode label printing.',
                                 'The money module (accounts, expenses, fixed assets), notifications feed, backups and the lock screen.',
                             ],
                         },

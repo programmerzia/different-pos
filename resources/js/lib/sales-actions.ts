@@ -4,6 +4,7 @@ import {
     FileText,
     HandCoins,
     Printer,
+    Truck,
     Repeat,
     Undo2,
 } from 'lucide-react';
@@ -42,6 +43,15 @@ const saleActions: AppAction<SaleRowLike>[] = [
         keys: 'shift+p',
         permission: 'sales.view',
         run: ({ row }) => openPrint(salesUrl.receipt(row.id, 'a4')),
+    },
+    {
+        id: 'sale.chalan',
+        entity: 'sale',
+        labelKey: 'sales.chalan',
+        icon: Truck,
+        keys: 'd',
+        permission: 'sales.view',
+        run: ({ row }) => openPrint(salesUrl.chalan(row.id)),
     },
     {
         id: 'sale.collect',

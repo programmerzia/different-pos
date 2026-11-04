@@ -31,7 +31,7 @@ final class CustomersByArea extends AbstractReport
 
     public function filters(): array
     {
-        return ['level'];
+        return ['level', 'cashier'];
     }
 
     public function run(ReportParameters $parameters): ReportResult
@@ -55,7 +55,11 @@ final class CustomersByArea extends AbstractReport
             return new ReportResult($columns, [], $this->totals($columns, []));
         }
 
-        $salesByCustomer = $this->sales($parameters)
+        $salesQuery = $this->sales($parameters);
+        if (($cashier = $this->cashierId($parameters)) !== null) {
+            $salesQuery->where('sales.sold_by', $cashier);
+        }
+        $salesByCustomer = $salesQuery
             ->groupBy('sales.customer_id')
             ->select('sales.customer_id')
             ->selectRaw('COUNT(*) AS invoices')

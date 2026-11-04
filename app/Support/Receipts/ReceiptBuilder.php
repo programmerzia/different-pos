@@ -132,6 +132,62 @@ final readonly class ReceiptBuilder
     }
 
     /**
+     * Delivery chalan: what travels with the goods. Quantities only, deliberately no price, discount,
+     * VAT, total, due or payment (the driver and the recipient never see money).
+     *
+     * @return array{kind: 'chalan', locale: string, shop: Shop, number: string, invoice_number: string, date: string, voided: bool, void_reason: string|null, customer: array{name: string, shop_name: string|null, phone: string|null, address: string|null}|null, lines: list<array{name: string, sku: string, unit: string, qty: string}>, total_qty: string, has_returns: bool}
+     */
+    public function chalan(Sale $sale, string $locale): array
+    {
+        $sale->loadMissing(['items.product.unit', 'customer']);
+        /** @var list<SaleItem> $items */
+        $items = $sale->items->sortBy('id')->values()->all();
+
+        $lines = [];
+        $total = Quantity::zero();
+        $returns = false;
+        foreach ($items as $item) {
+            $lines[] = [
+                'name' => $item->product_name,
+                'sku' => $item->sku,
+                'unit' => $item->product?->unit->short_name ?? '',
+                'qty' => $this->qty($item->qty, $locale),
+            ];
+            $total = $total->plus($item->qty);
+            $returns = $returns || ! $item->qty_returned->isZero();
+        }
+
+        $customer = $sale->customer;
+        $party = null;
+        if ($customer instanceof Customer && ! $customer->is_walk_in) {
+            $address = collect([$customer->address_line, $customer->area, $customer->post_code])
+                ->filter(static fn (?string $part): bool => $part !== null && trim($part) !== '')
+                ->implode(', ');
+            $party = [
+                'name' => $customer->name,
+                'shop_name' => $customer->shop_name,
+                'phone' => $customer->phone,
+                'address' => $address !== '' ? $address : null,
+            ];
+        }
+
+        return [
+            'kind' => 'chalan',
+            'locale' => $locale,
+            'shop' => $this->shop($sale->branch_id),
+            'number' => 'CH-'.$sale->number,
+            'invoice_number' => (string) $sale->number,
+            'date' => $this->date($sale->sold_at, $locale),
+            'voided' => $sale->status === SaleStatus::Voided,
+            'void_reason' => $sale->void_reason,
+            'customer' => $party,
+            'lines' => $lines,
+            'total_qty' => $this->qty($total, $locale),
+            'has_returns' => $returns,
+        ];
+    }
+
+    /**
      * @return array{kind: 'return', locale: string, shop: Shop, number: string, date: string, cashier: string|null, sale_number: string, customer: Party|null, lines: list<array{name: string, sku: string, qty: string, unit_price: string, total: string, restock: bool}>, totals: list<Row>, mode: string, exchange: array{number: string, total: string, difference: string}|null}
      */
     public function saleReturn(SaleReturn $return, string $locale): array

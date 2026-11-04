@@ -9,6 +9,7 @@ import {
     Receipt,
     Repeat,
     Share2,
+    Truck,
     Undo2,
 } from 'lucide-react';
 import { Fragment, useEffect, useRef, useState } from 'react';
@@ -238,6 +239,15 @@ export function SaleInvoiceDialog({
             icon: Receipt,
             show: true,
             run: () => openPrint(salesUrl.receipt(sale.id, '58')),
+            variant: 'outline' as const,
+        },
+        {
+            id: 'chalan',
+            keys: 'd',
+            label: t('sales.chalan'),
+            icon: Truck,
+            show: true,
+            run: () => openPrint(salesUrl.chalan(sale.id)),
             variant: 'outline' as const,
         },
         {

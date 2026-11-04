@@ -18,8 +18,7 @@
 @if ($bleed)
     /* The artwork's background runs 3 mm past the trim on every side. */
     .bleed { position: absolute; left: {{ $offset - 3 }}mm; top: {{ $offset - 3 }}mm; width: 91.6mm; height: 60mm; }
-    .bleed.front { background: linear-gradient(135deg, #042f2e 0%, #0d9488 50%, #0f766e 100%); }
-    .bleed.back { background: #1e293b; }
+    .page > .card { clip-path: inset(-3mm); }
     .page > .card .mc-face { border-radius: 0; border: 0; background: transparent; overflow: visible; }
 @endif
     .mark { position: absolute; background: #000000; }

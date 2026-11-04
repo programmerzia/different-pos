@@ -602,9 +602,17 @@ export default function PurchaseCreate({
                             </Link>
                         </Button>
                         <div className="flex items-center gap-3">
-                            <span className="hidden text-[11px] text-muted-foreground md:inline">
-                                {t('purchases.receive_hint_keys')}
-                            </span>
+                            {!processing && !ready ? (
+                                <output className="text-[11px] font-semibold text-destructive">
+                                    {vendorId === ''
+                                        ? t('purchases.blocked_vendor')
+                                        : t('purchases.blocked_lines')}
+                                </output>
+                            ) : (
+                                <span className="hidden text-[11px] text-muted-foreground md:inline">
+                                    {t('purchases.receive_hint_keys')}
+                                </span>
+                            )}
                             <Button
                                 type="submit"
                                 className="min-h-11 font-bold md:min-h-9"

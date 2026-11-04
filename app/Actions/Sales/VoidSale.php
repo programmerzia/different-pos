@@ -7,6 +7,7 @@ namespace App\Actions\Sales;
 use App\Enums\AllocatableType;
 use App\Enums\SaleStatus;
 use App\Enums\StockMovementType;
+use App\Events\SaleVoided;
 use App\Exceptions\Domain\InvalidSaleDocument;
 use App\Exceptions\Domain\VoidWindowClosed;
 use App\Models\Customer;
@@ -27,6 +28,7 @@ use App\Support\Sales\SoldStock;
 use App\Support\Stock\StockLedger;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Voids a completed sale on its own business day (tenant timezone); afterwards only a return is
@@ -122,6 +124,8 @@ final readonly class VoidSale
                 'total' => $sale->total->paisa,
                 'money_returned' => $returned->paisa,
             ], $actor);
+
+            DB::afterCommit(static fn () => SaleVoided::dispatch($sale->id));
 
             return $sale->load('items');
         });

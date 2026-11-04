@@ -25,9 +25,19 @@ final class ProfitAndLoss extends AbstractReport
         return 'money';
     }
 
+    public function filters(): array
+    {
+        return ['cashier'];
+    }
+
     public function run(ReportParameters $parameters): ReportResult
     {
-        $sales = $this->sales($parameters)
+        $cashier = $this->cashierId($parameters);
+        $salesQuery = $this->sales($parameters);
+        if ($cashier !== null) {
+            $salesQuery->where('sales.sold_by', $cashier);
+        }
+        $sales = $salesQuery
             ->selectRaw('COALESCE(SUM(sales.subtotal), 0) AS gross')
             ->selectRaw('COALESCE(SUM(sales.item_discount_total + sales.order_discount), 0) AS discounts')
             ->selectRaw('COALESCE(SUM(sales.shipping + sales.rounding), 0) AS other')
@@ -41,6 +51,9 @@ final class ProfitAndLoss extends AbstractReport
             ->where('sale_returns.returned_at', '>=', $parameters->from()->format('Y-m-d H:i:s'))
             ->where('sale_returns.returned_at', '<', $parameters->toExclusive()->format('Y-m-d H:i:s'));
         $this->branches($returns, $parameters, 'sale_returns.branch_id');
+        if ($cashier !== null) {
+            $returns->where('sale_returns.created_by', $cashier);
+        }
         $returns = $returns
             ->selectRaw('COALESCE(SUM(sale_returns.total - sale_returns.tax_total), 0) AS returned')
             ->selectRaw('COALESCE(SUM(sale_returns.tax_total), 0) AS returned_vat')
@@ -52,6 +65,9 @@ final class ProfitAndLoss extends AbstractReport
             ->where('sale_returns.returned_at', '>=', $parameters->from()->format('Y-m-d H:i:s'))
             ->where('sale_returns.returned_at', '<', $parameters->toExclusive()->format('Y-m-d H:i:s'));
         $this->branches($cogsReversed, $parameters, 'sale_returns.branch_id');
+        if ($cashier !== null) {
+            $cogsReversed->where('sale_returns.created_by', $cashier);
+        }
         $cogsReversed = $this->intOf($cogsReversed->sum('sale_return_items.cogs_reversed'));
 
         $gross = $this->intOf($sales?->gross);

@@ -60,7 +60,7 @@ final class Tenant extends Model
         'default_credit_limit' => null,    // paisa; applies to customers without their own credit_limit; null = no limit
         'return_days' => null,             // return window in days after the sale; null = no limit
         'sms' => [                         // see App\Sms\SmsSettings; api_token is stored encrypted
-            'driver' => 'null',            // null|log|ssl_wireless
+            'driver' => 'null',            // null|log|ssl_wireless|onecodesoft
             'sender_id' => '',
             'sid' => '',
             'base_url' => '',

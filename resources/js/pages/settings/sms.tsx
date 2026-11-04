@@ -70,7 +70,8 @@ export default function SmsSettingsPage({
     });
     const test = useForm({ phone: "" });
     const testWa = useForm({ phone: "" });
-    const real = form.data.driver === "ssl_wireless";
+    const ssl = form.data.driver === "ssl_wireless";
+    const real = ssl || form.data.driver === "onecodesoft";
     const meta = form.data.whatsapp.driver === "meta_cloud";
     const setWa = (patch: Partial<typeof form.data.whatsapp>) =>
         form.setData("whatsapp", { ...form.data.whatsapp, ...patch });
@@ -172,49 +173,76 @@ export default function SmsSettingsPage({
                                         ))}
                                     </NativeSelect>
                                 </FormField>
-                                <FormField
-                                    label={t("sms.provider.sender")}
-                                    error={errors["sender_id"]}
-                                >
-                                    <Input
-                                        className="font-mono font-bold"
-                                        value={form.data.sender_id}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                "sender_id",
-                                                e.target.value,
-                                            )
+                                {real ? (
+                                    <FormField
+                                        label={
+                                            ssl
+                                                ? t("sms.provider.sender")
+                                                : t(
+                                                      "sms.provider.sender_optional",
+                                                  )
                                         }
-                                    />
-                                </FormField>
+                                        error={errors["sender_id"]}
+                                    >
+                                        <Input
+                                            className="font-mono font-bold"
+                                            value={form.data.sender_id}
+                                            onChange={(e) =>
+                                                form.setData(
+                                                    "sender_id",
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                    </FormField>
+                                ) : null}
                             </div>
 
                             {real ? (
                                 <>
                                     <div className="grid gap-3 sm:grid-cols-2">
+                                        {ssl ? (
+                                            <FormField
+                                                label={t("sms.provider.sid")}
+                                                error={errors["sid"]}
+                                            >
+                                                <Input
+                                                    className="font-mono"
+                                                    value={form.data.sid}
+                                                    onChange={(e) =>
+                                                        form.setData(
+                                                            "sid",
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                />
+                                            </FormField>
+                                        ) : null}
                                         <FormField
-                                            label={t("sms.provider.sid")}
-                                            error={errors["sid"]}
-                                        >
-                                            <Input
-                                                className="font-mono"
-                                                value={form.data.sid}
-                                                onChange={(e) =>
-                                                    form.setData(
-                                                        "sid",
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                        </FormField>
-                                        <FormField
-                                            label={t("sms.provider.base_url")}
+                                            label={
+                                                ssl
+                                                    ? t("sms.provider.base_url")
+                                                    : t(
+                                                          "sms.provider.base_url_required",
+                                                      )
+                                            }
+                                            hint={
+                                                ssl
+                                                    ? undefined
+                                                    : t(
+                                                          "sms.provider.base_url_hint",
+                                                      )
+                                            }
                                             error={errors["base_url"]}
                                         >
                                             <Input
                                                 inputMode="url"
                                                 value={form.data.base_url}
-                                                placeholder="https://smsplus.sslwireless.com"
+                                                placeholder={
+                                                    ssl
+                                                        ? "https://smsplus.sslwireless.com"
+                                                        : ""
+                                                }
                                                 onChange={(e) =>
                                                     form.setData(
                                                         "base_url",
@@ -225,7 +253,11 @@ export default function SmsSettingsPage({
                                         </FormField>
                                     </div>
                                     <FormField
-                                        label={t("sms.provider.token")}
+                                        label={
+                                            ssl
+                                                ? t("sms.provider.token")
+                                                : t("sms.provider.api_key")
+                                        }
                                         hint={t("sms.provider.hint")}
                                         error={errors["api_token"]}
                                     >
@@ -266,23 +298,25 @@ export default function SmsSettingsPage({
                                 </>
                             ) : null}
 
-                            <div className="grid gap-3 border-t pt-2 sm:grid-cols-2">
-                                <FormField
-                                    label={t("sms.provider.cost")}
-                                    hint={t("sms.provider.cost_hint")}
-                                    error={errors["cost_per_segment"]}
-                                >
-                                    <MoneyInput
-                                        value={form.data.cost_per_segment}
-                                        onChange={(v) =>
-                                            form.setData(
-                                                "cost_per_segment",
-                                                v ?? 0,
-                                            )
-                                        }
-                                    />
-                                </FormField>
-                            </div>
+                            {real ? (
+                                <div className="grid gap-3 border-t pt-2 sm:grid-cols-2">
+                                    <FormField
+                                        label={t("sms.provider.cost")}
+                                        hint={t("sms.provider.cost_hint")}
+                                        error={errors["cost_per_segment"]}
+                                    >
+                                        <MoneyInput
+                                            value={form.data.cost_per_segment}
+                                            onChange={(v) =>
+                                                form.setData(
+                                                    "cost_per_segment",
+                                                    v ?? 0,
+                                                )
+                                            }
+                                        />
+                                    </FormField>
+                                </div>
+                            ) : null}
                         </HubCard>
                     </HubSection>
 

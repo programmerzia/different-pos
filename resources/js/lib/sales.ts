@@ -28,6 +28,7 @@ export const salesUrl = {
     share: (id: number) => `/app/sales/${id}/share`,
     receipt: (id: number, paper: Paper = '80') =>
         `/app/sales/${id}/receipt?paper=${paper}`,
+    chalan: (id: number) => `/app/sales/${id}/chalan`,
     returnsIndex: '/app/returns',
     returnCreate: (saleId?: number) =>
         saleId ? `/app/returns/create?sale=${saleId}` : '/app/returns/create',

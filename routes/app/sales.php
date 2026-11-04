@@ -22,6 +22,7 @@ Route::get('sales', [SaleController::class, 'index'])->name('sales.index');
 Route::get('sales/export.{format}', [SaleController::class, 'export'])->where('format', ExportFormat::pattern())->middleware('can:sales.view')->name('sales.export');
 Route::get('sales/{sale}', [SaleController::class, 'show'])->whereNumber('sale')->name('sales.show');
 Route::get('sales/{sale}/receipt', [SaleReceiptController::class, 'sale'])->whereNumber('sale')->name('sales.receipt');
+Route::get('sales/{sale}/chalan', [SaleReceiptController::class, 'chalan'])->whereNumber('sale')->name('sales.chalan');
 Route::post('sales/{sale}/void', [SaleController::class, 'void'])->whereNumber('sale')->name('sales.void');
 Route::post('sales/{sale}/payments', [SalePaymentController::class, 'store'])->whereNumber('sale')->name('sales.payments.store');
 Route::post('sales/{sale}/share', [SaleController::class, 'share'])->whereNumber('sale')->name('sales.share');

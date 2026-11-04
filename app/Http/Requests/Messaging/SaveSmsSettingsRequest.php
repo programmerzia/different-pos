@@ -28,7 +28,7 @@ final class SaveSmsSettingsRequest extends FormRequest
             'driver' => ['required', Rule::in(SmsSettings::DRIVERS)],
             'sender_id' => ['nullable', 'string', 'max:40'],
             'sid' => ['nullable', 'string', 'max:60'],
-            'base_url' => ['nullable', 'url:https', 'max:200'],
+            'base_url' => [Rule::requiredIf(fn (): bool => $this->input('driver') === 'onecodesoft'), 'nullable', 'url:https', 'max:200'],
             'api_token' => ['nullable', 'string', 'max:300'],
             'clear_token' => ['nullable', 'boolean'],
             'cost_per_segment' => ['nullable', 'integer', 'min:0', 'max:100000'],

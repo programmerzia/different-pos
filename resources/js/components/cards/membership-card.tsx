@@ -84,7 +84,7 @@ function Qr({ value }: { value: string }) {
 }
 
 /**
- * The membership card (CR80, ISO/IEC 7810 ID-1), the baseline mockup's teal card one-to-one plus the
+ * The membership card (CR80, ISO/IEC 7810 ID-1), the black and gold brand card plus the
  * tenant logo badge. The artwork lives in resources/css/membership-card.css, shared with the print
  * views (resources/views/cards/_front|_back.blade.php), so the preview and the printed card match.
  * Size it with `width` (any CSS length; 85.6mm = 1:1, the mockup's 340px by default).

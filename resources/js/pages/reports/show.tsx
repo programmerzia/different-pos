@@ -27,6 +27,14 @@ import type { ReportColumn, ReportRow, ReportShowProps } from '@/types/reports';
 
 const LIMITS = ['10', '50', '100', '500'];
 
+/** The server's English row labels for "no category / brand / family / group". */
+const NO_GROUP_KEYS: Record<string, string> = {
+    Uncategorised: 'reports.no_group.category',
+    'No brand': 'reports.no_group.brand',
+    'No family': 'reports.no_group.family',
+    'No group': 'reports.no_group.group',
+};
+
 function cellText(
     column: ReportColumn,
     value: string | number | null,
@@ -47,10 +55,15 @@ function cellText(
             return digits.n(String(value));
         case 'percent':
             return `${digits.n((Number(value) / 100).toFixed(2))}%`;
-        default:
+        default: {
+            const noGroup = NO_GROUP_KEYS[String(value)];
+            if (noGroup) {
+                return t(noGroup);
+            }
             return column.valuePrefix
                 ? t(`${column.valuePrefix}${String(value)}`)
                 : digits.n(String(value));
+        }
     }
 }
 

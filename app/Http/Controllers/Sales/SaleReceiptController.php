@@ -36,6 +36,27 @@ final class SaleReceiptController extends Controller
         return $this->respond($request, $paper === 'a4' ? 'a4' : 'thermal', $this->builder->sale($model, $locale), $paper, 'sales.receipt', $model->id);
     }
 
+    /** Delivery chalan: A4 only, quantities without any money. */
+    public function chalan(Request $request, int $sale): Response
+    {
+        $model = Sale::query()->findOrFail($sale);
+        $this->authorize('view', $model);
+        $locale = $this->useLocale($request);
+        $chalan = $this->builder->chalan($model, $locale);
+        $other = $locale === 'bn' ? 'en' : 'bn';
+
+        $html = $this->renderer->html('chalan', $chalan, 'a4', [
+            'toolbar' => [[
+                'label' => $other === 'bn' ? 'বাংলা' : 'English',
+                'url' => route('sales.chalan', [$model->id, 'lang' => $other]),
+                'active' => false,
+            ]],
+            'autoprint' => $request->boolean('print'),
+        ]);
+
+        return response($html, 200, ['Content-Type' => 'text/html; charset=utf-8', 'Cache-Control' => 'no-store', 'X-Robots-Tag' => 'noindex']);
+    }
+
     public function saleReturn(Request $request, int $return): Response
     {
         $model = SaleReturn::query()->findOrFail($return);

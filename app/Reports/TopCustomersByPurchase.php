@@ -22,7 +22,7 @@ final class TopCustomersByPurchase extends AbstractReport
 
     public function filters(): array
     {
-        return ['limit'];
+        return ['limit', 'cashier'];
     }
 
     public function run(ReportParameters $parameters): ReportResult
@@ -34,7 +34,12 @@ final class TopCustomersByPurchase extends AbstractReport
             ->select('sale_id', DB::raw('SUM(qty - qty_returned) AS net_qty'))
             ->groupBy('sale_id');
 
-        $records = $this->sales($parameters)
+        $query = $this->sales($parameters);
+        if (($cashier = $this->cashierId($parameters)) !== null) {
+            $query->where('sales.sold_by', $cashier);
+        }
+
+        $records = $query
             ->join('customers', 'customers.id', '=', 'sales.customer_id')
             ->leftJoinSub($items, 'it', 'it.sale_id', '=', 'sales.id')
             ->where('customers.tenant_id', $this->tenantId())

@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Crypt;
  */
 final readonly class SmsSettings
 {
-    public const array DRIVERS = ['null', 'log', 'ssl_wireless'];
+    public const array DRIVERS = ['null', 'log', 'ssl_wireless', 'onecodesoft'];
 
     /** Default price of one SMS segment in paisa (৳0.35), used for the composer's cost estimate only. */
     public const int DEFAULT_COST_PER_SEGMENT = 35;

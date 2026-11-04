@@ -70,9 +70,12 @@ test('receives a GRN from the keyboard and the stock and batches rise', async ({
     await expect(
         page.getByRole('heading', { name: 'New purchase' }),
     ).toBeVisible();
-    await page
-        .getByLabel('Vendor', { exact: true })
-        .selectOption({ label: 'E2E Textile Mills' });
+    // The vendor field is a type-ahead combobox: type, then Enter picks the highlighted match.
+    const vendor = page.getByRole('combobox', { name: /^Vendor/ });
+    await vendor.focus();
+    await page.keyboard.type('E2E Textile');
+    await page.keyboard.press('Enter');
+    await expect(vendor).toHaveValue('E2E Textile Mills');
 
     // F2 focuses the scan field; each Enter of the same SKU adds one more unit.
     await page.keyboard.press('F2');
@@ -89,6 +92,22 @@ test('receives a GRN from the keyboard and the stock and batches rise', async ({
     const after = await stockOf(page, 'E2E-TEE');
     expect(after.onHand).toBe(before.onHand + 3);
     expect(after.purchases).toBe(before.purchases + 1);
+});
+
+test('typing in the scan field lists matching products to pick from the keyboard', async ({
+    page,
+}) => {
+    await open(page, '/app/purchases/create');
+    await page.keyboard.press('F2');
+    await expect(page.locator('#scan')).toBeFocused();
+    // No Enter yet: the matches appear as you type.
+    await page.keyboard.type('E2E Cap');
+    const matches = page.getByRole('list', { name: 'Matching products' });
+    await expect(matches.getByText('E2E Cap')).toBeVisible();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('rowheader', { name: /E2E Cap/ })).toBeVisible();
+    await expect(page.locator('#scan')).toHaveValue('');
 });
 
 test('the audit log and the customer statement keep the mockup layout', async ({

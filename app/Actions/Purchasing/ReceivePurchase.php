@@ -7,6 +7,7 @@ namespace App\Actions\Purchasing;
 use App\Enums\PaymentStatus;
 use App\Enums\PurchaseStatus;
 use App\Enums\StockMovementType;
+use App\Exceptions\Domain\DuplicateVendorBill;
 use App\Exceptions\Domain\InvalidStockDocument;
 use App\Models\PaymentMethod;
 use App\Models\Product;
@@ -19,6 +20,7 @@ use App\Support\Money\Money;
 use App\Support\Numbering\DocumentNumberer;
 use App\Support\Quantity\Quantity;
 use App\Support\Stock\StockLedger;
+use App\Support\Tenancy\BranchScope;
 use App\Support\Tenancy\TenantContext;
 use Brick\Math\BigInteger;
 use Brick\Math\RoundingMode;
@@ -110,8 +112,13 @@ final readonly class ReceivePurchase
 
         return Transaction::run(function () use ($actor, $input, $lines, $nets, $taxes, $shares, $subtotal, $taxTotal, $total, $orderDiscount, $shipping, $payment): Purchase {
             $branch = $this->context->branch();
+            $vendorRef = trim((string) ($input['vendor_ref'] ?? ''));
+            $vendorRef = $vendorRef === '' ? null : $vendorRef;
             $vendor = Vendor::query()->findOrFail($input['vendor_id']);
             $method = $payment === null ? null : PaymentMethod::query()->findOrFail($payment['payment_method_id']);
+            if ($method instanceof PaymentMethod && $method->type->isStoreCredit()) {
+                throw InvalidStockDocument::storeCreditPayment();
+            }
 
             $ids = array_values(array_unique(array_map(static fn (array $line): int => $line['product_id'], $lines)));
             $products = self::products($ids);
@@ -123,7 +130,7 @@ final readonly class ReceivePurchase
             $purchase = Purchase::query()->create([
                 'vendor_id' => $vendor->id,
                 'number' => $number,
-                'vendor_ref' => $input['vendor_ref'] ?? null,
+                'vendor_ref' => $vendorRef,
                 'status' => PurchaseStatus::Received,
                 'purchased_at' => $input['purchased_at'] ?? now(),
                 'received_at' => now(),
@@ -177,6 +184,7 @@ final readonly class ReceivePurchase
             }
 
             $vendor = Vendor::query()->whereKey($vendor->id)->lockForUpdate()->firstOrFail();
+            $this->assertBillNumberFree($vendor, $vendorRef, $purchase->id);
             $vendor->balance = $vendor->balance->plus($total);
             $vendor->save();
 
@@ -194,6 +202,33 @@ final readonly class ReceivePurchase
 
             return $purchase->refresh();
         });
+    }
+
+    /**
+     * One live bill number per vendor (any branch of the tenant), compared trimmed and case-insensitively.
+     * Called right after the vendor row lock, so concurrent saves for the vendor serialise; the locking
+     * read sees rows committed by the save that held the lock first. Cancelled and deleted bills do not count,
+     * and legacy duplicates are left alone.
+     */
+    private function assertBillNumberFree(Vendor $vendor, ?string $ref, int $exceptId): void
+    {
+        if ($ref === null) {
+            return;
+        }
+
+        $existing = Purchase::query()
+            ->withoutGlobalScope(BranchScope::class)
+            ->where('vendor_id', $vendor->id)
+            ->where('status', '!=', PurchaseStatus::Cancelled->value)
+            ->whereKeyNot($exceptId)
+            ->whereRaw('LOWER(TRIM(vendor_ref)) = ?', [mb_strtolower($ref)])
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->first();
+
+        if ($existing instanceof Purchase) {
+            throw new DuplicateVendorBill($ref, $existing->number);
+        }
     }
 
     /** round_half_up(amount ÷ qty) in paisa per unit. */

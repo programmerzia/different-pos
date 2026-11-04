@@ -91,10 +91,32 @@ describe('reports directory', () => {
         const more = screen.getByRole('list', {
             name: t('reports.directory.more'),
         });
-        expect(within(more).getAllByRole('listitem')).toHaveLength(5);
+        expect(within(more).getAllByRole('listitem')).toHaveLength(
+            REPORT_CATALOGUE.length - 14,
+        );
         expect(
             within(more).getByText('Customers & Sales by Area'),
         ).toBeTruthy();
+    });
+
+    it('shows CSV, XLSX and PDF as available when exporting is allowed, and struck through otherwise', () => {
+        mount({ groups, canExport: true });
+        for (const format of ['CSV', 'XLSX', 'PDF']) {
+            const labels = screen.getAllByText(format);
+            expect(labels).toHaveLength(REPORT_CATALOGUE.length);
+            for (const label of labels) {
+                expect(label.className).not.toContain('line-through');
+            }
+        }
+        expect(screen.queryByText('Export Excel')).toBeNull();
+        cleanup();
+
+        mount({ groups, canExport: false });
+        for (const format of ['CSV', 'XLSX', 'PDF']) {
+            for (const label of screen.getAllByText(format)) {
+                expect(label.className).toContain('line-through');
+            }
+        }
     });
 
     it('links period reports with the selected range and point-in-time reports without one', () => {
@@ -127,9 +149,14 @@ describe('reports directory', () => {
         expect(
             within(main).getAllByText(t('reports.directory.next_phase')),
         ).toHaveLength(4);
+        // Stock movements is the only extra Inventory report; the server does not list it here.
         expect(
-            screen.queryByRole('list', { name: t('reports.directory.more') }),
-        ).toBeNull();
+            within(
+                screen.getByRole('list', {
+                    name: t('reports.directory.more'),
+                }),
+            ).getAllByRole('listitem'),
+        ).toHaveLength(1);
 
         fireEvent.click(screen.getByRole('button', { name: 'Money' }));
         expect(
@@ -139,5 +166,29 @@ describe('reports directory', () => {
                 }),
             ).getAllByRole('link'),
         ).toHaveLength(2);
+    });
+
+    it('keeps the reports the server does not have yet visible but disabled', () => {
+        mount({
+            groups: {
+                all: REPORT_CATALOGUE.filter(
+                    (c) =>
+                        !['expenses-by-category', 'sync-exceptions'].includes(
+                            c.report,
+                        ),
+                ).map((c) => ({ name: c.report })),
+            },
+            canExport: true,
+        });
+
+        for (const id of ['expenses_by_category', 'sync_exceptions']) {
+            const title = screen.getByText(
+                t(`reports.directory.items.${id}.title`),
+            );
+            expect(title.closest('a')).toBeNull();
+            expect(
+                title.closest('[aria-disabled="true"]'),
+            ).not.toBeNull();
+        }
     });
 });

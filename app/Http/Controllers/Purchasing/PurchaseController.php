@@ -10,6 +10,8 @@ use App\Actions\Purchasing\ReceivePurchase;
 use App\Enums\AllocatableType;
 use App\Enums\PurchaseStatus;
 use App\Enums\StockSourceType;
+use App\Exceptions\Domain\DomainException;
+use App\Exceptions\Domain\DuplicateVendorBill;
 use App\Http\Controllers\Concerns\TranslatesDomainErrors;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Purchasing\ReceivePurchaseRequest;
@@ -45,6 +47,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -212,7 +215,7 @@ final class PurchaseController extends Controller
 
         return Inertia::render('purchases/create', [
             'vendors' => Vendor::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
-            'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
+            'paymentMethods' => PaymentMethod::query()->forVendorPayments()->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
             'canPay' => $this->actor($request)->can('payments.pay'),
             'today' => BusinessDay::today($this->timezone()),
         ]);
@@ -263,7 +266,13 @@ final class PurchaseController extends Controller
             ];
         }
 
-        $purchase = $this->guarded(fn (): Purchase => $receive->handle($this->actor($request), $input), 'items');
+        try {
+            $purchase = $receive->handle($this->actor($request), $input);
+        } catch (DuplicateVendorBill $e) {
+            throw ValidationException::withMessages(['vendor_ref' => $e->getMessage()]);
+        } catch (DomainException $e) {
+            throw ValidationException::withMessages(['items' => $e->getMessage()]);
+        }
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Purchase received.')]);
 
         return to_route('purchases.show', $purchase);
@@ -343,7 +352,7 @@ final class PurchaseController extends Controller
                 'amount' => $a->amount->paisa,
                 'reference' => $a->payment->reference ?? null,
             ])->all(),
-            'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
+            'paymentMethods' => PaymentMethod::query()->forVendorPayments()->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
             'can' => [
                 'cancel' => $this->actor($request)->can('cancel', $purchase),
                 'pay' => $this->actor($request)->can('payments.pay'),

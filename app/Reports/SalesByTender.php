@@ -19,6 +19,11 @@ final class SalesByTender extends AbstractReport
         return 'sales';
     }
 
+    public function filters(): array
+    {
+        return ['cashier'];
+    }
+
     public function run(ReportParameters $parameters): ReportResult
     {
         $query = DB::table('payments')
@@ -30,6 +35,9 @@ final class SalesByTender extends AbstractReport
             ->where('payments.paid_at', '>=', $parameters->from()->format('Y-m-d H:i:s'))
             ->where('payments.paid_at', '<', $parameters->toExclusive()->format('Y-m-d H:i:s'));
         $this->branches($query, $parameters, 'payments.branch_id');
+        if (($cashier = $this->cashierId($parameters)) !== null) {
+            $query->where('payments.received_by', $cashier);
+        }
 
         $records = $query
             ->groupBy('payment_methods.id', 'payment_methods.name', 'payment_methods.type', 'payment_methods.sort_order')

@@ -18,6 +18,11 @@ final class Returns extends AbstractReport
         return 'sales';
     }
 
+    public function filters(): array
+    {
+        return ['cashier'];
+    }
+
     public function run(ReportParameters $parameters): ReportResult
     {
         $query = DB::table('sale_returns')
@@ -29,6 +34,9 @@ final class Returns extends AbstractReport
             ->where('sale_returns.returned_at', '>=', $parameters->from()->format('Y-m-d H:i:s'))
             ->where('sale_returns.returned_at', '<', $parameters->toExclusive()->format('Y-m-d H:i:s'));
         $this->branches($query, $parameters, 'sale_returns.branch_id');
+        if (($cashier = $this->cashierId($parameters)) !== null) {
+            $query->where('sale_returns.created_by', $cashier);
+        }
 
         $records = $query
             ->selectRaw("DATE(CONVERT_TZ(sale_returns.returned_at, '+00:00', ?)) AS day", [$parameters->offset()])

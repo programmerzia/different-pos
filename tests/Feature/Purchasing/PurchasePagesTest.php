@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Actions\Purchasing\ReceivePurchase;
+use App\Enums\PaymentMethodType;
 use App\Enums\PurchaseStatus;
 use App\Enums\StockSourceType;
 use App\Models\BranchStock;
+use App\Models\PaymentMethod;
 use App\Models\Purchase;
 use App\Models\StockBatch;
 use App\Models\Vendor;
@@ -175,4 +177,57 @@ it('looks products up by barcode, SKU or name and hides cost without products.vi
     $nocost->user->givePermissionTo(['purchases.create']);
     $nocost->product(['sku' => 'NC-5', 'cost_price' => Money::ofPaisa(777)]);
     expect($this->actingAs($nocost->user)->getJson('/app/purchases/lookup?code=NC-5')->json('products.0.cost_price'))->toBe(0);
+});
+
+it('keeps store credit out of the vendor payment lists and refuses it from a crafted request', function (): void {
+    $world = CatalogWorld::make();
+    $vendor = $world->vendor();
+    $product = $world->product();
+    $cash = $world->paymentMethod();
+    $credit = app(TenantContext::class)->withoutTenancy(
+        fn (): PaymentMethod => PaymentMethod::factory()->create(['tenant_id' => $world->tenant->id, 'type' => PaymentMethodType::CustomerCredit]),
+    );
+    $exchange = app(TenantContext::class)->withoutTenancy(
+        fn (): PaymentMethod => PaymentMethod::factory()->create(['tenant_id' => $world->tenant->id, 'type' => PaymentMethodType::ExchangeCredit]),
+    );
+    $world->enter();
+
+    $this->actingAs($world->user)->get('/app/purchases/create')
+        ->assertInertia(fn (Assert $page) => $page->has('paymentMethods', 1)->where('paymentMethods.0.id', $cash->id));
+    $this->actingAs($world->user)->get('/app/vendors')
+        ->assertInertia(fn (Assert $page) => $page->has('paymentMethods', 1)->where('paymentMethods.0.id', $cash->id));
+
+    foreach ([$credit, $exchange] as $method) {
+        $this->actingAs($world->user)->post('/app/purchases', [
+            'vendor_id' => $vendor->id,
+            'items' => [['product_id' => $product->id, 'qty' => 1000, 'unit_cost' => 10000]],
+            'payment' => ['amount' => 100, 'payment_method_id' => $method->id],
+        ])->assertSessionHasErrors('payment.payment_method_id');
+    }
+    expect(Purchase::query()->count())->toBe(0);
+
+    $purchase = receivedPurchase($world);
+    foreach ([$credit, $exchange] as $method) {
+        $this->actingAs($world->user)->post("/app/purchases/{$purchase->uuid}/payments", ['amount' => 100, 'payment_method_id' => $method->id])
+            ->assertSessionHasErrors('payment_method_id');
+    }
+    expect($purchase->refresh()->paid->paisa)->toBe(0);
+});
+
+it('answers a duplicate vendor bill number with a field error on the bill number', function (): void {
+    $world = CatalogWorld::make();
+    $vendor = $world->vendor();
+    $product = $world->product();
+    $payload = [
+        'vendor_id' => $vendor->id,
+        'vendor_ref' => 'INV-9',
+        'items' => [['product_id' => $product->id, 'qty' => 1000, 'unit_cost' => 10000]],
+    ];
+
+    $this->actingAs($world->user)->post('/app/purchases', $payload)->assertSessionHasNoErrors();
+    $this->actingAs($world->user)->post('/app/purchases', [...$payload, 'vendor_ref' => ' inv-9'])
+        ->assertSessionHasErrors('vendor_ref');
+
+    $world->enter();
+    expect(Purchase::query()->count())->toBe(1);
 });

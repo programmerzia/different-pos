@@ -33,4 +33,24 @@ final class PasswordConfirmationTest extends TestCase
 
         $response->assertRedirect(route('login'));
     }
+
+    public function test_the_right_password_confirms(): void
+    {
+        $user = User::factory()->create(['password' => 'secret-password-1']);
+
+        $response = $this->actingAs($user)->post('/user/confirm-password', ['password' => 'secret-password-1']);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertSessionHas('auth.password_confirmed_at');
+    }
+
+    public function test_the_wrong_password_does_not_confirm(): void
+    {
+        $user = User::factory()->create(['password' => 'secret-password-1']);
+
+        $response = $this->actingAs($user)->post('/user/confirm-password', ['password' => 'wrong-password']);
+
+        $response->assertSessionHasErrors('password');
+        $response->assertSessionMissing('auth.password_confirmed_at');
+    }
 }

@@ -12,8 +12,10 @@ use App\Models\Branch;
 use App\Models\Customer;
 use App\Models\Sale;
 use App\Models\Tenant;
+use App\Reports\Dashboard\DashboardAggregates;
 use App\Reports\Dashboard\DashboardPeriod;
 use App\Reports\DashboardQuery;
+use App\Reports\ReportParameters;
 use App\Support\Money\Money;
 use App\Support\Quantity\Quantity;
 use App\Support\Tenancy\TenantContext;
@@ -245,4 +247,71 @@ it('reports the first-run checklist from real state', function (): void {
         ->assertInertia(fn ($page) => $page->where('dashboard.setup', [
             'logo' => false, 'payment_methods' => true, 'products' => true, 'customers' => true, 'first_sale' => true,
         ]));
+});
+
+function ensureDistricts(): array
+{
+    $divisionId = DB::table('geo_divisions')->insertGetId(['code' => 'T1', 'name_en' => 'Testland', 'name_bn' => 'টেস্টল্যান্ড']);
+    $a = DB::table('geo_districts')->insertGetId(['division_id' => $divisionId, 'code' => 'T1-1', 'name_en' => 'Testpur', 'name_bn' => 'টেস্টপুর']);
+    $b = DB::table('geo_districts')->insertGetId(['division_id' => $divisionId, 'code' => 'T1-2', 'name_en' => 'Demoganj', 'name_bn' => 'ডেমোগঞ্জ']);
+
+    return [$a, $b];
+}
+
+it('splits net sales by customer district and sums to the Net Sales KPI with Not set', function (): void {
+    [$testpur] = ensureDistricts();
+    $this->alice->update(['geo_district_id' => $testpur]); // Bob has no location
+
+    $this->actingAs($this->world->user('Owner'))->get(route('dashboard'))->assertInertia(fn ($page) => $page
+        ->where('dashboard.kpis.sales.value', 300_000)
+        ->where('dashboard.districts.rows.0.name_en', 'Testpur')
+        ->where('dashboard.districts.rows.0.name_bn', 'টেস্টপুর')
+        ->where('dashboard.districts.rows.0.sales', 200_000)
+        ->where('dashboard.districts.unset', ['sales' => 100_000, 'invoices' => 1])
+        ->where('dashboard.districts.others.districts', 0)
+        ->where('dashboard.districts.total', 300_000));
+});
+
+it('puts every sale in Not set when no customer has a district, and folds small districts into Others', function (): void {
+    $this->actingAs($this->world->user('Owner'))->get(route('dashboard'))->assertInertia(fn ($page) => $page
+        ->where('dashboard.districts.rows', [])
+        ->where('dashboard.districts.unset.sales', 300_000)
+        ->where('dashboard.districts.total', 300_000));
+
+    [$testpur, $demoganj] = ensureDistricts();
+    $this->alice->update(['geo_district_id' => $testpur]);
+    $this->bob->update(['geo_district_id' => $demoganj]);
+    $rows = app(DashboardAggregates::class)->salesByDistrict(
+        new ReportParameters('2026-11-03', '2026-11-03', 'Asia/Dhaka', [$this->world->branch->id]),
+        limit: 1,
+    );
+
+    expect($rows['rows'])->toHaveCount(1)
+        ->and($rows['rows'][0]['name_en'])->toBe('Testpur')
+        ->and($rows['others'])->toBe(['districts' => 1, 'sales' => 100_000, 'invoices' => 1])
+        ->and($rows['unset'])->toBe(['sales' => 0, 'invoices' => 0])
+        ->and($rows['total'])->toBe(300_000);
+});
+
+it('keeps district sales within the branch scope, the period and the tenant', function (): void {
+    [$testpur] = ensureDistricts();
+    $this->alice->update(['geo_district_id' => $testpur]);
+    $this->bob->update(['geo_district_id' => $testpur]);
+    app(TenantContext::class)->withoutTenancy(function () use ($testpur): void {
+        $other = Tenant::factory()->create();
+        $branch = Branch::factory()->for($other)->create(['code' => 'X1']);
+        $customer = Customer::factory()->create(['tenant_id' => $other->id, 'geo_district_id' => $testpur]);
+        Sale::factory()->create([
+            'tenant_id' => $other->id, 'branch_id' => $branch->id, 'customer_id' => $customer->id,
+            'sold_at' => Carbon::parse('2026-11-03 06:00:00', 'UTC'), 'total' => Money::ofPaisa(999_000), 'status' => 'completed',
+        ]);
+    });
+
+    $owner = $this->world->user('Owner');
+    $this->actingAs($owner)->get(route('dashboard', ['branch' => 'all']))->assertInertia(fn ($page) => $page
+        ->where('dashboard.districts.total', 370_000)
+        ->where('dashboard.districts.rows.0.sales', 370_000));
+    $this->actingAs($owner)->get(route('dashboard', ['period' => 'yesterday']))->assertInertia(fn ($page) => $page
+        ->where('dashboard.districts.total', 100_000)
+        ->where('dashboard.kpis.sales.value', 100_000));
 });

@@ -72,6 +72,20 @@ export type DashboardBranchRow = {
     profit?: number;
 };
 
+export type DashboardDistricts = {
+    rows: {
+        id: number;
+        name_en: string;
+        name_bn: string;
+        sales: number;
+        invoices: number;
+    }[];
+    others: { districts: number; sales: number; invoices: number };
+    unset: { sales: number; invoices: number };
+    /** Net sales of the period: rows + others + unset. */
+    total: number;
+};
+
 export type DashboardSetup = {
     logo: boolean;
     payment_methods: boolean;
@@ -105,6 +119,8 @@ export type DashboardProps = {
     trend: { granularity: 'hour' | 'day'; points: DashboardTrendPoint[] };
     payment_mix: { method: string; type: string; amount: number }[];
     heatmap: { from: string; to: string; cells: DashboardHeatCell[] };
+    /** Absent in a payload cached before the widget existed (60 s). */
+    districts?: DashboardDistricts;
     /** Null without reports.all_branches. */
     branches: DashboardBranchRow[] | null;
     aging: {

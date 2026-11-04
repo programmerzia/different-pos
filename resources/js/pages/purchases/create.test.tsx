@@ -50,4 +50,17 @@ describe('PurchaseCreate initial state', () => {
             ).disabled,
         ).toBe(true);
     });
+
+    it('tells the buyer why receive is disabled', () => {
+        render(
+            <PurchaseCreate
+                vendors={[{ id: 1, name: 'Acme Textiles' }]}
+                paymentMethods={[]}
+                canPay={false}
+                today="2026-11-03"
+            />,
+        );
+
+        expect(screen.getByText(t('purchases.blocked_vendor'))).toBeTruthy();
+    });
 });

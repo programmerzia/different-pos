@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Vendors;
 
+use App\Enums\PaymentMethodType;
 use App\Models\User;
 use App\Support\Http\ScopedExists;
 use Illuminate\Foundation\Http\FormRequest;
@@ -23,7 +24,7 @@ final class PayVendorRequest extends FormRequest
     {
         return [
             'amount' => ['required', 'integer', 'min:1'],
-            'payment_method_id' => ['required', 'integer', ScopedExists::in('payment_methods')],
+            'payment_method_id' => ['required', 'integer', ScopedExists::in('payment_methods')->whereNotIn('type', PaymentMethodType::storeCreditValues())],
             'reference' => ['nullable', 'string', 'max:120'],
             'note' => ['nullable', 'string', 'max:500'],
         ];

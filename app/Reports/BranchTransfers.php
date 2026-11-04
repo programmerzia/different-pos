@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Inter-branch transfer discrepancy, read from the stock ledger: per branch and product in the
  * period, quantity dispatched (transfer_out movements), received (transfer_in), still in transit
- * (branch_stocks.qty_in_transit) and the variance. The transfer workflow itself (PRD D5, plan 2.19)
- * is not built in this phase, so the report stays empty until transfers post to the ledger.
+ * (branch_stocks.qty_in_transit) and the variance. The transfer workflow (PRD D5) is built: gate
+ * passes post their dispatch and receipt to the ledger, which is what this report reads.
  */
 final class BranchTransfers extends AbstractReport
 {

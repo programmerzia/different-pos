@@ -8,6 +8,7 @@ use App\Enums\PaymentMethodType;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\Syncable;
 use Database\Factories\PaymentMethodFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -45,5 +46,16 @@ final class PaymentMethod extends Model
             'requires_reference' => 'boolean',
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Methods a vendor can be paid with: active, and not customer-side store credit.
+     *
+     * @param  Builder<PaymentMethod>  $query
+     * @return Builder<PaymentMethod>
+     */
+    public function scopeForVendorPayments(Builder $query): Builder
+    {
+        return $query->where('is_active', true)->whereNotIn('type', PaymentMethodType::storeCreditValues());
     }
 }

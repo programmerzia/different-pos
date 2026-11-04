@@ -18,7 +18,6 @@ import { KpiTile } from '@/components/kpi-tile';
 import { PayDialog, type PaymentMethodOption } from '@/components/pay-dialog';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
-import { navigateTo } from '@/command/navigate';
 import { useDigits } from '@/hooks/use-digits';
 import { useHotkeys } from '@/hotkeys/use-hotkeys';
 import { useT } from '@/i18n';
@@ -123,12 +122,6 @@ export default function PurchaseShow({
             handler: () => {
                 if (canPay) setPaying(true);
             },
-        },
-        {
-            id: 'purchase.back',
-            keys: 'alt+arrowleft',
-            labelKey: 'hotkeys.back',
-            handler: () => navigateTo('/app/purchases'),
         },
     ]);
 

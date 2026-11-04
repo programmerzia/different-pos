@@ -46,6 +46,18 @@ abstract class AbstractReport implements ReportContract
         return $query;
     }
 
+    /**
+     * The `cashier` filter as a user id, or null when it is absent or not all digits. Only ever used
+     * against tenant-scoped columns (sales.sold_by, payments.received_by, sale_returns.created_by,
+     * on rows already filtered by tenant_id), so an id from another tenant simply matches nothing.
+     */
+    protected function cashierId(ReportParameters $p): ?int
+    {
+        $cashier = $p->filter('cashier');
+
+        return $cashier !== null && ctype_digit($cashier) ? (int) $cashier : null;
+    }
+
     protected function branches(Builder $query, ReportParameters $p, string $column): void
     {
         if ($p->branchIds !== null) {

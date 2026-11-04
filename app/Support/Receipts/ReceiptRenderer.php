@@ -23,6 +23,7 @@ final class ReceiptRenderer
     {
         $name = match ($view) {
             'a4' => 'receipts.a4',
+            'chalan' => 'receipts.chalan',
             'return' => 'receipts.return',
             'payment' => 'receipts.payment',
             default => 'receipts.thermal',

@@ -14,6 +14,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\RefundMode;
 use App\Enums\SaleStatus;
 use App\Enums\StockMovementType;
+use App\Events\SaleReturned;
 use App\Exceptions\Domain\InvalidSaleDocument;
 use App\Exceptions\Domain\InvalidTender;
 use App\Exceptions\Domain\ReturnQtyExceeded;
@@ -43,6 +44,7 @@ use App\Support\Tenancy\TenantContext;
 use Brick\Math\BigInteger;
 use Brick\Math\RoundingMode;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Takes goods back from a completed sale of the current branch (number type `return`). Needs
@@ -100,6 +102,9 @@ final readonly class CreateSaleReturn
                 'refunded' => $return->refunded->paisa,
                 'credited' => $return->credited->paisa,
             ], $actor);
+
+            // Only here, never in CreateExchange: an exchange does not send the return SMS.
+            DB::afterCommit(static fn () => SaleReturned::dispatch($return->id, $return->customer_id));
 
             return $return->load('items');
         });

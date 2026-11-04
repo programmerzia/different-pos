@@ -13,10 +13,16 @@ final class Templates
 
     public const string DUE_REMINDER = 'due_reminder';
 
+    public const string SALE_RETURNED = 'sale_returned';
+
+    public const string SALE_VOIDED = 'sale_voided';
+
     public const array DEFAULTS = [
         self::SALE_COMPLETED => 'Thank you {customer}! Invoice {invoice} total ৳{total}, paid ৳{paid}, due ৳{due}. — {shop}',
         self::PAYMENT_RECEIVED => 'Dear {customer}, we received ৳{amount}. Remaining due ৳{due}. — {shop}',
         self::DUE_REMINDER => 'Dear {customer}, your outstanding due is ৳{due}. Please pay at your earliest convenience. — {shop}',
+        self::SALE_RETURNED => 'Dear {customer}, your return on invoice {invoice} is recorded: ৳{amount}. Remaining due ৳{due}. — {shop}',
+        self::SALE_VOIDED => 'Dear {customer}, invoice {invoice} (৳{total}) has been cancelled. — {shop}',
     ];
 
     /**
@@ -34,6 +40,8 @@ final class Templates
         self::SALE_COMPLETED => ['customer', 'shop', 'invoice', 'total', 'paid', 'due'],
         self::PAYMENT_RECEIVED => ['customer', 'shop', 'amount', 'due', 'balance'],
         self::DUE_REMINDER => ['customer', 'shop', 'due', 'balance'],
+        self::SALE_RETURNED => ['customer', 'shop', 'invoice', 'amount', 'due', 'balance'],
+        self::SALE_VOIDED => ['customer', 'shop', 'invoice', 'total', 'due', 'balance'],
     ];
 
     /** @return list<string> */

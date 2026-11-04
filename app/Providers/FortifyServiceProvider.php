@@ -9,9 +9,11 @@ use App\Actions\Fortify\ResetUserPassword;
 use App\Http\Responses\LoginResponse;
 use App\Listeners\RecordLoginActivity;
 use App\Models\Tenant;
+use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -52,6 +54,8 @@ final class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::authenticateUsing(fn (Request $request) => app(AuthenticateLogin::class)($request));
+        // Fortify's default reads $user->login, but `login` is only the sign-in form's field name.
+        Fortify::confirmPasswordsUsing(static fn (User $user, ?string $password): bool => is_string($password) && Hash::check($password, $user->password));
     }
 
     /**

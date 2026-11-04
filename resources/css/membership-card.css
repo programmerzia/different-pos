@@ -54,6 +54,10 @@
 .mc-front {
     padding: 5.882cqw;
     border: 1px solid color-mix(in srgb, var(--mc-gold) 45%, transparent);
+}
+/* `.bleed` is the press export's 3 mm overrun (views/cards/cr80), so it always matches the card. */
+.mc-front,
+.bleed.front {
     background:
         radial-gradient(120% 90% at 100% 0%, rgb(245 184 0 / 0.16) 0%, transparent 55%),
         linear-gradient(135deg, #050505 0%, #1c1a14 55%, #0a0a0a 100%);
@@ -273,6 +277,9 @@
 /* Back */
 .mc-back {
     border: 1px solid var(--mc-border);
+}
+.mc-back,
+.bleed.back {
     background: #111111;
 }
 .mc-stripe {

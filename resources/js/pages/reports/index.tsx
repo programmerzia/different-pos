@@ -1,5 +1,4 @@
 import { Head, Link } from '@inertiajs/react';
-import { FileSpreadsheet } from 'lucide-react';
 import { useState } from 'react';
 import { NativeSelect } from '@/components/native-select';
 import { Page, PageHeader } from '@/components/page-header';
@@ -17,12 +16,6 @@ import {
     reportPeriodRange,
 } from '@/components/reports/report-periods';
 import { ChipRow } from '@/components/table-toolbar';
-import { Button } from '@/components/ui/button';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { useDigits } from '@/hooks/use-digits';
 import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
@@ -82,29 +75,20 @@ export default function ReportsIndex({ groups, canExport }: Props) {
                 <span className="flex items-center justify-between gap-2 border-t pt-2 text-[10px] text-muted-foreground">
                     <span>
                         {t('reports.directory.format')}{' '}
-                        <span
-                            className={cn(
-                                card.built && canExport
-                                    ? 'text-foreground'
-                                    : 'line-through opacity-60',
-                            )}
-                        >
-                            CSV
-                        </span>
-                        {' / '}
-                        <span
-                            className="line-through opacity-60"
-                            title={nextPhase}
-                        >
-                            XLSX
-                        </span>
-                        {' / '}
-                        <span
-                            className="line-through opacity-60"
-                            title={nextPhase}
-                        >
-                            PDF
-                        </span>
+                        {['CSV', 'XLSX', 'PDF'].map((format, i) => (
+                            <span key={format}>
+                                {i > 0 ? ' / ' : null}
+                                <span
+                                    className={cn(
+                                        card.built && canExport
+                                            ? 'text-foreground'
+                                            : 'line-through opacity-60',
+                                    )}
+                                >
+                                    {format}
+                                </span>
+                            </span>
+                        ))}
                     </span>
                     {card.built ? (
                         <span className="font-semibold text-primary group-hover:underline">
@@ -169,48 +153,33 @@ export default function ReportsIndex({ groups, canExport }: Props) {
                                     </option>
                                 ))}
                             </NativeSelect>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    {/* aria-disabled (not disabled) so focus still shows the tooltip. */}
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        aria-disabled="true"
-                                        aria-describedby="xlsx-next-phase"
-                                        className="cursor-not-allowed opacity-50"
-                                    >
-                                        <FileSpreadsheet aria-hidden="true" />
-                                        {t('reports.directory.export_excel')}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent id="xlsx-next-phase">
-                                    {nextPhase}
-                                </TooltipContent>
-                            </Tooltip>
                         </>
                     }
                 />
 
-                <ChipRow
-                    group={{
-                        key: 'category',
-                        label: t('reports.directory.category_filter'),
-                        value: category,
-                        options: [
-                            {
-                                value: '',
-                                label: t('reports.directory.all_categories'),
-                            },
-                            ...REPORT_CATEGORIES.map((key) => ({
-                                value: key,
-                                label: t(`reports.directory.categories.${key}`),
-                            })),
-                        ],
-                        onChange: (value) =>
-                            setCategory(value as ReportCategory | ''),
-                        scroll: true,
-                    }}
-                />
+                {/* A wrapping flex fieldset directly in a flex column gets the height of one chip per line. */}
+                <div>
+                    <ChipRow
+                        group={{
+                            key: 'category',
+                            label: t('reports.directory.category_filter'),
+                            value: category,
+                            options: [
+                                {
+                                    value: '',
+                                    label: t('reports.directory.all_categories'),
+                                },
+                                ...REPORT_CATEGORIES.map((key) => ({
+                                    value: key,
+                                    label: t(`reports.directory.categories.${key}`),
+                                })),
+                            ],
+                            onChange: (value) =>
+                                setCategory(value as ReportCategory | ''),
+                            scroll: true,
+                        }}
+                    />
+                </div>
 
                 <ul
                     aria-label={t('reports.directory.title')}

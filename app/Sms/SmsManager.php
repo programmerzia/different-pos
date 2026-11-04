@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Sms\Contracts\SmsGateway;
 use App\Sms\Drivers\LogDriver;
 use App\Sms\Drivers\NullDriver;
+use App\Sms\Drivers\OneCodeSoftDriver;
 use App\Sms\Drivers\SslWirelessDriver;
 use App\Support\Tenancy\TenantContext;
 
@@ -33,6 +34,7 @@ final readonly class SmsManager
     {
         return match ($settings->driver) {
             'ssl_wireless' => new SslWirelessDriver($settings->apiToken ?? '', $settings->sid !== '' ? $settings->sid : $settings->senderId, $settings->baseUrl),
+            'onecodesoft' => new OneCodeSoftDriver($settings->apiToken ?? '', $settings->senderId, $settings->baseUrl),
             'log' => new LogDriver,
             default => new NullDriver,
         };

@@ -24,6 +24,11 @@ final class VatOutput extends AbstractReport
         return 'tax';
     }
 
+    public function filters(): array
+    {
+        return ['cashier'];
+    }
+
     public function run(ReportParameters $parameters): ReportResult
     {
         $inclusive = (bool) app(TenantContext::class)->tenant()->setting('tax_inclusive');
@@ -34,7 +39,12 @@ final class VatOutput extends AbstractReport
             ->groupBy('sale_id')
             ->select('sale_id', DB::raw("SUM({$base}) AS base_total"));
 
-        $sales = $this->sales($parameters)
+        $cashier = $this->cashierId($parameters);
+        $salesQuery = $this->sales($parameters);
+        if ($cashier !== null) {
+            $salesQuery->where('sales.sold_by', $cashier);
+        }
+        $sales = $salesQuery
             ->join('sale_items', 'sale_items.sale_id', '=', 'sales.id')
             ->joinSub($perSale, 'ps', 'ps.sale_id', '=', 'sales.id')
             ->groupBy('sale_items.tax_rate_bp')
@@ -51,6 +61,9 @@ final class VatOutput extends AbstractReport
             ->where('sale_returns.returned_at', '>=', $parameters->from()->format('Y-m-d H:i:s'))
             ->where('sale_returns.returned_at', '<', $parameters->toExclusive()->format('Y-m-d H:i:s'));
         $this->branches($returns, $parameters, 'sale_returns.branch_id');
+        if ($cashier !== null) {
+            $returns->where('sale_returns.created_by', $cashier);
+        }
         $returns = $returns
             ->groupBy('sale_items.tax_rate_bp')
             ->select('sale_items.tax_rate_bp')

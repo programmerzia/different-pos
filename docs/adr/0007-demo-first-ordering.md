@@ -13,6 +13,8 @@ The owner needs a working demo on DIFFERENT FASHION's real data: products, stock
 5. **Deferred to the next phase:** customer PIN and sealed boxes (the keypair infrastructure stays), device enrollment and sync, geo reference, 2FA, invitations, platform admin console, money module, backups, nightly integrity job.
 6. **Legacy anomalies are reported, never silently fixed:** duplicate SKUs get a `-{legacy_id}` suffix, cost-0 products and the future-dated sale go to `migration_report.csv`, the 648-unit batch/product stock difference is listed per product.
 
+**Update 2026-11-04:** an `onecodesoft` driver (OneCodeSoft Bulk SMS v3; per-tenant API key and account-specific base URL) was added for testing. `ssl_wireless` remains available; both sit behind the same `SmsGateway` contract.
+
 ## Consequences
 - CLAUDE.md, .cursorrules, 01_PRD non-goals and 04_TRD §2 updated in the same change.
 - The `customers.pin_*` columns are created but unused in this phase.

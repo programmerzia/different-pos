@@ -20,17 +20,21 @@ use App\Models\SaleReturn;
 use App\Models\StockMovement;
 use App\Models\TaxRate;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Models\Vendor;
 use App\Reports\BranchTransfers;
 use App\Reports\CustomersByArea;
+use App\Reports\DailyCashSummary;
 use App\Reports\DeadStock;
 use App\Reports\Discounts;
 use App\Reports\LowStock;
 use App\Reports\ProfitAndLoss;
 use App\Reports\ReportParameters;
 use App\Reports\ReportRegistry;
+use App\Reports\Returns;
 use App\Reports\ReturnsByReason;
 use App\Reports\SalesByProduct;
+use App\Reports\SalesByTender;
 use App\Reports\VatOutput;
 use App\Reports\VendorPayables;
 use App\Support\Money\Money;
@@ -118,7 +122,9 @@ it('lists the fourteen mockup reports first, then the extra ones', function (): 
     expect(array_slice($names, 0, 14))->toBe([
         'daily-cash', 'discounts', 'returns-by-reason', 'sales-by-day', 'sales-by-product', 'dues-aging', 'top-customers',
         'stock-valuation', 'low-stock', 'dead-stock', 'branch-transfers', 'vendor-payables', 'pnl', 'vat-output',
-    ])->and(array_slice($names, 14))->toBe(['sales-by-user', 'sales-by-tender', 'returns', 'customers-last-purchase', 'customers-by-area']);
+    ])->and(array_slice($names, 14))->toBe(['sales-by-user', 'sales-by-tender', 'returns', 'customers-last-purchase', 'customers-by-area',
+        'sales-summary', 'sales-by-category', 'sales-by-brand', 'sales-by-family', 'stock-movements', 'purchases-by-vendor', 'collections-by-user', 'cards-issued',
+    ]);
 });
 
 it('breaks discounts down by cashier and kind with the effective rate', function (): void {
@@ -337,4 +343,67 @@ it('never counts another tenant in any of the new reports', function (): void {
         ->and(rowBy(app(ProfitAndLoss::class)->run($all)->rows, 'line', 'gross_sales')['amount'])->toBe(210_000)
         ->and(app(VatOutput::class)->run($all)->totals['taxable'])->toBe(180_000)
         ->and(app(CustomersByArea::class)->run($all)->totals['customers'])->toBeLessThanOrEqual(1);
+});
+
+it('filters the sales-based reports by the cashier who sold, and ignores a malformed or foreign id safely', function (): void {
+    $owner = (string) $this->world->user('Owner')->id;
+    $manager = (string) $this->world->user('Manager')->id;
+    $period = ['2026-10-01', '2026-11-03'];
+    $totals = fn (string $report, array $filters = []): array => app(ReportRegistry::class)->find($report)->run(($this->params)(...$period, filters: $filters))->totals ?? [];
+
+    foreach (['sales-by-day' => 'net', 'top-customers' => 'net', 'customers-by-area' => 'net', 'vat-output' => 'taxable'] as $report => $key) {
+        $all = $totals($report);
+        $sum = $totals($report, ['cashier' => $owner])[$key] + $totals($report, ['cashier' => $manager])[$key];
+        expect($sum)->toBe($all[$key], $report);
+    }
+    // Manager sold only B (10,000 + VAT 1,500): returns are by their own filter below.
+    expect($totals('sales-by-day', ['cashier' => $manager]))->toMatchArray(['invoices' => 1, 'total' => 11_500, 'tax' => 1_500])
+        ->and($totals('sales-by-product', ['cashier' => $manager])['sales'])->toBe(11_500)
+        ->and($totals('top-customers', ['cashier' => $manager])['invoices'])->toBe(1);
+
+    // No filter, a non-numeric one, and an id from nowhere: unchanged / empty, never an error.
+    $unfiltered = $totals('sales-by-day');
+    expect($totals('sales-by-day', ['cashier' => '1 OR 1=1']))->toBe($unfiltered)
+        ->and($totals('sales-by-day', ['cashier' => '999999'])['total'])->toBe(0)
+        ->and($totals('daily-cash', ['cashier' => '999999'])['sales'])->toBe(0);
+});
+
+it('filters a user from another tenant to nothing', function (): void {
+    $foreign = app(TenantContext::class)->withoutTenancy(fn () => Tenant::factory()->create());
+    $foreignUser = app(TenantContext::class)->withoutTenancy(fn () => User::factory()->create(['tenant_id' => $foreign->id]));
+
+    foreach (['sales-by-day', 'sales-by-tender', 'daily-cash', 'pnl', 'returns', 'returns-by-reason', 'vat-output', 'top-customers'] as $report) {
+        $result = app(ReportRegistry::class)->find($report)->run(($this->params)('2026-10-01', '2026-11-03', filters: ['cashier' => (string) $foreignUser->id]));
+        expect(array_sum(array_map(static fn (array $r): int => (int) ($r['total'] ?? $r['net'] ?? $r['amount'] ?? $r['taxable'] ?? 0), $result->rows)))->toBe(0, $report);
+    }
+});
+
+it('filters returns by the user who processed them, and keeps the return rate consistent', function (): void {
+    $manager = (string) $this->world->user('Manager')->id;
+    $owner = (string) $this->world->user('Owner')->id;
+    $all = app(ReturnsByReason::class)->run(($this->params)());
+    $mine = app(ReturnsByReason::class)->run(($this->params)(filters: ['cashier' => $manager]));
+    $none = app(ReturnsByReason::class)->run(($this->params)(filters: ['cashier' => $owner]));
+
+    expect($mine->totals['total'])->toBe($all->totals['total'])
+        ->and($none->rows)->toBe([])
+        ->and(count(app(Returns::class)->run(($this->params)(filters: ['cashier' => $manager]))->rows))->toBe(2)
+        ->and(app(Returns::class)->run(($this->params)(filters: ['cashier' => $owner]))->rows)->toBe([]);
+
+    $pnlLine = fn (array $filters): int => rowBy(app(ProfitAndLoss::class)->run(($this->params)(filters: $filters))->rows, 'line', 'returns')['amount'];
+    expect($pnlLine(['cashier' => $manager]))->toBe($pnlLine([]))
+        ->and($pnlLine(['cashier' => $owner]))->toBe(0);
+});
+
+it('filters tender and cash reports by the user who received the money', function (): void {
+    $owner = (string) $this->world->user('Owner')->id;
+    $manager = (string) $this->world->user('Manager')->id;
+    $in = fn (string $id): int => app(SalesByTender::class)->run(($this->params)('2026-10-01', '2026-11-03', filters: ['cashier' => $id]))->totals['received'];
+    $all = app(SalesByTender::class)->run(($this->params)('2026-10-01', '2026-11-03'))->totals['received'];
+
+    expect($in($owner) + $in($manager))->toBe($all)
+        ->and($in($manager))->toBe(11_500);
+
+    $cash = fn (string $id): int => app(DailyCashSummary::class)->run(($this->params)('2026-10-01', '2026-11-03', filters: ['cashier' => $id]))->totals['collections'];
+    expect($cash($owner) + $cash($manager))->toBe(app(DailyCashSummary::class)->run(($this->params)('2026-10-01', '2026-11-03'))->totals['collections']);
 });

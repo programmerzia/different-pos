@@ -22,6 +22,7 @@ export type PosCommand =
     | 'returns'
     | 'collect_due'
     | 'reprint'
+    | 'chalan'
     | 'cancel'
     | 'remove'
     | 'up'
@@ -65,6 +66,8 @@ export const POS_KEYS: readonly Def[] = [
         labelKey: 'pos.keys.collect_due',
     },
     { command: 'reprint', keys: 'mod+p', labelKey: 'pos.keys.reprint' },
+    // Delivery chalan of the last sale (A4, no prices).
+    { command: 'chalan', keys: 'alt+c', labelKey: 'pos.keys.chalan' },
     { command: 'cancel', keys: 'escape', labelKey: 'pos.keys.cancel' },
     { command: 'remove', keys: 'delete', labelKey: 'pos.keys.remove' },
     { command: 'up', keys: 'arrowup', labelKey: 'pos.keys.up' },

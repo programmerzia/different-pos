@@ -59,7 +59,7 @@ function routePermissions(): array
         'dues.index' => $customers, 'dues.export' => ['customers.view'], 'dues.show' => $customers,
         'cards.index' => ['cards.view'], 'cards.print' => ['cards.issue'], 'cards.export' => ['cards.issue'],
 
-        'sales.index' => ['sales.view'], 'sales.export' => ['sales.view'], 'sales.show' => ['sales.view'], 'sales.receipt' => ['sales.view'],
+        'sales.index' => ['sales.view'], 'sales.export' => ['sales.view'], 'sales.show' => ['sales.view'], 'sales.receipt' => ['sales.view'], 'sales.chalan' => ['sales.view'],
         'returns.index' => ['returns.view'], 'returns.export' => ['returns.view'], 'returns.show' => ['returns.view'], 'returns.receipt' => ['returns.view'],
         'returns.create' => ['returns.create'], 'exchanges.create' => ['returns.create', 'pos.sell'],
         'payments.receipt' => [['payments.collect', 'payments.pay']],

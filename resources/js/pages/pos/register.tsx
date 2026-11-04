@@ -14,6 +14,7 @@ import {
     ShoppingCart,
     Tag,
     Trash2,
+    Truck,
     UserRound,
 } from 'lucide-react';
 import {
@@ -430,6 +431,14 @@ export default function Register(props: Props) {
         }
     };
 
+    const printChalan = (sale: CompletedSale | null) => {
+        if (sale && props.receiptAvailable) {
+            window.open(`/app/sales/${sale.id}/chalan`, '_blank', 'noopener');
+        } else if (sale) {
+            toast.info(t('pos.done.no_receipt'));
+        }
+    };
+
     const pay = async (tenders: TenderRow[]): Promise<PosError | null> => {
         const result = await submitSale(
             saleBody(cart, tenders, total, registerId),
@@ -559,6 +568,9 @@ export default function Register(props: Props) {
                 break;
             case 'reprint':
                 printReceipt(lastSale);
+                break;
+            case 'chalan':
+                printChalan(lastSale);
                 break;
             case 'cancel':
                 switch (
@@ -1044,6 +1056,7 @@ export default function Register(props: Props) {
                                         props.receiptAvailable
                                     }
                                     onPrint={() => printReceipt(completed)}
+                                    onChalan={() => printChalan(completed)}
                                     onNew={newSale}
                                 />
                             </div>
@@ -1626,11 +1639,13 @@ function Completed({
     sale,
     canPrint,
     onPrint,
+    onChalan,
     onNew,
 }: {
     sale: CompletedSale;
     canPrint: boolean;
     onPrint: () => void;
+    onChalan: () => void;
     onNew: () => void;
 }) {
     const { t } = useT();
@@ -1681,6 +1696,17 @@ function Completed({
                     >
                         <Printer aria-hidden="true" /> {t('pos.done.print')}{' '}
                         <Kbd keys="mod+p" onButton />
+                    </Button>
+                )}
+                {canPrint && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="min-h-11"
+                        onClick={onChalan}
+                    >
+                        <Truck aria-hidden="true" /> {t('pos.done.chalan')}{' '}
+                        <Kbd keys="alt+c" onButton />
                     </Button>
                 )}
                 <Button type="button" className="min-h-11" onClick={onNew}>

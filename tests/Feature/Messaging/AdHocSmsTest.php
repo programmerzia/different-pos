@@ -159,7 +159,7 @@ it('shows the composer with audience counts of valid mobile numbers only, templa
             ->where('composer.counts.due', 1)
             ->where('composer.groups.0.name', 'VIP')
             ->where('composer.groups.0.count', 1)
-            ->has('composer.templates', 3));
+            ->has('composer.templates', 5));
 });
 
 it('never reaches another tenant\'s customers, groups or broadcasts', function (): void {

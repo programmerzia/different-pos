@@ -362,7 +362,7 @@ stock_transfer_items
 ```sql
 purchases [tenant][B] SD(draft only)
   id, uuid UNIQUE, tenant_id, branch_id, vendor_id FK→vendors
-  number VARCHAR(30), vendor_ref VARCHAR(60) NULL     -- vendor's invoice no
+  number VARCHAR(30), vendor_ref VARCHAR(60) NULL     -- vendor's invoice no; app-enforced unique per tenant+vendor among non-cancelled, non-deleted bills (trim, case-insensitive; no index, legacy duplicates stay)
   status VARCHAR(16)                       -- draft|received|cancelled
   purchased_at TIMESTAMP, received_at TIMESTAMP NULL
   subtotal BIGINT, discount BIGINT DEFAULT 0, tax_total BIGINT DEFAULT 0, shipping BIGINT DEFAULT 0, total BIGINT
@@ -580,7 +580,7 @@ fixed_assets [tenant] SD
 messages [tenant]                          -- SMS + WhatsApp log (un-deferred, ADR 0007)
   id, tenant_id, customer_id NULL FK→customers
   channel VARCHAR(16) DEFAULT 'sms'        -- sms|whatsapp  CHECK; INDEX(tenant_id, channel, created_at)
-  phone VARCHAR(20), body TEXT, driver VARCHAR(32)   -- driver: the channel's provider at send time (ssl_wireless|log|null|click_to_chat|meta_cloud)
+  phone VARCHAR(20), body TEXT, driver VARCHAR(32)   -- driver: the channel's provider at send time (ssl_wireless|onecodesoft|log|null|click_to_chat|meta_cloud)
   status VARCHAR(32) DEFAULT 'queued'      -- queued|sent|failed|handoff  CHECK (handoff = WhatsApp click-to-chat: opened in the user's WhatsApp, delivery unknown)
   provider_ref VARCHAR(100) NULL, error VARCHAR(500) NULL, sent_at TIMESTAMP NULL
   event VARCHAR(40), related_type VARCHAR(64) NULL, related_id BIGINT UNSIGNED NULL

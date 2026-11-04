@@ -9,6 +9,7 @@ use App\Support\Tenancy\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * The dashboard's own grouped queries (the report classes cover the rest). Query builder, so every
@@ -168,6 +169,67 @@ final readonly class DashboardAggregates
         }
 
         return $byBranch;
+    }
+
+    /**
+     * Net sales (after returns, the Net Sales KPI's definition) per district of the sale's customer:
+     * the `limit` largest districts, the rest as `others`, and `unset` for sales whose customer has
+     * no district (walk-in, or a customer with no location). `total` = rows + others + unset.
+     *
+     * @return array{rows: list<array{id: int, name_en: string, name_bn: string, sales: int, invoices: int}>, others: array{districts: int, sales: int, invoices: int}, unset: array{sales: int, invoices: int}, total: int}
+     */
+    public function salesByDistrict(ReportParameters $p, int $limit = 6): array
+    {
+        $empty = ['rows' => [], 'others' => ['districts' => 0, 'sales' => 0, 'invoices' => 0], 'unset' => ['sales' => 0, 'invoices' => 0], 'total' => 0];
+        if (! Schema::hasTable('geo_districts')) {
+            return $empty;
+        }
+
+        $tenantId = $this->tenantId();
+        $records = $this->completedSales($p)
+            ->leftJoin('customers', static function ($join) use ($tenantId): void {
+                $join->on('customers.id', '=', 'sales.customer_id')->where('customers.tenant_id', '=', $tenantId);
+            })
+            ->leftJoin('geo_districts AS g', 'g.id', '=', 'customers.geo_district_id')
+            ->groupBy('g.id', 'g.name_en', 'g.name_bn')
+            ->select(
+                DB::raw('g.id AS district_id'),
+                DB::raw('g.name_en AS name_en'),
+                DB::raw('g.name_bn AS name_bn'),
+                DB::raw('COUNT(*) AS invoices'),
+                DB::raw('COALESCE(SUM(sales.total - sales.returned_total), 0) AS net'),
+            )
+            ->get();
+
+        $districts = [];
+        $result = $empty;
+        foreach ($records as $r) {
+            $net = $this->int($r->net);
+            $invoices = $this->int($r->invoices);
+            $result['total'] += $net;
+            if ($r->district_id === null) {
+                $result['unset'] = ['sales' => $net, 'invoices' => $invoices];
+
+                continue;
+            }
+            $districts[] = [
+                'id' => $this->int($r->district_id),
+                'name_en' => $this->text($r->name_en) ?? '',
+                'name_bn' => $this->text($r->name_bn) ?? '',
+                'sales' => $net,
+                'invoices' => $invoices,
+            ];
+        }
+
+        usort($districts, static fn (array $a, array $b): int => [$b['sales'], $a['id']] <=> [$a['sales'], $b['id']]);
+        $result['rows'] = array_slice($districts, 0, $limit);
+        foreach (array_slice($districts, $limit) as $d) {
+            $result['others']['districts']++;
+            $result['others']['sales'] += $d['sales'];
+            $result['others']['invoices'] += $d['invoices'];
+        }
+
+        return $result;
     }
 
     /**

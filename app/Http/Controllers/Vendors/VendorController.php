@@ -80,7 +80,7 @@ final class VendorController extends Controller
             'meta' => ['page' => $page->currentPage(), 'perPage' => $page->perPage(), 'total' => $page->total(), 'lastPage' => $page->lastPage()],
             'totals' => ['payable' => (int) ($totals->payable ?? 0), 'open_bills' => $openBills],
             'hubs' => $this->hubs(),
-            'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
+            'paymentMethods' => PaymentMethod::query()->forVendorPayments()->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
             'canPay' => $user->can('payments.pay'),
         ]);
     }
@@ -244,7 +244,7 @@ final class VendorController extends Controller
                 'bills' => $p->allocations->where('allocatable_type', AllocatableType::Purchase)
                     ->map(static fn ($a): string => (string) ($purchaseNumbers[$a->allocatable_id] ?? ''))->filter()->values()->all(),
             ])->all(),
-            'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
+            'paymentMethods' => PaymentMethod::query()->forVendorPayments()->orderBy('sort_order')->get(['id', 'name', 'requires_reference']),
             'canPay' => $user->can('payments.pay'),
         ]);
     }

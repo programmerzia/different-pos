@@ -46,6 +46,9 @@ final readonly class PayVendor
 
         return Transaction::run(function () use ($actor, $input): Payment {
             $method = PaymentMethod::query()->findOrFail($input['payment_method_id']);
+            if ($method->type->isStoreCredit()) {
+                throw InvalidStockDocument::storeCreditPayment();
+            }
             $vendorId = Vendor::query()->findOrFail($input['vendor_id'])->id;
 
             $number = $this->numberer->next('payment', $this->context->branchId());
@@ -84,6 +87,10 @@ final readonly class PayVendor
     ): Payment {
         if (DB::transactionLevel() < 1) {
             throw new LogicException('PayVendor::record() must be called inside Transaction::run().');
+        }
+
+        if ($method->type->isStoreCredit()) {
+            throw InvalidStockDocument::storeCreditPayment();
         }
 
         if ($amount->paisa <= 0) {

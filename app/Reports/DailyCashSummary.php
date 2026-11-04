@@ -24,6 +24,11 @@ final class DailyCashSummary extends AbstractReport
         return 'money';
     }
 
+    public function filters(): array
+    {
+        return ['cashier'];
+    }
+
     public function run(ReportParameters $parameters): ReportResult
     {
         $methods = DB::table('payment_methods')
@@ -43,13 +48,21 @@ final class DailyCashSummary extends AbstractReport
             ->where('payments.paid_at', '>=', $parameters->from()->format('Y-m-d H:i:s'))
             ->where('payments.paid_at', '<', $parameters->toExclusive()->format('Y-m-d H:i:s'));
         $this->branches($paymentQuery, $parameters, 'payments.branch_id');
+        $cashier = $this->cashierId($parameters);
+        if ($cashier !== null) {
+            $paymentQuery->where('payments.received_by', $cashier);
+        }
         $payments = $paymentQuery
             ->groupBy('day', 'payments.payment_method_id', 'payments.direction')
             ->selectRaw("DATE(CONVERT_TZ(payments.paid_at, '+00:00', ?)) AS day", [$parameters->offset()])
             ->addSelect('payments.payment_method_id', 'payments.direction', DB::raw('SUM(payments.amount) AS amount'))
             ->get();
 
-        $sales = $this->sales($parameters)
+        $salesQuery = $this->sales($parameters);
+        if ($cashier !== null) {
+            $salesQuery->where('sales.sold_by', $cashier);
+        }
+        $sales = $salesQuery
             ->groupBy('day')
             ->selectRaw("DATE(CONVERT_TZ(sales.sold_at, '+00:00', ?)) AS day", [$parameters->offset()])
             ->addSelect(DB::raw('SUM(sales.total - sales.returned_total) AS net'))

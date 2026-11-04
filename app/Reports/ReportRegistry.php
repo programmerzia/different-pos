@@ -29,6 +29,14 @@ final class ReportRegistry
         Returns::class,
         CustomersByLastPurchase::class,
         CustomersByArea::class,
+        SalesSummary::class,
+        SalesByCategory::class,
+        SalesByBrand::class,
+        SalesByFamily::class,
+        StockMovements::class,
+        PurchasesByVendor::class,
+        CollectionsByUser::class,
+        CardsIssued::class,
     ];
 
     /** @return list<ReportContract> */

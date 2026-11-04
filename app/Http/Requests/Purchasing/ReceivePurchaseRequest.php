@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Purchasing;
 
+use App\Enums\PaymentMethodType;
 use App\Models\Purchase;
 use App\Models\User;
 use App\Support\Http\ScopedExists;
@@ -38,7 +39,7 @@ final class ReceivePurchaseRequest extends FormRequest
             'items.*.expires_at' => ['nullable', 'date'],
             'payment' => ['nullable', 'array'],
             'payment.amount' => ['required_with:payment', 'integer', 'min:1'],
-            'payment.payment_method_id' => ['required_with:payment', 'integer', ScopedExists::in('payment_methods')],
+            'payment.payment_method_id' => ['required_with:payment', 'integer', ScopedExists::in('payment_methods')->whereNotIn('type', PaymentMethodType::storeCreditValues())],
             'payment.reference' => ['nullable', 'string', 'max:120'],
         ];
     }

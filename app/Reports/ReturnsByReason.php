@@ -25,7 +25,7 @@ final class ReturnsByReason extends AbstractReport
 
     public function filters(): array
     {
-        return ['reason'];
+        return ['reason', 'cashier'];
     }
 
     public function run(ReportParameters $parameters): ReportResult
@@ -36,6 +36,10 @@ final class ReturnsByReason extends AbstractReport
             ->where('sale_returns.returned_at', '>=', $parameters->from()->format('Y-m-d H:i:s'))
             ->where('sale_returns.returned_at', '<', $parameters->toExclusive()->format('Y-m-d H:i:s'));
         $this->branches($query, $parameters, 'sale_returns.branch_id');
+        $cashier = $this->cashierId($parameters);
+        if ($cashier !== null) {
+            $query->where('sale_returns.created_by', $cashier);
+        }
         if (($reason = $parameters->filter('reason')) !== null) {
             $query->where('sale_returns.reason', $reason);
         }
@@ -59,11 +63,18 @@ final class ReturnsByReason extends AbstractReport
             ->where('sale_returns.returned_at', '>=', $parameters->from()->format('Y-m-d H:i:s'))
             ->where('sale_returns.returned_at', '<', $parameters->toExclusive()->format('Y-m-d H:i:s'));
         $this->branches($money, $parameters, 'sale_returns.branch_id');
+        if ($cashier !== null) {
+            $money->where('sale_returns.created_by', $cashier);
+        }
         $money = $money->groupBy('reason')
             ->select('reason', DB::raw('SUM(refunded) AS refunded'), DB::raw('SUM(credited) AS credited'))
             ->get()->keyBy('reason');
 
-        $salesTotal = $this->intOf($this->sales($parameters)->sum('sales.total'));
+        $salesQuery = $this->sales($parameters);
+        if ($cashier !== null) {
+            $salesQuery->where('sales.sold_by', $cashier);
+        }
+        $salesTotal = $this->intOf($salesQuery->sum('sales.total'));
         $grand = 0;
         foreach ($records as $r) {
             $grand += $this->intOf($r->total);

@@ -140,6 +140,67 @@ export const REPORT_CATALOGUE: CatalogueCard[] = [
         report: 'customers-by-area',
         section: 'more',
     },
+    {
+        id: 'sales_summary',
+        category: 'sales',
+        report: 'sales-summary',
+        section: 'more',
+    },
+    {
+        id: 'sales_by_category',
+        category: 'sales',
+        report: 'sales-by-category',
+        section: 'more',
+    },
+    {
+        id: 'sales_by_brand',
+        category: 'sales',
+        report: 'sales-by-brand',
+        section: 'more',
+    },
+    {
+        id: 'sales_by_family',
+        category: 'sales',
+        report: 'sales-by-family',
+        section: 'more',
+    },
+    {
+        id: 'stock_movements',
+        category: 'inventory',
+        report: 'stock-movements',
+        section: 'more',
+    },
+    {
+        id: 'purchases_by_vendor',
+        category: 'purchases',
+        report: 'purchases-by-vendor',
+        section: 'more',
+    },
+    {
+        id: 'collections_by_user',
+        category: 'money',
+        report: 'collections-by-user',
+        section: 'more',
+    },
+    {
+        id: 'cards_issued',
+        category: 'customers',
+        report: 'cards-issued',
+        section: 'more',
+    },
+    // Not on the server yet, so these stay disabled: they need the money module and offline sync.
+    {
+        id: 'expenses_by_category',
+        category: 'money',
+        report: 'expenses-by-category',
+        section: 'more',
+    },
+    {
+        id: 'sync_exceptions',
+        category: 'sales',
+        report: 'sync-exceptions',
+        section: 'more',
+    },
 ];
 
 /** Point-in-time reports (no period): mirrors `usesPeriod()` on the server. */

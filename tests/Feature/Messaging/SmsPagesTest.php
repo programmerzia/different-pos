@@ -34,7 +34,7 @@ it('shows the settings page without ever exposing the token', function (): void 
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('settings/sms')
             ->where('sms.driver', 'log')->where('sms.has_token', false)
-            ->has('sms.templates', 3)->missing('sms.api_token'));
+            ->has('sms.templates', 5)->missing('sms.api_token'));
 });
 
 it('forbids the settings page, the update and the test SMS without settings.manage', function (): void {
@@ -60,6 +60,21 @@ it('updates the settings', function (): void {
 
     $this->actingAs(($this->as)('Owner'))->put(route('settings.sms.update'), ['driver' => 'carrier-pigeon', 'templates' => $templates])
         ->assertSessionHasErrors('driver');
+});
+
+it('requires a https base url for the onecodesoft driver', function (): void {
+    $templates = [];
+    foreach (Templates::DEFAULTS as $key => $body) {
+        $templates[$key] = ['enabled' => true, 'body' => $body];
+    }
+    $owner = ($this->as)('Owner');
+
+    $this->actingAs($owner)->put(route('settings.sms.update'), ['driver' => 'onecodesoft', 'base_url' => '', 'templates' => $templates])
+        ->assertSessionHasErrors('base_url');
+    $this->actingAs($owner)->put(route('settings.sms.update'), ['driver' => 'onecodesoft', 'base_url' => 'http://acct.example.test', 'templates' => $templates])
+        ->assertSessionHasErrors('base_url');
+    $this->actingAs($owner)->put(route('settings.sms.update'), ['driver' => 'onecodesoft', 'base_url' => 'https://acct.example.test', 'templates' => $templates])
+        ->assertRedirect(route('settings.sms.edit'));
 });
 
 it('sends a test SMS and rejects a bad number', function (): void {

@@ -24,7 +24,7 @@ final class SalesByProduct extends AbstractReport
 
     public function filters(): array
     {
-        return ['category', 'brand'];
+        return ['category', 'brand', 'cashier'];
     }
 
     public function run(ReportParameters $parameters): ReportResult
@@ -41,6 +41,9 @@ final class SalesByProduct extends AbstractReport
         }
         if (($brand = $parameters->filter('brand')) !== null) {
             $query->where('products.brand_id', (int) $brand);
+        }
+        if (($cashier = $this->cashierId($parameters)) !== null) {
+            $query->where('sales.sold_by', $cashier);
         }
 
         $records = $query

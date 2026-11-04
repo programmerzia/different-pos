@@ -89,6 +89,7 @@ final readonly class DashboardQuery
             'trend' => $this->trend($period, $current, $previous),
             'payment_mix' => $this->aggregates->paymentMix($current),
             'heatmap' => $this->heatmap($period, $params),
+            'districts' => $this->aggregates->salesByDistrict($current),
             'branches' => $withBranches ? $this->branches($period, $timezone) : null,
             'aging' => [
                 'd30' => (int) ($aging->totals['d30'] ?? 0),

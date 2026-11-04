@@ -8,13 +8,16 @@ use App\Actions\Purchasing\ReceivePurchase;
 use App\Enums\AllocatableType;
 use App\Enums\PartyType;
 use App\Enums\PaymentDirection;
+use App\Enums\PaymentMethodType;
 use App\Enums\PaymentStatus;
 use App\Enums\PurchaseStatus;
 use App\Enums\StockMovementType;
 use App\Enums\StockSourceType;
+use App\Exceptions\Domain\DuplicateVendorBill;
 use App\Exceptions\Domain\InvalidStockDocument;
 use App\Models\BranchStock;
 use App\Models\Payment;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\StockBatch;
@@ -238,4 +241,75 @@ it('rejects paying a vendor of another tenant', function (): void {
     expect(fn () => app(PayVendor::class)->handle($this->user, [
         'vendor_id' => $foreign->id, 'amount' => Money::ofPaisa(100), 'payment_method_id' => $this->method->id,
     ]))->toThrow(ModelNotFoundException::class);
+});
+
+it('refuses store credit as a vendor payment, on receive and on pay', function (string $type): void {
+    $credit = app(TenantContext::class)->withoutTenancy(
+        fn (): PaymentMethod => PaymentMethod::factory()->create(['tenant_id' => $this->world->tenant->id, 'type' => $type]),
+    );
+
+    expect(fn () => ($this->receive)(['payment' => ['amount' => Money::ofPaisa(100), 'payment_method_id' => $credit->id]]))
+        ->toThrow(InvalidStockDocument::class, 'Store credit')
+        ->and(Purchase::query()->count())->toBe(0)
+        ->and(($this->vendorBalance)())->toBe(0);
+
+    $purchase = ($this->receive)();
+    expect(fn () => app(PayVendor::class)->handle($this->user, [
+        'vendor_id' => $this->vendor->id, 'amount' => Money::ofPaisa(100), 'payment_method_id' => $credit->id,
+    ]))->toThrow(InvalidStockDocument::class, 'Store credit')
+        ->and(Payment::query()->count())->toBe(0)
+        ->and($purchase->refresh()->paid->paisa)->toBe(0);
+})->with([PaymentMethodType::CustomerCredit->value, PaymentMethodType::ExchangeCredit->value]);
+
+it('still pays a vendor with cash, card, wallet or bank', function (string $type): void {
+    $method = app(TenantContext::class)->withoutTenancy(
+        fn (): PaymentMethod => PaymentMethod::factory()->create(['tenant_id' => $this->world->tenant->id, 'type' => $type]),
+    );
+
+    $purchase = ($this->receive)(['payment' => ['amount' => Money::ofPaisa(100), 'payment_method_id' => $method->id]]);
+
+    expect($purchase->paid->paisa)->toBe(100);
+})->with(['cash', 'card', 'mobile_wallet', 'bank']);
+
+it('rejects a second live bill with the same vendor bill number', function (): void {
+    $first = ($this->receive)(['vendor_ref' => 'INV-100']);
+
+    expect(fn () => ($this->receive)(['vendor_ref' => '  inv-100 ']))
+        ->toThrow(DuplicateVendorBill::class, $first->number)
+        ->and(Purchase::query()->count())->toBe(1)
+        ->and(($this->vendorBalance)())->toBe(500000)
+        ->and(($this->onHand)($this->shirt))->toBe('10.000');
+});
+
+it('allows blank bill numbers, other vendors and other tenants to reuse a bill number', function (): void {
+    ($this->receive)(['vendor_ref' => 'INV-100']);
+    ($this->receive)(['vendor_ref' => null]);
+    ($this->receive)(['vendor_ref' => '   ']);
+    ($this->receive)(['vendor_ref' => '']);
+    ($this->receive)(['vendor_ref' => 'INV-100', 'vendor_id' => $this->world->vendor()->id]);
+    app(TenantContext::class)->withoutTenancy(fn (): Purchase => Purchase::factory()->create(['vendor_ref' => 'INV-200']));
+
+    $kept = ($this->receive)(['vendor_ref' => ' INV-200 ']);
+
+    expect(Purchase::query()->count())->toBe(6)
+        ->and($kept->vendor_ref)->toBe('INV-200')
+        ->and(Purchase::query()->whereNull('vendor_ref')->count())->toBe(3);
+});
+
+it('lets a cancelled or deleted bill release its bill number, and leaves legacy duplicates alone', function (): void {
+    $first = ($this->receive)(['vendor_ref' => 'INV-100']);
+    app(CancelPurchase::class)->handle($this->user, $first);
+    $second = ($this->receive)(['vendor_ref' => 'INV-100']);
+
+    $second->delete();
+    $third = ($this->receive)(['vendor_ref' => 'INV-100']);
+
+    // A legacy import may already hold two live bills with one number: they stay, a third is refused.
+    app(TenantContext::class)->withoutTenancy(fn (): Purchase => Purchase::factory()->create([
+        'tenant_id' => $this->world->tenant->id, 'branch_id' => $this->world->branch->id, 'vendor_id' => $this->vendor->id,
+        'number' => 'LEGACY-1', 'vendor_ref' => 'INV-100', 'status' => PurchaseStatus::Received,
+    ]));
+
+    expect(Purchase::query()->where('vendor_ref', 'INV-100')->where('status', PurchaseStatus::Received)->count())->toBe(2)
+        ->and(fn () => ($this->receive)(['vendor_ref' => 'INV-100']))->toThrow(DuplicateVendorBill::class);
 });

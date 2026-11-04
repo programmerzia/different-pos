@@ -1,5 +1,5 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { FileText, Printer, Receipt, Undo2 } from 'lucide-react';
+import { FileText, Printer, Receipt, Truck, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMemo, useState } from 'react';
 import {
@@ -428,6 +428,17 @@ export default function SalesIndex({
                             }
                         >
                             <Printer className="size-3.5" aria-hidden="true" />
+                        </button>
+                        <button
+                            type="button"
+                            className="rounded-sm p-1 text-muted-foreground hover:bg-surface-sunken hover:text-foreground [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
+                            title={t('sales.chalan_of', { number: r.number })}
+                            aria-label={t('sales.chalan_of', {
+                                number: r.number,
+                            })}
+                            onClick={() => openPrint(salesUrl.chalan(r.id))}
+                        >
+                            <Truck className="size-3.5" aria-hidden="true" />
                         </button>
                     </span>
                 ),

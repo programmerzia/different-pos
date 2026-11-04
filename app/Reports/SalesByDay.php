@@ -18,9 +18,19 @@ final class SalesByDay extends AbstractReport
         return 'sales';
     }
 
+    public function filters(): array
+    {
+        return ['cashier'];
+    }
+
     public function run(ReportParameters $parameters): ReportResult
     {
-        $records = $this->sales($parameters)
+        $query = $this->sales($parameters);
+        if (($cashier = $this->cashierId($parameters)) !== null) {
+            $query->where('sales.sold_by', $cashier);
+        }
+
+        $records = $query
             ->selectRaw("DATE(CONVERT_TZ(sales.sold_at, '+00:00', ?)) AS day", [$parameters->offset()])
             ->addSelect(
                 DB::raw('COUNT(*) AS invoices'),

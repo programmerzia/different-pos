@@ -421,6 +421,16 @@
             "previous": "Previous",
             "profit": "Gross Profit"
         },
+        "districts": {
+            "title": "Sales by District",
+            "subtitle": "Net sales by customer district",
+            "district": "District",
+            "sales": "Net sales",
+            "invoices": "{{n}} invoices",
+            "invoices_column": "Invoices",
+            "others": "Others ({{n}} districts)",
+            "unset": "Not set"
+        },
         "aging": {
             "title": "Dues Aging",
             "subtitle": "Open dues by age of the invoice",
@@ -549,6 +559,38 @@
             "customers-by-area": {
                 "title": "Customers & Sales by Area",
                 "desc": "Customers, buyers, invoices, net sales and open dues by division, district or upazila."
+            },
+            "sales-summary": {
+                "title": "Sales summary",
+                "desc": "The period in one line: invoices, gross sales, discounts, tax, paid, due, returns and net sales."
+            },
+            "sales-by-category": {
+                "title": "Sales by category",
+                "desc": "Units, sales, cost and margin per product category, with an Uncategorised row."
+            },
+            "sales-by-brand": {
+                "title": "Sales by brand",
+                "desc": "Units, sales, cost and margin per brand, with a No brand row."
+            },
+            "sales-by-family": {
+                "title": "Sales by product family",
+                "desc": "Units, sales, cost and margin per product family (style); products without a family are one row."
+            },
+            "stock-movements": {
+                "title": "Stock movements",
+                "desc": "Every stock ledger movement in the period: receipts, sales, returns, adjustments and transfers (newest 5,000)."
+            },
+            "purchases-by-vendor": {
+                "title": "Purchases by vendor",
+                "desc": "Received bills per vendor in the period: bills, total, paid and due."
+            },
+            "collections-by-user": {
+                "title": "Due collections by user",
+                "desc": "Customer dues collected after the sale, per user. Tenders taken at the sale are not counted."
+            },
+            "cards-issued": {
+                "title": "Membership cards issued",
+                "desc": "Cards issued in the period per customer group: new, reissued and their status today."
             }
         },
         "col": {
@@ -647,7 +689,33 @@
             "area": "Area",
             "area_bn": "Area (BN)",
             "customers": "Customers",
-            "buyers": "Buyers in period"
+            "buyers": "Buyers in period",
+            "products": "Products sold",
+            "family": "Family",
+            "qty_in": "Qty in",
+            "qty_out": "Qty out",
+            "reference": "Reference",
+            "bills": "Bills",
+            "group": "Customer group",
+            "first_cards": "New cards",
+            "reissued": "Reissued",
+            "active": "Active now",
+            "lost": "Lost",
+            "replaced": "Replaced",
+            "revoked": "Revoked",
+            "prints": "Prints"
+        },
+        "movement": {
+            "opening": "Opening stock",
+            "purchase": "Purchase",
+            "sale": "Sale",
+            "sale_void": "Sale voided",
+            "sale_return": "Sale return",
+            "adjustment_in": "Adjustment in",
+            "adjustment_out": "Adjustment out",
+            "transfer_out": "Transfer out",
+            "transfer_in": "Transfer in",
+            "stocktake": "Stocktake"
         },
         "bucket": {
             "this_month": "This month",
@@ -710,7 +778,6 @@
                 "fiscal_year": "Fiscal Year {{year}}",
                 "custom": "Custom range"
             },
-            "export_excel": "Export Excel",
             "next_phase": "Coming in the next phase",
             "format": "Format:",
             "run": "Run Report",
@@ -798,6 +865,46 @@
                 "customers_by_area": {
                     "title": "Customers & Sales by Area",
                     "desc": "Customers, sales and dues by division, district or upazila"
+                },
+                "sales_summary": {
+                    "title": "Sales Summary",
+                    "desc": "Invoices, gross, discounts, tax, paid, due, returns and net sales in one line"
+                },
+                "sales_by_category": {
+                    "title": "Sales by Category",
+                    "desc": "Units, sales and margin per product category"
+                },
+                "sales_by_brand": {
+                    "title": "Sales by Brand",
+                    "desc": "Units, sales and margin per brand"
+                },
+                "sales_by_family": {
+                    "title": "Sales by Product Family",
+                    "desc": "Units, sales and margin per product family (style)"
+                },
+                "stock_movements": {
+                    "title": "Stock Movements",
+                    "desc": "Every receipt, sale, return, adjustment and transfer in the stock ledger"
+                },
+                "purchases_by_vendor": {
+                    "title": "Purchases by Vendor",
+                    "desc": "Received bills, paid and due per vendor"
+                },
+                "collections_by_user": {
+                    "title": "Due Collections by User",
+                    "desc": "Customer dues collected per user, apart from sale-time payments"
+                },
+                "cards_issued": {
+                    "title": "Membership Cards Issued",
+                    "desc": "New and reissued cards per customer group"
+                },
+                "expenses_by_category": {
+                    "title": "Expenses by Category",
+                    "desc": "Expenses per category; needs the money module"
+                },
+                "sync_exceptions": {
+                    "title": "Offline Sync Exceptions",
+                    "desc": "Price mismatch, stock oversell and unverified member flags; needs offline sync"
                 }
             },
             "more": "More reports",
@@ -820,6 +927,12 @@
             "division": "By division",
             "district": "By district",
             "upazila": "By upazila"
+        },
+        "no_group": {
+            "category": "Uncategorised",
+            "brand": "No brand",
+            "family": "No family",
+            "group": "No group"
         }
     },
     "sms": {
@@ -837,17 +950,22 @@
             "label": "SMS provider",
             "sid": "Sender ID (SID)",
             "token": "API token",
-            "token_kept": "A token is saved. Leave blank to keep it.",
-            "token_clear": "Remove the saved token",
+            "api_key": "API key",
+            "token_kept": "Already saved. Leave blank to keep it.",
+            "token_clear": "Remove the saved key",
             "base_url": "Base URL (optional)",
+            "base_url_required": "Base URL",
+            "base_url_hint": "Copy it from your OneCodeSoft Dashboard > API.",
             "sender": "Sender name",
+            "sender_optional": "Sender name (optional)",
             "cost": "Price per SMS part",
             "cost_hint": "Used only for the composer's cost estimate."
         },
         "driver": {
             "null": "None (SMS off)",
             "log": "Log only (testing)",
-            "ssl_wireless": "SSL Wireless"
+            "ssl_wireless": "SSL Wireless",
+            "onecodesoft": "OneCodeSoft"
         },
         "templates": {
             "title": "Automatic messages",
@@ -859,7 +977,9 @@
         "template": {
             "sale_completed": "Sale completed",
             "payment_received": "Payment received",
-            "due_reminder": "Due reminder"
+            "due_reminder": "Due reminder",
+            "sale_returned": "Sale returned",
+            "sale_voided": "Sale voided"
         },
         "test": {
             "title": "Send a test SMS",
@@ -871,6 +991,8 @@
             "sale_completed": "Sale completed",
             "payment_received": "Payment received",
             "due_reminder": "Due reminder",
+            "sale_returned": "Sale returned",
+            "sale_voided": "Sale voided",
             "statement": "Statement",
             "test": "Test",
             "manual": "Manual"
@@ -1851,7 +1973,9 @@
         "immediate_paid": "Immediate Paid Amount",
         "margin": "+{{pct}}% Margin",
         "back": "Back to Purchases",
-        "receive_hint_keys": "Ctrl+Enter saves the GRN · F2 focuses the scanner"
+        "receive_hint_keys": "Ctrl+Enter saves the GRN · F2 focuses the scanner",
+        "blocked_vendor": "Pick a vendor from the list to continue.",
+        "blocked_lines": "Add at least one product line to continue."
     },
     "stock": {
         "title": "Stock",
@@ -2468,6 +2592,7 @@
             "pay": "Pay",
             "returns": "Return mode",
             "reprint": "Reprint last receipt",
+            "chalan": "Delivery chalan of last sale",
             "cancel": "Clear search / clear bill",
             "remove": "Remove selected line",
             "up": "Previous bill line",
@@ -2701,6 +2826,7 @@
             "print_named": "Print receipt {{number}}",
             "new": "New sale",
             "no_receipt": "Receipt printing is not available yet.",
+            "chalan": "Delivery chalan",
             "price_mismatch": "The server's total differed from the screen; the sale was saved and flagged."
         },
         "errors": {
@@ -2843,6 +2969,7 @@
         "hotkey_print": "Print 80 mm receipt",
         "hotkey_print58": "Print 58 mm receipt",
         "hotkey_a4": "Print A4 invoice",
+        "hotkey_chalan": "Print delivery chalan",
         "hotkey_share": "Share receipt link",
         "hotkey_collect": "Collect due",
         "hotkey_return": "Return items",
@@ -2880,6 +3007,8 @@
         "phone": "Phone",
         "print_80": "Print 80 mm receipt",
         "print_a4_tax": "A4 tax invoice",
+        "chalan": "Delivery chalan",
+        "chalan_of": "Delivery chalan of {{number}}",
         "receipt_sms": "Receipt SMS",
         "reprint": "Reprint 80 mm receipt of {{number}}",
         "resend_sms": "Resend SMS",

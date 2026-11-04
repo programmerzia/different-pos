@@ -1,46 +1,47 @@
-import { Head, Link, router } from '@inertiajs/react';
-import { RefreshCw, ShoppingBag, Wallet } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { BranchBars } from '@/components/dashboard/branch-bars';
+import { Head, Link, router } from "@inertiajs/react";
+import { RefreshCw, ShoppingBag, Wallet } from "lucide-react";
+import { useMemo, useState } from "react";
+import { BranchBars } from "@/components/dashboard/branch-bars";
 import {
     deltaPercent,
     sharePercent,
-} from '@/components/dashboard/chart-helpers';
-import { HeatLegend, HeatMap } from '@/components/dashboard/heat-map';
-import { PaymentDonut } from '@/components/dashboard/payment-donut';
-import { SetupChecklist } from '@/components/dashboard/setup-checklist';
-import { TrendChart } from '@/components/dashboard/trend-chart';
+} from "@/components/dashboard/chart-helpers";
+import { DistrictBars } from "@/components/dashboard/district-bars";
+import { HeatLegend, HeatMap } from "@/components/dashboard/heat-map";
+import { PaymentDonut } from "@/components/dashboard/payment-donut";
+import { SetupChecklist } from "@/components/dashboard/setup-checklist";
+import { TrendChart } from "@/components/dashboard/trend-chart";
 import {
     DashboardContext,
     PERIOD_KEYS,
     Rank,
     Widget,
     WidgetLink,
-} from '@/components/dashboard/widget';
-import { KpiTile } from '@/components/kpi-tile';
-import { NativeSelect } from '@/components/native-select';
-import { Page, PageHeader } from '@/components/page-header';
-import { StatusBadge } from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
-import { useDigits } from '@/hooks/use-digits';
-import { useHotkeys } from '@/hotkeys/use-hotkeys';
-import { useT } from '@/i18n';
-import { downloadRowsCsv } from '@/lib/rows-csv';
-import { dashboard as dashboardRoute } from '@/routes';
-import type { DashboardPageProps, DashboardPeriodKey } from '@/types/reports';
+} from "@/components/dashboard/widget";
+import { KpiTile } from "@/components/kpi-tile";
+import { NativeSelect } from "@/components/native-select";
+import { Page, PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
+import { useDigits } from "@/hooks/use-digits";
+import { useHotkeys } from "@/hotkeys/use-hotkeys";
+import { useT } from "@/i18n";
+import { downloadRowsCsv } from "@/lib/rows-csv";
+import { dashboard as dashboardRoute } from "@/routes";
+import type { DashboardPageProps, DashboardPeriodKey } from "@/types/reports";
 
-const selectClass = 'h-8 w-auto text-xs font-semibold';
+const selectClass = "h-8 w-auto text-xs font-semibold";
 
 /** `2026-11-03` → `03 Nov` (Latin digits; localise after). */
 function shortDate(date: string): string {
-    return new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
+    return new Date(`${date}T00:00:00`).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
     });
 }
 
 /** Delta row when there is nothing to compare with (no previous data, or a point-in-time figure). */
-const NO_DELTA = { delta: '—', deltaTone: 'muted' as const };
+const NO_DELTA = { delta: "—", deltaTone: "muted" as const };
 
 /** Free-form delta for KPIs where a rise is bad (returns): ▲ red, ▼ green. */
 function inverseDelta(
@@ -52,8 +53,8 @@ function inverseDelta(
     }
 
     return {
-        delta: `${pct >= 0 ? '▲' : '▼'} ${n(Math.abs(pct))}%`,
-        deltaTone: pct > 0 ? ('danger' as const) : ('success' as const),
+        delta: `${pct >= 0 ? "▲" : "▼"} ${n(Math.abs(pct))}%`,
+        deltaTone: pct > 0 ? ("danger" as const) : ("success" as const),
     };
 }
 
@@ -73,15 +74,15 @@ export default function Dashboard({
     const visit = (next: Partial<typeof filters>) => {
         const merged = { ...filters, ...next };
         const query: Record<string, string> = {};
-        if (merged.period !== 'today') {
-            query['period'] = merged.period;
+        if (merged.period !== "today") {
+            query["period"] = merged.period;
         }
-        if (merged.period === 'custom') {
-            query['from'] = merged.from;
-            query['to'] = merged.to;
+        if (merged.period === "custom") {
+            query["from"] = merged.from;
+            query["to"] = merged.to;
         }
-        if (merged.branch !== 'current') {
-            query['branch'] = merged.branch;
+        if (merged.branch !== "current") {
+            query["branch"] = merged.branch;
         }
         router.get(dashboardRoute().url, query, {
             preserveScroll: true,
@@ -90,7 +91,7 @@ export default function Dashboard({
         });
     };
 
-    const refresh = () => router.reload({ only: ['dashboard'] });
+    const refresh = () => router.reload({ only: ["dashboard"] });
     const setPeriod = (period: DashboardPeriodKey) => visit({ period });
     const controls = useMemo(
         () => ({ period: filters.period, setPeriod, refresh }),
@@ -98,11 +99,11 @@ export default function Dashboard({
         [filters.period, filters.branch, filters.from, filters.to],
     );
 
-    useHotkeys('list', [
+    useHotkeys("list", [
         {
-            id: 'dashboard.refresh',
-            keys: 'r',
-            labelKey: 'dashboard.refresh',
+            id: "dashboard.refresh",
+            keys: "r",
+            labelKey: "dashboard.refresh",
             handler: refresh,
         },
     ]);
@@ -120,51 +121,52 @@ export default function Dashboard({
     const exportName = (name: string) =>
         `${name}-${filters.from}_${filters.to}.csv`;
     const agingRows: {
-        key: 'd30' | 'd60' | 'd90' | 'd90_plus';
+        key: "d30" | "d60" | "d90" | "d90_plus";
         tone: string;
     }[] = [
-        { key: 'd30', tone: 'bg-primary' },
-        { key: 'd60', tone: 'bg-warning' },
-        { key: 'd90', tone: 'bg-highlight' },
-        { key: 'd90_plus', tone: 'bg-destructive' },
+        { key: "d30", tone: "bg-primary" },
+        { key: "d60", tone: "bg-warning" },
+        { key: "d90", tone: "bg-highlight" },
+        { key: "d90_plus", tone: "bg-destructive" },
     ];
+    const districts = data.districts;
     const periodLabel = t(`dashboard.period.${filters.period}`);
     const empty = (
         <p className="py-4 text-center text-xs text-muted-foreground">
-            {t('dashboard.nothing')}
+            {t("dashboard.nothing")}
         </p>
     );
 
     return (
         <DashboardContext.Provider value={controls}>
-            <Head title={t('dashboard.title')} />
+            <Head title={t("dashboard.title")} />
             <Page className="gap-4">
                 <PageHeader
                     className="border-b pb-3 md:flex-row md:items-center"
-                    title={t('dashboard.title')}
+                    title={t("dashboard.title")}
                     badge={
                         <span
                             className="rounded-full border border-primary bg-primary-soft px-2 py-0.5 text-[10px] font-bold text-primary"
-                            title={t('dashboard.updated', {
+                            title={t("dashboard.updated", {
                                 time: n(
                                     new Date(
                                         data.generated_at,
-                                    ).toLocaleTimeString('en-GB', {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
+                                    ).toLocaleTimeString("en-GB", {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
                                     }),
                                 ),
                             })}
                         >
-                            {t('dashboard.live')}
+                            {t("dashboard.live")}
                         </span>
                     }
-                    subtitle={t('dashboard.subtitle')}
+                    subtitle={t("dashboard.subtitle")}
                     actions={
                         <>
                             <label className="flex items-center gap-1">
                                 <span className="text-[11px] font-medium text-muted-foreground">
-                                    {t('dashboard.period_label')}
+                                    {t("dashboard.period_label")}
                                 </span>
                                 <NativeSelect
                                     className={selectClass}
@@ -183,11 +185,11 @@ export default function Dashboard({
                                     ))}
                                 </NativeSelect>
                             </label>
-                            {filters.period === 'custom' ? (
+                            {filters.period === "custom" ? (
                                 <div className="flex items-center gap-1">
                                     <input
                                         type="date"
-                                        aria-label={t('dashboard.from')}
+                                        aria-label={t("dashboard.from")}
                                         value={from}
                                         max={to}
                                         onChange={(e) =>
@@ -201,11 +203,11 @@ export default function Dashboard({
                                         className="h-8 rounded-lg border bg-surface-sunken px-2 text-xs text-foreground"
                                     />
                                     <span className="text-[10px] text-muted-foreground">
-                                        {t('dashboard.to')}
+                                        {t("dashboard.to")}
                                     </span>
                                     <input
                                         type="date"
-                                        aria-label={t('dashboard.to')}
+                                        aria-label={t("dashboard.to")}
                                         value={to}
                                         min={from}
                                         onChange={(e) => setTo(e.target.value)}
@@ -220,7 +222,7 @@ export default function Dashboard({
                             ) : null}
                             <label className="flex items-center gap-1">
                                 <span className="text-[11px] font-medium text-muted-foreground">
-                                    {t('dashboard.branch_label')}
+                                    {t("dashboard.branch_label")}
                                 </span>
                                 {can.allBranches ? (
                                     <NativeSelect
@@ -228,7 +230,7 @@ export default function Dashboard({
                                         value={
                                             filters.branch ===
                                             String(currentBranch.id)
-                                                ? 'current'
+                                                ? "current"
                                                 : filters.branch
                                         }
                                         onChange={(e) =>
@@ -236,14 +238,14 @@ export default function Dashboard({
                                         }
                                     >
                                         <option value="all">
-                                            {t('dashboard.all_branches')}
+                                            {t("dashboard.all_branches")}
                                         </option>
                                         {branches.map((b) => (
                                             <option
                                                 key={b.id}
                                                 value={
                                                     b.id === currentBranch.id
-                                                        ? 'current'
+                                                        ? "current"
                                                         : String(b.id)
                                                 }
                                             >
@@ -267,11 +269,11 @@ export default function Dashboard({
                                 size="sm"
                                 className="touch-target"
                                 onClick={refresh}
-                                title={t('dashboard.refresh_all')}
+                                title={t("dashboard.refresh_all")}
                             >
                                 <RefreshCw aria-hidden="true" />
                                 <span className="max-sm:sr-only">
-                                    {t('dashboard.refresh')}
+                                    {t("dashboard.refresh")}
                                 </span>
                             </Button>
                         </>
@@ -282,51 +284,51 @@ export default function Dashboard({
 
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-9">
                     <KpiTile
-                        label={t('dashboard.kpi.sales')}
+                        label={t("dashboard.kpi.sales")}
                         value={money(kpis.sales.value)}
                         {...kpiDelta(kpis.sales)}
-                        footnote={t('dashboard.kpi.sales_note', {
+                        footnote={t("dashboard.kpi.sales_note", {
                             n: n(kpis.invoices.value),
                         })}
                     />
                     {kpis.profit ? (
                         <KpiTile
-                            label={t('dashboard.kpi.profit')}
+                            label={t("dashboard.kpi.profit")}
                             value={money(kpis.profit.value)}
                             {...kpiDelta(kpis.profit)}
-                            footnote={t('dashboard.kpi.profit_note', {
+                            footnote={t("dashboard.kpi.profit_note", {
                                 percent: n(margin),
                             })}
                         />
                     ) : null}
                     <KpiTile
-                        label={t('dashboard.kpi.invoices')}
+                        label={t("dashboard.kpi.invoices")}
                         value={n(kpis.invoices.value)}
                         {...kpiDelta(kpis.invoices)}
-                        footnote={t('dashboard.kpi.invoices_note')}
+                        footnote={t("dashboard.kpi.invoices_note")}
                     />
                     <KpiTile
-                        label={t('dashboard.kpi.average')}
+                        label={t("dashboard.kpi.average")}
                         value={money(kpis.average.value)}
                         {...kpiDelta(kpis.average)}
-                        footnote={t('dashboard.kpi.average_note')}
+                        footnote={t("dashboard.kpi.average_note")}
                     />
                     <KpiTile
-                        label={t('dashboard.kpi.dues')}
+                        label={t("dashboard.kpi.dues")}
                         value={money(kpis.dues.value)}
                         {...NO_DELTA}
-                        footnote={t('dashboard.kpi.dues_note', {
+                        footnote={t("dashboard.kpi.dues_note", {
                             n: n(kpis.dues.debtors),
                         })}
                     />
                     <KpiTile
-                        label={t('dashboard.kpi.collections')}
+                        label={t("dashboard.kpi.collections")}
                         value={money(kpis.collections.value)}
                         {...kpiDelta(kpis.collections)}
-                        footnote={t('dashboard.kpi.collections_note')}
+                        footnote={t("dashboard.kpi.collections_note")}
                     />
                     <KpiTile
-                        label={t('dashboard.kpi.returns')}
+                        label={t("dashboard.kpi.returns")}
                         value={money(kpis.returns.value)}
                         {...inverseDelta(
                             deltaPercent(
@@ -335,38 +337,38 @@ export default function Dashboard({
                             ),
                             n,
                         )}
-                        footnote={t('dashboard.kpi.returns_note', {
+                        footnote={t("dashboard.kpi.returns_note", {
                             n: n(kpis.returns.count),
                         })}
                     />
                     {kpis.stock_value ? (
                         <KpiTile
-                            label={t('dashboard.kpi.stock_value')}
+                            label={t("dashboard.kpi.stock_value")}
                             value={money(kpis.stock_value.value)}
                             {...NO_DELTA}
-                            footnote={t('dashboard.kpi.stock_value_note', {
+                            footnote={t("dashboard.kpi.stock_value_note", {
                                 n: n(kpis.stock_value.skus),
                             })}
                         />
                     ) : null}
                     <KpiTile
-                        label={t('dashboard.kpi.low_stock')}
-                        value={t('dashboard.kpi.skus', {
+                        label={t("dashboard.kpi.low_stock")}
+                        value={t("dashboard.kpi.skus", {
                             n: n(kpis.low_stock.value),
                         })}
                         {...NO_DELTA}
-                        footnote={t('dashboard.kpi.low_stock_note')}
+                        footnote={t("dashboard.kpi.low_stock_note")}
                     />
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
                     <Widget
                         className="lg:col-span-2"
-                        title={t('dashboard.trend.title')}
+                        title={t("dashboard.trend.title")}
                         subtitle={
-                            data.trend.granularity === 'hour'
-                                ? t('dashboard.trend.subtitle_hour')
-                                : t('dashboard.trend.subtitle_day')
+                            data.trend.granularity === "hour"
+                                ? t("dashboard.trend.subtitle_hour")
+                                : t("dashboard.trend.subtitle_day")
                         }
                         meta={
                             <span className="flex flex-wrap items-center justify-end gap-2">
@@ -376,25 +378,25 @@ export default function Dashboard({
                                 </span>
                                 <span className="flex items-center gap-1">
                                     <span className="inline-block h-0.5 w-2.5 bg-muted-foreground opacity-60" />
-                                    <span className="num">{`${t('dashboard.trend.previous')} (${money(kpis.sales.previous)})`}</span>
+                                    <span className="num">{`${t("dashboard.trend.previous")} (${money(kpis.sales.previous)})`}</span>
                                 </span>
                             </span>
                         }
                         reportHref={`/app/reports/sales-by-day?from=${filters.from}&to=${filters.to}`}
                         onExport={() =>
                             downloadRowsCsv(
-                                exportName('sales-trend'),
+                                exportName("sales-trend"),
                                 [
                                     {
-                                        header: t('dashboard.trend.day'),
+                                        header: t("dashboard.trend.day"),
                                         value: (p) => p.key,
                                     },
                                     {
-                                        header: t('dashboard.trend.current'),
+                                        header: t("dashboard.trend.current"),
                                         value: (p) => String(p.net / 100),
                                     },
                                     {
-                                        header: t('dashboard.trend.previous'),
+                                        header: t("dashboard.trend.previous"),
                                         value: (p) => String(p.previous / 100),
                                     },
                                 ],
@@ -409,20 +411,20 @@ export default function Dashboard({
                     </Widget>
 
                     <Widget
-                        title={t('dashboard.mix.title')}
-                        subtitle={t('dashboard.mix.subtitle')}
-                        meta={t('dashboard.mix.total')}
+                        title={t("dashboard.mix.title")}
+                        subtitle={t("dashboard.mix.subtitle")}
+                        meta={t("dashboard.mix.total")}
                         reportHref={`/app/reports/sales-by-tender?from=${filters.from}&to=${filters.to}`}
                         onExport={() =>
                             downloadRowsCsv(
-                                exportName('payment-mix'),
+                                exportName("payment-mix"),
                                 [
                                     {
-                                        header: t('dashboard.mix.method'),
+                                        header: t("dashboard.mix.method"),
                                         value: (m) => m.method,
                                     },
                                     {
-                                        header: t('dashboard.mix.amount'),
+                                        header: t("dashboard.mix.amount"),
                                         value: (m) => String(m.amount / 100),
                                     },
                                 ],
@@ -435,11 +437,11 @@ export default function Dashboard({
                 </div>
 
                 <div
-                    className={`grid grid-cols-1 gap-3 ${data.branches ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}
+                    className={`grid grid-cols-1 gap-3 ${data.branches ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}
                 >
                     <Widget
-                        title={t('dashboard.heat.title')}
-                        subtitle={t('dashboard.heat.subtitle', {
+                        title={t("dashboard.heat.title")}
+                        subtitle={t("dashboard.heat.subtitle", {
                             from: n(shortDate(data.heatmap.from)),
                             to: n(shortDate(data.heatmap.to)),
                         })}
@@ -451,35 +453,35 @@ export default function Dashboard({
 
                     {data.branches ? (
                         <Widget
-                            title={t('dashboard.branches.title')}
+                            title={t("dashboard.branches.title")}
                             subtitle={
                                 data.branches[0]?.profit !== undefined
-                                    ? t('dashboard.branches.subtitle')
-                                    : t('dashboard.branches.subtitle_no_profit')
+                                    ? t("dashboard.branches.subtitle")
+                                    : t("dashboard.branches.subtitle_no_profit")
                             }
-                            meta={t('dashboard.branches.count', {
+                            meta={t("dashboard.branches.count", {
                                 n: n(data.branches.length),
                             })}
                             reportHref={`/app/reports/sales-by-day?from=${filters.from}&to=${filters.to}&branch=all`}
                             onExport={() =>
                                 downloadRowsCsv(
-                                    exportName('branches'),
+                                    exportName("branches"),
                                     [
                                         {
                                             header: t(
-                                                'dashboard.branches.branch',
+                                                "dashboard.branches.branch",
                                             ),
                                             value: (b) => `${b.code} ${b.name}`,
                                         },
                                         {
                                             header: t(
-                                                'dashboard.branches.sales',
+                                                "dashboard.branches.sales",
                                             ),
                                             value: (b) => String(b.sales / 100),
                                         },
                                         {
                                             header: t(
-                                                'dashboard.branches.previous',
+                                                "dashboard.branches.previous",
                                             ),
                                             value: (b) =>
                                                 String(b.previous / 100),
@@ -488,7 +490,7 @@ export default function Dashboard({
                                             ? [
                                                   {
                                                       header: t(
-                                                          'dashboard.branches.profit',
+                                                          "dashboard.branches.profit",
                                                       ),
                                                       value: (b: {
                                                           profit?: number;
@@ -510,13 +512,13 @@ export default function Dashboard({
                     ) : null}
 
                     <Widget
-                        title={t('dashboard.aging.title')}
-                        subtitle={t('dashboard.aging.subtitle')}
+                        title={t("dashboard.aging.title")}
+                        subtitle={t("dashboard.aging.subtitle")}
                         meta={money(data.aging.total)}
                         reportHref="/app/reports/dues-aging"
                         footer={
                             <WidgetLink href="/app/reports/dues-aging">
-                                {t('dashboard.aging.link')}
+                                {t("dashboard.aging.link")}
                             </WidgetLink>
                         }
                     >
@@ -553,17 +555,17 @@ export default function Dashboard({
 
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                     <Widget
-                        title={t('dashboard.top_products.title')}
-                        subtitle={t('dashboard.top_products.subtitle')}
+                        title={t("dashboard.top_products.title")}
+                        subtitle={t("dashboard.top_products.subtitle")}
                         meta={
                             <span className="font-bold text-primary">
-                                {t('dashboard.top5')}
+                                {t("dashboard.top5")}
                             </span>
                         }
                         reportHref={`/app/reports/sales-by-product?from=${filters.from}&to=${filters.to}`}
                         footer={
                             <WidgetLink href="/app/products">
-                                {t('dashboard.top_products.link')}
+                                {t("dashboard.top_products.link")}
                             </WidgetLink>
                         }
                     >
@@ -583,7 +585,7 @@ export default function Dashboard({
                                                     {p.product}
                                                 </span>
                                                 <span className="block truncate font-mono text-[10px] text-primary">
-                                                    {`${p.sku ?? ''} · ${t('dashboard.top_products.sold', { qty: digits.qty(p.qty) })}`}
+                                                    {`${p.sku ?? ""} · ${t("dashboard.top_products.sold", { qty: digits.qty(p.qty) })}`}
                                                 </span>
                                             </span>
                                         </span>
@@ -597,17 +599,17 @@ export default function Dashboard({
                     </Widget>
 
                     <Widget
-                        title={t('dashboard.top_customers.title')}
-                        subtitle={t('dashboard.top_customers.subtitle')}
+                        title={t("dashboard.top_customers.title")}
+                        subtitle={t("dashboard.top_customers.subtitle")}
                         meta={
                             <span className="font-bold text-primary">
-                                {t('dashboard.top5')}
+                                {t("dashboard.top5")}
                             </span>
                         }
                         reportHref={`/app/reports/top-customers?from=${filters.from}&to=${filters.to}`}
                         footer={
                             <WidgetLink href="/app/customers">
-                                {t('dashboard.top_customers.link')}
+                                {t("dashboard.top_customers.link")}
                             </WidgetLink>
                         }
                     >
@@ -627,7 +629,7 @@ export default function Dashboard({
                                                     {c.customer}
                                                 </span>
                                                 <span className="block truncate font-mono text-[10px] text-muted-foreground">
-                                                    {n(c.customer_no ?? '')}
+                                                    {n(c.customer_no ?? "")}
                                                 </span>
                                             </span>
                                         </span>
@@ -637,7 +639,7 @@ export default function Dashboard({
                                             </span>
                                             <span className="block text-[9px] text-muted-foreground">
                                                 {t(
-                                                    'dashboard.top_customers.visits',
+                                                    "dashboard.top_customers.visits",
                                                     { n: n(c.invoices) },
                                                 )}
                                             </span>
@@ -648,16 +650,82 @@ export default function Dashboard({
                         )}
                     </Widget>
 
+                    {districts ? (
+                        <Widget
+                            title={t("dashboard.districts.title")}
+                            subtitle={t("dashboard.districts.subtitle")}
+                            meta={money(districts.total)}
+                            reportHref={`/app/reports/customers-by-area?from=${filters.from}&to=${filters.to}&level=district`}
+                            onExport={() =>
+                                downloadRowsCsv(
+                                    exportName("sales-by-district"),
+                                    [
+                                        {
+                                            header: t(
+                                                "dashboard.districts.district",
+                                            ),
+                                            value: (r) => r.label,
+                                        },
+                                        {
+                                            header: t(
+                                                "dashboard.districts.sales",
+                                            ),
+                                            value: (r) => String(r.sales / 100),
+                                        },
+                                        {
+                                            header: t(
+                                                "dashboard.districts.invoices_column",
+                                            ),
+                                            value: (r) => String(r.invoices),
+                                        },
+                                    ],
+                                    [
+                                        ...districts.rows.map((d) => ({
+                                            label: d.name_en,
+                                            sales: d.sales,
+                                            invoices: d.invoices,
+                                        })),
+                                        {
+                                            label: t(
+                                                "dashboard.districts.others",
+                                                {
+                                                    n: String(
+                                                        districts.others
+                                                            .districts,
+                                                    ),
+                                                },
+                                            ),
+                                            ...districts.others,
+                                        },
+                                        {
+                                            label: t(
+                                                "dashboard.districts.unset",
+                                            ),
+                                            ...districts.unset,
+                                        },
+                                    ],
+                                )
+                            }
+                        >
+                            {districts.total === 0 &&
+                            districts.unset.invoices === 0 ? (
+                                empty
+                            ) : (
+                                <DistrictBars districts={districts} />
+                            )}
+                        </Widget>
+                    ) : null}
+
                     <Widget
-                        title={t('dashboard.low_stock.title')}
-                        subtitle={t('dashboard.low_stock.subtitle')}
+                        title={t("dashboard.low_stock.title")}
+                        subtitle={t("dashboard.low_stock.subtitle")}
                         subtitleTone="warning"
                         meta={
                             <StatusBadge
                                 status="low_stock"
                                 shape="tag"
                                 className="font-sans font-bold"
-                                label={t('dashboard.low_stock.critical', {
+                                label={t("dashboard.low_stock.critical", {
                                     n: n(kpis.low_stock.value),
                                 })}
                             />
@@ -665,7 +733,7 @@ export default function Dashboard({
                         reportHref="/app/stock"
                         footer={
                             <WidgetLink href="/app/stock">
-                                {t('dashboard.low_stock.link')}
+                                {t("dashboard.low_stock.link")}
                             </WidgetLink>
                         }
                     >
@@ -683,7 +751,7 @@ export default function Dashboard({
                                                 {row.product}
                                             </span>
                                             <span className="block truncate font-mono text-[10px] text-destructive">
-                                                {t('dashboard.low_stock.line', {
+                                                {t("dashboard.low_stock.line", {
                                                     on_hand: digits.qty(
                                                         row.on_hand,
                                                     ),
@@ -692,8 +760,8 @@ export default function Dashboard({
                                                     ),
                                                 })}
                                                 {row.cost !== undefined
-                                                    ? ` · ${t('dashboard.low_stock.unit', { cost: money(row.cost) })}`
-                                                    : ''}
+                                                    ? ` · ${t("dashboard.low_stock.unit", { cost: money(row.cost) })}`
+                                                    : ""}
                                             </span>
                                         </span>
                                         <Link
@@ -704,7 +772,7 @@ export default function Dashboard({
                                                 className="size-3"
                                                 aria-hidden="true"
                                             />
-                                            {t('dashboard.low_stock.reorder')}
+                                            {t("dashboard.low_stock.reorder")}
                                         </Link>
                                     </li>
                                 ))}
@@ -713,13 +781,13 @@ export default function Dashboard({
                     </Widget>
 
                     <Widget
-                        title={t('dashboard.recent.title')}
-                        subtitle={t('dashboard.recent.subtitle')}
-                        meta={t('dashboard.live_short')}
+                        title={t("dashboard.recent.title")}
+                        subtitle={t("dashboard.recent.subtitle")}
+                        meta={t("dashboard.live_short")}
                         reportHref="/app/sales"
                         footer={
                             <WidgetLink href="/app/sales">
-                                {t('dashboard.recent.link')}
+                                {t("dashboard.recent.link")}
                             </WidgetLink>
                         }
                     >
@@ -737,10 +805,10 @@ export default function Dashboard({
                                                 href={`/app/sales/${sale.id}`}
                                                 className="block truncate font-mono font-bold text-primary hover:underline [@media(pointer:coarse)]:py-3.5"
                                             >
-                                                {n(sale.number ?? '')}
+                                                {n(sale.number ?? "")}
                                             </Link>
                                             <span className="block truncate text-[10px] text-muted-foreground">
-                                                {`${sale.walk_in ? t('dashboard.recent.walk_in') : (sale.customer ?? '')} · ${n(new Date(`${sale.sold_at.replace(' ', 'T')}Z`).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }))}`}
+                                                {`${sale.walk_in ? t("dashboard.recent.walk_in") : (sale.customer ?? "")} · ${n(new Date(`${sale.sold_at.replace(" ", "T")}Z`).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }))}`}
                                             </span>
                                         </span>
                                         <span className="shrink-0 text-right">
@@ -762,12 +830,12 @@ export default function Dashboard({
 
                     <Widget
                         className="md:col-span-2 xl:col-span-2"
-                        title={t('dashboard.debtors.title')}
-                        subtitle={t('dashboard.debtors.subtitle')}
+                        title={t("dashboard.debtors.title")}
+                        subtitle={t("dashboard.debtors.subtitle")}
                         subtitleTone="danger"
                         meta={
                             <span className="num font-sans font-bold text-destructive">
-                                {t('dashboard.debtors.total', {
+                                {t("dashboard.debtors.total", {
                                     amount: money(kpis.dues.value),
                                 })}
                             </span>
@@ -775,7 +843,7 @@ export default function Dashboard({
                         reportHref="/app/reports/dues-aging"
                         footer={
                             <WidgetLink href="/app/dues">
-                                {t('dashboard.debtors.link')}
+                                {t("dashboard.debtors.link")}
                             </WidgetLink>
                         }
                     >
@@ -801,11 +869,11 @@ export default function Dashboard({
                                             </span>
                                             <span className="block truncate text-[10px] text-muted-foreground">
                                                 {d.phone
-                                                    ? `${t('dashboard.debtors.phone', { phone: n(d.phone) })} · `
-                                                    : ''}
+                                                    ? `${t("dashboard.debtors.phone", { phone: n(d.phone) })} · `
+                                                    : ""}
                                                 <span className="font-medium text-destructive">
                                                     {t(
-                                                        'dashboard.debtors.days',
+                                                        "dashboard.debtors.days",
                                                         { n: n(d.days) },
                                                     )}
                                                 </span>
@@ -823,7 +891,7 @@ export default function Dashboard({
                                                     className="size-3"
                                                     aria-hidden="true"
                                                 />
-                                                {t('dashboard.debtors.collect')}
+                                                {t("dashboard.debtors.collect")}
                                             </Link>
                                         </span>
                                     </li>
@@ -838,5 +906,5 @@ export default function Dashboard({
 }
 
 Dashboard.layout = {
-    breadcrumbs: [{ title: 'Dashboard', href: dashboardRoute() }],
+    breadcrumbs: [{ title: "Dashboard", href: dashboardRoute() }],
 };

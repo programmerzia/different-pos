@@ -15,7 +15,7 @@ use Mpdf\Output\Destination;
 use Picqer\Barcode\Types\TypeCode128;
 
 /**
- * Membership card artwork (the baseline mockup's teal card, resources/css/membership-card.css): CR80 (85.6 x 54 mm) front and back pages,
+ * Membership card artwork (the black and gold brand card, resources/css/membership-card.css): CR80 (85.6 x 54 mm) front and back pages,
  * the print-shop bleed variant (91.6 x 60 mm, optional crop marks on a 101.6 x 70 mm page), and the
  * A4 10-up sheet (2 x 5, fronts then mirrored backs per sheet, crop marks in the margins).
  * html()/a4() are the source of truth; pdf() renders them through the shared PdfRenderer (mPDF, ADR 0009).
