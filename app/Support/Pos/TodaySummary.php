@@ -56,6 +56,7 @@ final readonly class TodaySummary
                 'amount' => (int) $row->amount,
             ])->values()->all(),
             'recent' => $recent->map(static fn (Sale $sale): array => [
+                'id' => $sale->id,
                 'uuid' => $sale->uuid,
                 'number' => $sale->number,
                 'total' => $sale->total->paisa,

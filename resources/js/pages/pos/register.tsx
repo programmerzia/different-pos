@@ -415,15 +415,15 @@ export default function Register(props: Props) {
     };
 
     const receiptUrl = useCallback(
-        (uuid: string) =>
+        (id: number) =>
             props.receiptAvailable
-                ? `/app/sales/${encodeURIComponent(uuid)}/receipt?paper=${encodeURIComponent(settings.paper)}`
+                ? `/app/sales/${id}/receipt?paper=${encodeURIComponent(settings.paper)}`
                 : null,
         [props.receiptAvailable, settings.paper],
     );
 
     const printReceipt = (sale: CompletedSale | null) => {
-        const url = sale ? (sale.receipt_url ?? receiptUrl(sale.uuid)) : null;
+        const url = sale ? (sale.receipt_url ?? receiptUrl(sale.id)) : null;
         if (url) {
             window.open(url, '_blank', 'noopener');
         } else if (sale) {
@@ -433,7 +433,11 @@ export default function Register(props: Props) {
 
     const printChalan = (sale: CompletedSale | null) => {
         if (sale && props.receiptAvailable) {
-            window.open(`/app/sales/${sale.id}/chalan`, '_blank', 'noopener');
+            window.open(
+                `/app/sales/${sale.id}/chalan?print=1`,
+                '_blank',
+                'noopener',
+            );
         } else if (sale) {
             toast.info(t('pos.done.no_receipt'));
         }
@@ -1653,7 +1657,7 @@ function Completed({
 
     return (
         <div
-            className="mx-auto mt-8 max-w-md rounded-xl border bg-surface p-6 text-center shadow-sm"
+            className="mx-auto mt-8 max-w-xl rounded-xl border bg-surface p-6 text-center shadow-sm"
             aria-live="polite"
         >
             <CircleCheck
@@ -1686,7 +1690,7 @@ function Completed({
                     </>
                 )}
             </dl>
-            <div className="mt-6 flex justify-center gap-2">
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {canPrint && (
                     <Button
                         type="button"

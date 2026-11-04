@@ -72,7 +72,7 @@ final class SaleController extends Controller
             'due' => $sale->due->paisa,
             'flags' => $sale->sync_flags ?? [],
             'member_auth' => $sale->member_auth->value,
-            'receipt_url' => Route::has('sales.receipt') ? route('sales.receipt', ['sale' => $sale, 'paper' => $paper]) : null,
+            'receipt_url' => Route::has('sales.receipt') ? route('sales.receipt', ['sale' => $sale->id, 'paper' => $paper, 'print' => 1]) : null,
         ]], $sale->wasRecentlyCreated ? 201 : 200);
     }
 

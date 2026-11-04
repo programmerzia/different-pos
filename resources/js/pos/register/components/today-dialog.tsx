@@ -18,7 +18,7 @@ export function TodayDialog({
 }: {
     open: boolean;
     registerId: number | null;
-    receiptUrl: (uuid: string) => string | null;
+    receiptUrl: (id: number) => string | null;
     onClose: () => void;
 }) {
     const { t } = useT();
@@ -41,7 +41,7 @@ function TodayBody({
     receiptUrl,
 }: {
     registerId: number | null;
-    receiptUrl: (uuid: string) => string | null;
+    receiptUrl: (id: number) => string | null;
 }) {
     const { t } = useT();
     const d = useDigits();
@@ -100,7 +100,7 @@ function TodayBody({
                         </caption>
                         <tbody className="divide-y">
                             {data.recent.map((sale) => {
-                                const url = receiptUrl(sale.uuid);
+                                const url = receiptUrl(sale.id);
 
                                 return (
                                     <tr key={sale.uuid}>

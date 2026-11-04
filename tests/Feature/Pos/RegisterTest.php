@@ -187,6 +187,14 @@ describe('completing a sale', function (): void {
         expect($sale->origin->value)->toBe('web')->and($sale->sold_by)->toBe($this->world->user('Cashier')->id);
     });
 
+    it('returns a receipt link that opens', function (): void {
+        $cashier = $this->world->user('Cashier');
+        $res = $this->actingAs($cashier)->postJson('/app/pos/sales', posRegisterSale($this->world, $this->shirt))->assertCreated();
+
+        $this->actingAs($cashier)->get((string) $res->json('sale.receipt_url'))->assertOk();
+        $this->actingAs($cashier)->get(route('sales.chalan', $res->json('sale.id')))->assertOk()->assertSee('Courier Delivery Chalan');
+    });
+
     it('returns the same sale for a resubmit of the same bill', function (): void {
         $body = posRegisterSale($this->world, $this->shirt);
         $first = $this->actingAs($this->world->user('Cashier'))->postJson('/app/pos/sales', $body)->assertCreated();

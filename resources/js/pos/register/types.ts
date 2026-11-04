@@ -156,6 +156,7 @@ export type TodaySummary = {
     due: Paisa;
     methods: { name: string; amount: Paisa }[];
     recent: {
+        id: number;
         uuid: string;
         number: string;
         total: Paisa;

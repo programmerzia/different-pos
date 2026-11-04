@@ -150,7 +150,7 @@ final readonly class CardRenderer
     }
 
     /** Code128 bars in the same SVG shape the studio draws (viewBox in modules, stretched to the box). */
-    private static function barcode(string $payload): string
+    public static function barcode(string $payload): string
     {
         $barcode = (new TypeCode128)->getBarcode($payload);
         $x = 0;

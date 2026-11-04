@@ -468,7 +468,7 @@ export const en: Manual = {
                                 },
                                 {
                                     keys: 'd',
-                                    label: 'Print the delivery chalan (A4, quantities only, no prices) to send with the goods',
+                                    label: 'Print the courier delivery chalan (A4): cut off the top label and attach it to the parcel, with the packing list below it (quantities only, no prices)',
                                 },
                                 {
                                     keys: 'r',

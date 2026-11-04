@@ -36,11 +36,15 @@ it('prints the chalan with number, items, quantities and the hand-fill lines', f
         ->assertSee('Silk Panjabi')
         ->assertSee('SP-01')
         ->assertSee('Total quantity')
-        ->assertSee('Vehicle no.')
-        ->assertSee('Driver')
-        ->assertSee('Prepared by')
-        ->assertSee('Authorised by')
-        ->assertSee('Received by')
+        ->assertSee('To (receiver)')
+        ->assertSee('From (sender)')
+        ->assertSee('Tracking no.')
+        ->assertSee('COD amount')
+        ->assertSee('Packing list')
+        ->assertSee('Packed by')
+        ->assertSee('Received by courier')
+        ->assertSee('Received by customer')
+        ->assertSee('<svg', false)
         ->assertHeader('X-Robots-Tag', 'noindex');
 });
 

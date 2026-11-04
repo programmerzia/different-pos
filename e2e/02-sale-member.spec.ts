@@ -113,6 +113,23 @@ test('sells to a card member, paying cash in full', async ({ page }) => {
     expect(number).not.toBe('');
     remember({ cashSale: number });
 
+    // The actions stay inside the card, and both documents open on the sale just made.
+    const card = done.locator('xpath=ancestor::div[contains(@class,"rounded-xl")][1]');
+    const cardBox = (await card.boundingBox())!;
+    const receipt = page.getByRole('button', { name: /Print receipt/ });
+    const chalan = page.getByRole('button', { name: /Delivery chalan/ });
+    for (const button of [receipt, chalan, page.getByRole('button', { name: /New sale/ })]) {
+        const box = (await button.boundingBox())!;
+        expect(box.x).toBeGreaterThanOrEqual(cardBox.x);
+        expect(box.x + box.width).toBeLessThanOrEqual(cardBox.x + cardBox.width);
+    }
+    const [receiptTab] = await Promise.all([page.waitForEvent('popup'), receipt.click()]);
+    await expect(receiptTab.locator('body')).toContainText(number);
+    await receiptTab.close();
+    const [chalanTab] = await Promise.all([page.waitForEvent('popup'), chalan.click()]);
+    await expect(chalanTab.locator('body')).toContainText(`CH-${number}`);
+    await chalanTab.close();
+
     await open(page, '/app/sales');
     const row = page.getByRole('row', { name: new RegExp(number) });
     await expect(row).toBeVisible();

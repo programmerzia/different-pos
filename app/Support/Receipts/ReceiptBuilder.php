@@ -9,6 +9,8 @@ use App\Enums\PaymentDirection;
 use App\Enums\SaleStatus;
 use App\Models\Branch;
 use App\Models\Customer;
+use App\Models\Geo\GeoDistrict;
+use App\Models\Geo\GeoUpazila;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\PaymentMethod;
@@ -16,6 +18,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleReturn;
 use App\Models\User;
+use App\Support\Cards\CardRenderer;
 use App\Support\Customers\CustomerNumber;
 use App\Support\Money\Money;
 use App\Support\Numbers\Digits;
@@ -135,11 +138,11 @@ final readonly class ReceiptBuilder
      * Delivery chalan: what travels with the goods. Quantities only, deliberately no price, discount,
      * VAT, total, due or payment (the driver and the recipient never see money).
      *
-     * @return array{kind: 'chalan', locale: string, shop: Shop, number: string, invoice_number: string, date: string, voided: bool, void_reason: string|null, customer: array{name: string, shop_name: string|null, phone: string|null, address: string|null}|null, lines: list<array{name: string, sku: string, unit: string, qty: string}>, total_qty: string, has_returns: bool}
+     * @return array{kind: 'chalan', locale: string, shop: Shop, number: string, barcode: string, qr: string, invoice_number: string, date: string, voided: bool, void_reason: string|null, customer: array{name: string, shop_name: string|null, phone: string|null, address: string|null}|null, lines: list<array{name: string, sku: string, unit: string, qty: string}>, total_qty: string, has_returns: bool}
      */
     public function chalan(Sale $sale, string $locale): array
     {
-        $sale->loadMissing(['items.product.unit', 'customer']);
+        $sale->loadMissing(['items.product.unit', 'customer.geoDistrict', 'customer.geoUpazila']);
         /** @var list<SaleItem> $items */
         $items = $sale->items->sortBy('id')->values()->all();
 
@@ -160,7 +163,9 @@ final readonly class ReceiptBuilder
         $customer = $sale->customer;
         $party = null;
         if ($customer instanceof Customer && ! $customer->is_walk_in) {
-            $address = collect([$customer->address_line, $customer->area, $customer->post_code])
+            $geoName = static fn (GeoDistrict|GeoUpazila|null $geo): ?string => $geo === null ? null : ($locale === 'bn' ? $geo->name_bn : $geo->name_en);
+            // What a courier routes by: street, area, upazila, district, post code.
+            $address = collect([$customer->address_line, $customer->area, $geoName($customer->geoUpazila), $geoName($customer->geoDistrict), $customer->post_code])
                 ->filter(static fn (?string $part): bool => $part !== null && trim($part) !== '')
                 ->implode(', ');
             $party = [
@@ -176,6 +181,8 @@ final readonly class ReceiptBuilder
             'locale' => $locale,
             'shop' => $this->shop($sale->branch_id),
             'number' => 'CH-'.$sale->number,
+            'barcode' => CardRenderer::barcode('CH-'.$sale->number),
+            'qr' => QrSvg::render('CH-'.$sale->number, quietZone: 0),
             'invoice_number' => (string) $sale->number,
             'date' => $this->date($sale->sold_at, $locale),
             'voided' => $sale->status === SaleStatus::Voided,
