@@ -14,6 +14,20 @@ final class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_the_root_opens_sign_in_instead_of_a_landing_page(): void
+    {
+        $this->get('/')->assertRedirect('/login');
+        $this->get('/login')->assertOk();
+    }
+
+    public function test_a_signed_in_user_goes_from_the_root_to_the_app(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->get('/')->assertRedirect('/login');
+        $this->get('/login')->assertRedirect('/app');
+    }
+
     public function test_login_screen_can_be_rendered(): void
     {
         $response = $this->get(route('login'));
