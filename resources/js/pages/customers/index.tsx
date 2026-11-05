@@ -241,7 +241,7 @@ export default function CustomersIndex({
             headerKey: 'customers.col.phone',
             sortKey: 'phone',
             cell: (r) => (
-                <span className="num font-mono text-muted-foreground">
+                <span className="num font-mono whitespace-nowrap text-muted-foreground">
                     {r.phone ? digits.n(displayPhone(r.phone)) : '-'}
                 </span>
             ),

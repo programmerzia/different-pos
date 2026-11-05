@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Sms\SmsSettings;
 use App\Sms\Templates;
 use App\WhatsApp\WhatsAppSettings;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -42,7 +43,12 @@ final class SaveSmsSettingsRequest extends FormRequest
         ];
         foreach (Templates::keys() as $key) {
             $rules["templates.$key.enabled"] = ['required', 'boolean'];
-            $rules["templates.$key.body"] = ['required', 'string', 'max:480'];
+            $rules["templates.$key.body"] = ['required', 'string', 'max:480', function (string $attribute, mixed $value, Closure $fail) use ($key): void {
+                $unfilled = is_string($value) ? Templates::unfilled($value, [...Templates::ALWAYS_FILLED, ...Templates::PLACEHOLDERS[$key]]) : [];
+                if ($unfilled !== []) {
+                    $fail((string) __('sms.template_unknown_placeholder', ['names' => '{'.implode('}, {', $unfilled).'}']));
+                }
+            }];
         }
 
         return $rules;

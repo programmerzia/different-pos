@@ -27,6 +27,9 @@ final readonly class BroadcastAudience
     /** The placeholders the composer offers as chips. */
     public const array VARIABLES = ['name', 'shop', 'due', 'number'];
 
+    /** Everything values() fills. A broadcast has no invoice or payment, so {invoice}, {total} or {link} cannot be here. */
+    public const array FILLED = [...Templates::ALWAYS_FILLED, 'number'];
+
     /**
      * BdPhone::toE164 on the digits of the stored phone: 01XXXXXXXXX, 8801XXXXXXXXX, 008801XXXXXXXXX or
      * 1XXXXXXXXX with an operator digit 3-9. (Customer phones are stored normalised, so the SQL check

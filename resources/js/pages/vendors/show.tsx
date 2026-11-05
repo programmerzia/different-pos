@@ -177,7 +177,7 @@ export default function VendorShow({
         <>
             <Head title={vendor.name} />
             <Page className="gap-4">
-                <div className="flex flex-col gap-2 border-b pb-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2 border-b pb-3 xl:flex-row xl:items-center xl:justify-between">
                     <div className="flex items-center gap-2.5">
                         <Button
                             asChild
@@ -273,7 +273,7 @@ export default function VendorShow({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                     <KpiTile
                         label={t('vendors.kpi_purchases_ytd')}
                         value={digits.money(kpis.purchases_ytd)}

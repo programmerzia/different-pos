@@ -202,8 +202,13 @@ final class MembershipCardController extends Controller
      */
     private function printable(CardIdsRequest $request): Collection
     {
-        $cards = $request->cardIds() === [] ? new Collection : MembershipCard::query()->whereIn('id', $request->cardIds())
-            ->where('status', CardStatus::Active)->with('customer.customerGroup')->orderBy('id')->get();
+        // Read only: a customer's existing active card can be printed, but a GET never issues one.
+        $ids = $request->cardIds();
+        $uuids = $request->customerUuids();
+        $cards = $ids === [] && $uuids === [] ? new Collection : MembershipCard::query()
+            ->where('status', CardStatus::Active)
+            ->where(fn ($q) => $q->whereIn('id', $ids)->orWhereHas('customer', fn ($c) => $c->whereIn('uuid', $uuids)))
+            ->with('customer.customerGroup')->orderBy('id')->get();
         abort_if($cards->isEmpty(), 404);
 
         return $cards;

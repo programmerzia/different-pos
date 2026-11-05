@@ -213,7 +213,7 @@ export default function TransferShow({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                     <KpiTile
                         tone="primary"
                         label={t('transfers.summary_lines')}

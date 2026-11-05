@@ -101,8 +101,8 @@ export function Widget({
                         className,
                     )}
                 >
-                    <div className="mb-2 flex items-start justify-between gap-2">
-                        <div className="min-w-0">
+                    <div className="mb-2 flex items-start justify-between gap-2 max-lg:flex-wrap">
+                        <div className="min-w-0 max-lg:min-w-[min(100%,11rem)] max-lg:flex-1">
                             <h2 className="text-xs font-bold text-foreground">
                                 {title}
                             </h2>
@@ -121,7 +121,7 @@ export function Widget({
                                 </p>
                             ) : null}
                         </div>
-                        <div className="flex shrink-0 items-center gap-1">
+                        <div className="flex shrink-0 items-center gap-1 max-lg:ml-auto max-lg:max-w-full max-lg:shrink">
                             {meta ? (
                                 <div className="font-mono text-[10px] text-muted-foreground">
                                     {meta}

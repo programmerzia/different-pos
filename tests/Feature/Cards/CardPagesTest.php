@@ -113,6 +113,9 @@ it('issues a card on demand only through POST prepare; the GET endpoints never i
     $this->get("/app/membership-cards/print?customers={$fresh->uuid}")->assertNotFound();
     $this->get("/app/membership-cards/export.csv?customers={$fresh->uuid}")->assertNotFound();
     expect(MembershipCard::query()->where('customer_id', $fresh->id)->exists())->toBeFalse();
+    // A customer's existing active card prints by customer (the customer list's Print card link); a lost one does not.
+    $this->get("/app/membership-cards/print?customers={$customer->uuid}&layout=cr80")->assertOk();
+    $this->get("/app/membership-cards/print?customers={$lostOwner->uuid}")->assertNotFound();
 
     $ids = $this->postJson('/app/membership-cards/prepare', ['customers' => [$customer->uuid, $fresh->uuid, $lostOwner->uuid]])
         ->assertOk()->json('card_ids');

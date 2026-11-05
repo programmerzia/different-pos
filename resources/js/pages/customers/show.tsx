@@ -441,7 +441,7 @@ export default function CustomerShow({
                         </section>
 
                         {/* KPI tiles (mockup: plain tiles, 11 px label, 16 px value) */}
-                        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                             <Tile label={t("customers.kpi.lifetime")}>
                                 <span className="num">
                                     {kpis.lifetime_spend === null

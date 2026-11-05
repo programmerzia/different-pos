@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Sms;
 
-use App\Exceptions\Domain\SmsNotConfigured;
 use App\Models\Customer;
 use App\Models\Message;
 use App\Models\User;
@@ -23,9 +22,7 @@ final readonly class SendCustomerStatement
     {
         Gate::forUser($actor)->authorize('send', Message::class);
 
-        if (! SmsSettings::fromTenant($this->context->tenant())->isConfigured()) {
-            throw SmsNotConfigured::make();
-        }
+        SmsSettings::fromTenant($this->context->tenant())->assertCanSend();
 
         return SendSms::statement($customer, $summary);
     }

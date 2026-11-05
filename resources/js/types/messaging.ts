@@ -14,6 +14,8 @@ export type SmsSettings = {
     has_token: boolean;
     /** The gateway can deliver (driver plus credentials); never the key itself. */
     configured: boolean;
+    /** The master switch: false stops every customer SMS, whatever the gateway. */
+    sending_enabled: boolean;
     /** Paisa per SMS part, for the composer's cost estimate. */
     cost_per_segment: number;
     templates: SmsTemplate[];

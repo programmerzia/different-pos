@@ -24,6 +24,7 @@ function config(over: Partial<ComposerConfig> = {}): ComposerConfig {
             configured: true,
             bulk: true,
         },
+        sending_enabled: true,
         cost_per_segment: 35,
         shop: "Different Fashion",
         max_body: 1000,
@@ -46,6 +47,12 @@ beforeAll(() => {
 afterEach(cleanup);
 
 describe("Composer channel toggle", () => {
+    it("says SMS sending is off instead of asking for a provider", () => {
+        render(<Composer config={config({ sending_enabled: false })} />);
+        expect(screen.getByText(t("sms.hub.sending_off"))).toBeTruthy();
+        expect(screen.queryByText(t("sms.hub.not_configured"))).toBeNull();
+    });
+
     it("starts on SMS, switches to WhatsApp and drops the per-part cost", () => {
         render(<Composer config={config()} />);
         const wa = screen.getByRole("button", { name: t("sms.hub.whatsapp") });

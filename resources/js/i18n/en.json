@@ -951,6 +951,13 @@
             "title": "Messaging Providers",
             "subtitle": "Choose the SMS and WhatsApp providers and the messages customers receive.",
             "hub_title": "SMS & WhatsApp Messaging Gateways",
+            "sending_title": "SMS sending",
+            "sending_on": "ON",
+            "sending_off": "OFF",
+            "sending_on_hint": "Customers receive SMS. Turn this off to stop every customer SMS at once, including messages already queued.",
+            "sending_off_hint": "No customer receives SMS. Your API key, URL and templates are kept, and a test SMS to a number you type still works.",
+            "sending_turn_off": "Turn SMS off",
+            "sending_turn_on": "Turn SMS on",
             "queue_worker": "SMS go out through the background queue: messages stay Queued until a queue worker is running on the server. Keep one running (for example under Supervisor) with"
         },
         "provider": {
@@ -1089,6 +1096,8 @@
             "preview_reply": "Text message",
             "templates_title": "Your SMS templates",
             "templates_hint": "The automatic messages from SMS settings; load one into the composer to send it by hand.",
+            "sending_off": "SMS sending is switched off in settings, so nothing can be sent.",
+            "tpl_auto_only": "Sent automatically with each transaction. It needs invoice details, so it cannot be broadcast.",
             "tpl_auto_on": "Automatic: on",
             "tpl_auto_off": "Automatic: off",
             "use_template": "Use in composer",

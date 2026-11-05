@@ -161,6 +161,7 @@ export type DashboardProps = {
     }[];
     debtors: {
         id: number;
+        uuid: string | null;
         customer: string | null;
         customer_no: string | null;
         phone: string | null;

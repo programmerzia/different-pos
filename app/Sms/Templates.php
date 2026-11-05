@@ -67,6 +67,23 @@ final class Templates
         self::SALE_VOIDED => ['customer', 'shop', 'invoice', 'total', 'due', 'balance'],
     ];
 
+    /** Always filled from the customer and the shop (MessageContext::values), on every message. */
+    public const array ALWAYS_FILLED = ['customer', 'name', 'shop', 'shop_phone', 'due', 'balance'];
+
+    /**
+     * The {placeholders} in a body that the given values cannot fill. Such a message must not go out: the
+     * customer would read the raw text.
+     *
+     * @param  list<string>  $fillable
+     * @return list<string>
+     */
+    public static function unfilled(string $body, array $fillable): array
+    {
+        preg_match_all('/\{([A-Za-z_]+)\}/', $body, $matches);
+
+        return array_values(array_unique(array_diff($matches[1], $fillable)));
+    }
+
     /** @return list<string> */
     public static function keys(): array
     {

@@ -624,7 +624,14 @@ export function DataTable<Row extends Record<string, unknown>>({
     const cell = 'px-3 py-cell-y';
 
     return (
-        <div className={cn('flex flex-col gap-3', fill && 'min-h-0 flex-1')}>
+        // On a short tablet the header, tiles and filters must not squeeze the rows away: the page scrolls instead.
+        <div
+            className={cn(
+                'flex flex-col gap-3',
+                fill &&
+                    'min-h-0 flex-1 md:max-xl:min-h-[34rem] md:max-xl:shrink-0',
+            )}
+        >
             {chooser === 'inline' ? (
                 <div className="flex items-center justify-end">
                     <ColumnChooser

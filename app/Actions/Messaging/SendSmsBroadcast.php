@@ -7,7 +7,6 @@ namespace App\Actions\Messaging;
 use App\Enums\MessageChannel;
 use App\Enums\SmsBroadcastStatus;
 use App\Exceptions\Domain\InvalidAdminData;
-use App\Exceptions\Domain\SmsNotConfigured;
 use App\Exceptions\Domain\WhatsAppNotConfigured;
 use App\Models\Message;
 use App\Models\SmsBroadcast;
@@ -61,6 +60,10 @@ final readonly class SendSmsBroadcast
         if (mb_strlen($body) > BroadcastAudience::MAX_BODY) {
             throw InvalidAdminData::invalid((string) __('sms.broadcast.body_too_long', ['max' => BroadcastAudience::MAX_BODY]));
         }
+        $unfilled = Templates::unfilled($body, BroadcastAudience::FILLED);
+        if ($unfilled !== []) {
+            throw InvalidAdminData::invalid((string) __('sms.broadcast.unfilled', ['names' => '{'.implode('}, {', $unfilled).'}']));
+        }
         if ($template !== null && ! in_array($template, Templates::keys(), true)) {
             $template = null;
         }
@@ -74,8 +77,8 @@ final readonly class SendSmsBroadcast
             if (! $whatsApp->bulk()) {
                 throw WhatsAppNotConfigured::bulk();
             }
-        } elseif (! $settings->isConfigured()) {
-            throw SmsNotConfigured::make();
+        } else {
+            $settings->assertCanSend();
         }
 
         $audience = [

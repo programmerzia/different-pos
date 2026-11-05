@@ -271,7 +271,7 @@ final readonly class DashboardAggregates
     /**
      * Customers with the largest open dues, with the age in days of their oldest unpaid invoice.
      *
-     * @return list<array{id: int, customer: string|null, customer_no: string|null, phone: string|null, due: int, days: int}>
+     * @return list<array{id: int, uuid: string|null, customer: string|null, customer_no: string|null, phone: string|null, due: int, days: int}>
      */
     public function debtors(ReportParameters $p, int $limit = 5): array
     {
@@ -283,8 +283,8 @@ final readonly class DashboardAggregates
             ->where('sales.due', '>', 0);
         $this->branches($query, $p, 'sales.branch_id');
         $rows = $query
-            ->groupBy('customers.id', 'customers.name', 'customers.customer_no', 'customers.phone')
-            ->select('customers.id', 'customers.name', 'customers.customer_no', 'customers.phone', DB::raw('SUM(sales.due) AS due'), DB::raw('MIN(sales.sold_at) AS oldest'))
+            ->groupBy('customers.id', 'customers.uuid', 'customers.name', 'customers.customer_no', 'customers.phone')
+            ->select('customers.id', 'customers.uuid', 'customers.name', 'customers.customer_no', 'customers.phone', DB::raw('SUM(sales.due) AS due'), DB::raw('MIN(sales.sold_at) AS oldest'))
             ->orderByDesc('due')
             ->orderBy('customers.id')
             ->limit($limit)
@@ -296,6 +296,7 @@ final readonly class DashboardAggregates
             $oldest = $this->text($r->oldest);
             $debtors[] = [
                 'id' => $this->int($r->id),
+                'uuid' => $this->text($r->uuid),
                 'customer' => $this->text($r->name),
                 'customer_no' => $this->text($r->customer_no),
                 'phone' => $this->text($r->phone),

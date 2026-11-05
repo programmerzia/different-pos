@@ -28,13 +28,19 @@ import {
 
 export type ComposerConfig = {
     configured: boolean;
+    sending_enabled: boolean;
     driver: string;
     whatsapp: WhatsAppConfig;
     cost_per_segment: number;
     shop: string;
     max_body: number;
     variables: string[];
-    templates: { key: string; body: string; enabled: boolean }[];
+    templates: {
+        key: string;
+        body: string;
+        enabled: boolean;
+        broadcastable: boolean;
+    }[];
     counts: { all: number; due: number };
     groups: { id: number; name: string; count: number }[];
 };
@@ -131,7 +137,7 @@ export function Composer({
     const wa = channel === "whatsapp";
     const channelConfigured = wa
         ? config.whatsapp.configured
-        : config.configured;
+        : config.configured && config.sending_enabled;
     // Click-to-chat hands one chat to the user's own WhatsApp: only a single customer can be targeted.
     const clickOnly = wa && config.whatsapp.configured && !config.whatsapp.bulk;
     const canSend =
@@ -324,7 +330,9 @@ export function Composer({
                         <span className="flex-1">
                             {wa
                                 ? t("sms.whatsapp.not_configured")
-                                : t("sms.hub.not_configured")}
+                                : config.configured
+                                  ? t("sms.hub.sending_off")
+                                  : t("sms.hub.not_configured")}
                         </span>
                         <Link
                             href="/app/settings/sms"
@@ -445,7 +453,7 @@ export function Composer({
                             <option value="">
                                 {t("sms.hub.template_custom")}
                             </option>
-                            {config.templates.map((tpl) => (
+                            {config.templates.filter((tpl) => tpl.broadcastable).map((tpl) => (
                                 <option key={tpl.key} value={tpl.key}>
                                     {t(`sms.template.${tpl.key}`)}
                                 </option>

@@ -24,11 +24,14 @@ final readonly class SmsNotice
             }
 
             $settings = SmsSettings::fromTenant(app(TenantContext::class)->tenant());
-            if (! $settings->enabled($template) || $settings->isConfigured()) {
+            if (! $settings->enabled($template)) {
                 return null;
             }
+            if (! $settings->isConfigured()) {
+                return (string) __('sms.notice.not_configured');
+            }
 
-            return (string) __('sms.notice.not_configured');
+            return $settings->sendingEnabled ? null : (string) __('sms.notice.sending_off');
         } catch (Throwable $e) {
             report($e);
 

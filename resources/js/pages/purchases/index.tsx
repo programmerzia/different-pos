@@ -381,7 +381,7 @@ export default function PurchasesIndex({
         <>
             <Head title={t('purchases.title')} />
             <Page fill>
-                <div className="grid shrink-0 grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
                     <KpiTile
                         label={t('purchases.kpi_bills')}
                         icon={Receipt}

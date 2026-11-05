@@ -8,6 +8,7 @@ use App\Actions\Messaging\SaveSmsSettings;
 use App\Actions\Messaging\SaveWhatsAppSettings;
 use App\Actions\Messaging\SendTestSms;
 use App\Actions\Messaging\SendTestWhatsApp;
+use App\Actions\Messaging\SetSmsSending;
 use App\Exceptions\Domain\DomainException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Messaging\SaveSmsSettingsRequest;
@@ -66,6 +67,7 @@ final class SmsSettingsController extends Controller
                 'base_url' => $settings->baseUrl,
                 'has_token' => $settings->apiToken !== null,
                 'configured' => $settings->isConfigured(),
+                'sending_enabled' => $settings->sendingEnabled,
                 'cost_per_segment' => $settings->costPerSegment,
                 'templates' => $templates,
             ],
@@ -86,6 +88,21 @@ final class SmsSettingsController extends Controller
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('sms.settings_saved')]);
+
+        return to_route('settings.sms.edit');
+    }
+
+    /** The master switch: applies at once, with no need to save the rest of the form. */
+    public function sending(Request $request, SetSmsSending $action): RedirectResponse
+    {
+        $this->authorize('configure', Message::class);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $enabled = $request->validate(['enabled' => ['required', 'boolean']])['enabled'];
+        $action->handle($user, (bool) $enabled);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __($enabled ? 'sms.sending_turned_on' : 'sms.sending_turned_off')]);
 
         return to_route('settings.sms.edit');
     }

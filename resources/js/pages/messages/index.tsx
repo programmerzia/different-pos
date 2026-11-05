@@ -347,6 +347,7 @@ export default function MessagesIndex({
                                 </p>
                             </div>
                             <div className="flex gap-2 border-t pt-2">
+                                {tpl.broadcastable ? (
                                 <Button
                                     type="button"
                                     size="sm"
@@ -362,6 +363,11 @@ export default function MessagesIndex({
                                     <Send aria-hidden="true" />
                                     {t("sms.hub.use_template")}
                                 </Button>
+                                ) : (
+                                    <p className="text-[11px] text-muted-foreground">
+                                        {t("sms.hub.tpl_auto_only")}
+                                    </p>
+                                )}
                             </div>
                         </article>
                     ))}
@@ -482,7 +488,8 @@ export default function MessagesIndex({
                                 <span
                                     className={cn(
                                         "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
-                                        composer.configured
+                                        composer.configured &&
+                                            composer.sending_enabled
                                             ? "bg-primary-soft text-primary"
                                             : "bg-warning-soft text-warning",
                                     )}

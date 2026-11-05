@@ -1,12 +1,13 @@
 import { Head, router, useForm } from "@inertiajs/react";
-import { AlertTriangle, MessageSquare } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { AlertTriangle, MessageSquare, Power } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { HubCard, HubSection, HubToggle } from "@/components/admin/hub-section";
 import { FormField } from "@/components/form-field";
 import InputError from "@/components/input-error";
 import { MoneyInput } from "@/components/money-input";
 import { NativeSelect } from "@/components/native-select";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useT } from "@/i18n";
@@ -69,6 +70,7 @@ export default function SmsSettingsPage({
         ) as TemplateData,
     });
     const test = useForm({ phone: "" });
+    const [switching, setSwitching] = useState(false);
     const testWa = useForm({ phone: "" });
     const ssl = form.data.driver === "ssl_wireless";
     const real = ssl || form.data.driver === "onecodesoft";
@@ -136,6 +138,66 @@ export default function SmsSettingsPage({
                         subtitle={t("sms.settings.subtitle")}
                     >
                         <HubCard>
+                            <div
+                                data-test="sms-sending-switch"
+                                className={cn(
+                                    "flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3",
+                                    sms.sending_enabled
+                                        ? "border-success bg-success-soft"
+                                        : "border-warning bg-warning-soft",
+                                )}
+                            >
+                                <div className="min-w-0 flex-1 basis-56">
+                                    <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                                        {t("sms.settings.sending_title")}
+                                        <span
+                                            className={cn(
+                                                "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                                                sms.sending_enabled
+                                                    ? "bg-surface text-success"
+                                                    : "bg-surface text-warning",
+                                            )}
+                                        >
+                                            {sms.sending_enabled
+                                                ? t("sms.settings.sending_on")
+                                                : t("sms.settings.sending_off")}
+                                        </span>
+                                    </div>
+                                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                                        {sms.sending_enabled
+                                            ? t("sms.settings.sending_on_hint")
+                                            : t("sms.settings.sending_off_hint")}
+                                    </p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant={
+                                        sms.sending_enabled
+                                            ? "destructive"
+                                            : "default"
+                                    }
+                                    disabled={switching}
+                                    onClick={() =>
+                                        router.put(
+                                            "/app/settings/sms/sending",
+                                            { enabled: !sms.sending_enabled },
+                                            {
+                                                preserveScroll: true,
+                                                preserveState: true,
+                                                onStart: () =>
+                                                    setSwitching(true),
+                                                onFinish: () =>
+                                                    setSwitching(false),
+                                            },
+                                        )
+                                    }
+                                >
+                                    <Power aria-hidden="true" />
+                                    {sms.sending_enabled
+                                        ? t("sms.settings.sending_turn_off")
+                                        : t("sms.settings.sending_turn_on")}
+                                </Button>
+                            </div>
                             <p
                                 role="note"
                                 data-test="queue-worker-note"

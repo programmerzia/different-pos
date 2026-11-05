@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Sms\BroadcastAudience;
 use App\Sms\FanOutSmsBroadcast;
 use App\Sms\SendSms;
+use App\Sms\Templates;
 use App\Support\Money\Money;
 use App\Support\Tenancy\TenantContext;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -225,4 +226,46 @@ it('audits the broadcast and its fan-out with the audience and counts but never 
         ->and($json)->not->toContain('Secret offer')
         ->and($json)->not->toContain('1711000001')
         ->and($json)->not->toContain('Rahim');
+});
+
+it('refuses a broadcast with details it cannot fill, so nobody receives raw placeholders', function (string $body): void {
+    $user = ($this->as)('Owner');
+
+    expect(fn () => app(SendSmsBroadcast::class)->handle($user, ['target' => 'due'], $body, str_repeat('k', 20)))
+        ->toThrow(InvalidAdminData::class, '{');
+
+    expect(SmsBroadcast::query()->count())->toBe(0)->and(Message::query()->count())->toBe(0);
+    Queue::assertNotPushed(SendSms::class);
+})->with([
+    'the sale template' => [Templates::DEFAULTS[Templates::SALE_COMPLETED]],
+    'a typed placeholder' => ['Hello {name}, your {invoice} is ready'],
+]);
+
+it('sends a due reminder template by broadcast with every detail filled', function (): void {
+    $user = ($this->as)('Owner');
+
+    app(SendSmsBroadcast::class)->handle($user, ['target' => 'due'], Templates::DEFAULTS[Templates::DUE_REMINDER], str_repeat('k', 20));
+
+    $body = (string) Message::query()->where('customer_id', $this->rahim->id)->sole()->body;
+    expect($body)->toContain('Rahim')->toContain('1,200.00')->not->toContain('{');
+});
+
+it('marks which templates the composer can offer for a broadcast', function (): void {
+    $user = ($this->as)('Owner');
+    $templates = collect($this->actingAs($user)->get('/app/messages')->assertOk()->viewData('page')['props']['composer']['templates'])->keyBy('key');
+
+    expect($templates['due_reminder']['broadcastable'])->toBeTrue()
+        ->and($templates['sale_completed']['broadcastable'])->toBeFalse()
+        ->and($templates['payment_received']['broadcastable'])->toBeFalse()
+        ->and($templates['sale_returned']['broadcastable'])->toBeFalse()
+        ->and($templates['sale_voided']['broadcastable'])->toBeFalse();
+});
+
+it('refuses a template saved with a detail it cannot fill', function (): void {
+    $user = ($this->as)('Owner');
+    $templates = collect(Templates::DEFAULTS)->map(fn (string $body): array => ['enabled' => true, 'body' => $body])->all();
+    $templates[Templates::PAYMENT_RECEIVED]['body'] = 'Paid for {invoice}';
+
+    $this->actingAs($user)->put(route('settings.sms.update'), ['driver' => 'log', 'sender_id' => '', 'templates' => $templates])
+        ->assertSessionHasErrors('templates.payment_received.body');
 });

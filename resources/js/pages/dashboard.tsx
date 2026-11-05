@@ -884,7 +884,7 @@ export default function Dashboard({
                                                 {money(d.due)}
                                             </span>
                                             <Link
-                                                href={`/app/dues/${d.id}`}
+                                                href={`/app/dues/${d.uuid}`}
                                                 className="flex h-6 items-center gap-1 rounded border border-primary bg-primary-soft px-2.5 text-[10px] font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground [@media(pointer:coarse)]:min-h-11"
                                             >
                                                 <Wallet

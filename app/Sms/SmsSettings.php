@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace App\Sms;
 
+use App\Exceptions\Domain\SmsNotConfigured;
 use App\Models\Tenant;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
 
 /**
  * The tenant's SMS configuration, read from tenants.settings['sms']:
- * {driver, sender_id, sid, base_url, api_token, cost_per_segment (paisa), templates: {key: {enabled, body}}}.
+ * {sending_enabled, driver, sender_id, sid, base_url, api_token, cost_per_segment (paisa), templates: {key: {enabled, body}}}.
+ * `sending_enabled` is the master switch: off stops every customer SMS without touching the credentials.
  * The api_token is stored encrypted (Crypt::encryptString) inside that array and only decrypted here;
  * it never reaches a page, a log or an audit row (Audit::FORBIDDEN lists api_token).
  */
@@ -30,6 +32,7 @@ final readonly class SmsSettings
         public ?string $apiToken,
         public array $templates,
         public int $costPerSegment = self::DEFAULT_COST_PER_SEGMENT,
+        public bool $sendingEnabled = true,
     ) {}
 
     public static function fromTenant(Tenant $tenant): self
@@ -57,6 +60,7 @@ final readonly class SmsSettings
             self::decrypt($raw['api_token'] ?? null),
             $templates,
             is_int($raw['cost_per_segment'] ?? null) && $raw['cost_per_segment'] >= 0 ? $raw['cost_per_segment'] : self::DEFAULT_COST_PER_SEGMENT,
+            (bool) ($raw['sending_enabled'] ?? true),
         );
     }
 
@@ -74,6 +78,17 @@ final readonly class SmsSettings
         };
     }
 
+    /** Refuses a hand-sent message (broadcast, direct, statement, resend) with the reason the user can act on. */
+    public function assertCanSend(): void
+    {
+        if (! $this->isConfigured()) {
+            throw SmsNotConfigured::make();
+        }
+        if (! $this->sendingEnabled) {
+            throw SmsNotConfigured::switchedOff();
+        }
+    }
+
     /** True when the template is switched on (independent of the gateway). */
     public function enabled(string $template): bool
     {
@@ -83,7 +98,7 @@ final readonly class SmsSettings
     /** Automatic messages go out only with a working gateway and an enabled template. */
     public function sends(string $template): bool
     {
-        return $this->isConfigured() && $this->enabled($template);
+        return $this->isConfigured() && $this->sendingEnabled && $this->enabled($template);
     }
 
     public function body(string $template): string

@@ -133,10 +133,10 @@ export function TrendChart({
 
     return (
         <div className="flex flex-col">
-            <div className="h-56 w-full pt-2">
+            <div className="h-56 w-full pt-2 max-md:h-auto">
                 <svg
                     viewBox={`0 0 ${PLOT.width} ${PLOT.height}`}
-                    className="size-full overflow-visible select-none"
+                    className="size-full overflow-visible select-none max-md:h-auto"
                     aria-hidden="true"
                 >
                     <defs>
@@ -178,7 +178,7 @@ export function TrendChart({
                                     x={PLOT.left - 8}
                                     y={y + 4}
                                     textAnchor="end"
-                                    className="num fill-muted-foreground text-[10px]"
+                                    className={`num fill-muted-foreground text-[10px] max-md:text-[18px] ${tick === 0 ? "max-md:hidden" : ""}`}
                                 >
                                     {digits.n(compactTaka(tick))}
                                 </text>
@@ -192,7 +192,7 @@ export function TrendChart({
                                 x={now[i]?.x}
                                 y={PLOT.height - 4}
                                 textAnchor="middle"
-                                className="fill-muted-foreground font-mono text-[10px]"
+                                className="fill-muted-foreground font-mono text-[10px] max-md:text-[18px]"
                             >
                                 {label(p.key)}
                             </text>

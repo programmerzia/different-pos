@@ -7,7 +7,6 @@ namespace App\Actions\Messaging;
 use App\Enums\MessageChannel;
 use App\Enums\SaleStatus;
 use App\Exceptions\Domain\InvalidAdminData;
-use App\Exceptions\Domain\SmsNotConfigured;
 use App\Exceptions\Domain\WhatsAppNotConfigured;
 use App\Models\Customer;
 use App\Models\Message;
@@ -74,11 +73,15 @@ final readonly class SendDirectMessage
             if ($handoff && count($customers) > 1) {
                 throw WhatsAppNotConfigured::bulk();
             }
-        } elseif (! SmsSettings::fromTenant($tenant)->isConfigured()) {
-            throw SmsNotConfigured::make();
+        } else {
+            SmsSettings::fromTenant($tenant)->assertCanSend();
         }
 
         $body = $this->template($channel, $event, $body, $tenant);
+        $unfilled = Templates::unfilled($body, [...Templates::ALWAYS_FILLED, 'last_invoice', ...array_keys($values)]);
+        if ($unfilled !== []) {
+            throw InvalidAdminData::invalid((string) __('sms.broadcast.unfilled', ['names' => '{'.implode('}, {', $unfilled).'}']));
+        }
 
         $queued = $skipped = 0;
         $links = [];

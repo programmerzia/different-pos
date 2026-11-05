@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('settings/sms', [SmsSettingsController::class, 'edit'])->name('settings.sms.edit');
 Route::put('settings/sms', [SmsSettingsController::class, 'update'])->name('settings.sms.update');
+Route::put('settings/sms/sending', [SmsSettingsController::class, 'sending'])->name('settings.sms.sending');
 Route::post('settings/sms/test', [SmsSettingsController::class, 'test'])->middleware('throttle:10,1')->name('settings.sms.test');
 Route::post('settings/whatsapp/test', [SmsSettingsController::class, 'testWhatsApp'])->middleware('throttle:10,1')->name('settings.whatsapp.test');
 

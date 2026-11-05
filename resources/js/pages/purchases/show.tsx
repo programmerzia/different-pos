@@ -218,7 +218,7 @@ export default function PurchaseShow({
                 </div>
 
                 {/* KPI strip */}
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                     <KpiTile
                         tone="primary"
                         icon={Receipt}

@@ -52,6 +52,15 @@ final class SendSms implements ShouldQueue
             return;
         }
 
+        // The master switch also stops what was already queued when it went off.
+        if ($message->channel === MessageChannel::Sms && ! SmsSettings::fromTenant(app(TenantContext::class)->tenant())->sendingEnabled) {
+            $message->status = MessageStatus::Failed;
+            $message->error = (string) __('sms.sending_off');
+            $message->save();
+
+            return;
+        }
+
         $final = $this->job === null || $this->attempts() >= $this->tries;
         $result = $sender->deliver($message, $final);
 

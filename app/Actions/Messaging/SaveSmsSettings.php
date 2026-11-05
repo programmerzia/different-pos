@@ -52,6 +52,8 @@ final readonly class SaveSmsSettings
             }
 
             $sms = [
+                // Only SetSmsSending changes the master switch.
+                'sending_enabled' => (bool) ($current['sending_enabled'] ?? true),
                 'driver' => in_array($data['driver'], SmsSettings::DRIVERS, true) ? $data['driver'] : 'null',
                 'sender_id' => trim((string) ($data['sender_id'] ?? '')),
                 'sid' => trim((string) ($data['sid'] ?? '')),

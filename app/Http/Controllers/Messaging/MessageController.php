@@ -176,11 +176,12 @@ final class MessageController extends Controller
 
         $templates = [];
         foreach (Templates::keys() as $key) {
-            $templates[] = ['key' => $key, 'body' => $settings->body($key), 'enabled' => $settings->templates[$key]['enabled']];
+            $templates[] = ['key' => $key, 'broadcastable' => Templates::unfilled($settings->body($key), BroadcastAudience::FILLED) === [], 'body' => $settings->body($key), 'enabled' => $settings->templates[$key]['enabled']];
         }
 
         return [
             'configured' => $settings->driver !== 'null',
+            'sending_enabled' => $settings->sendingEnabled,
             'driver' => $settings->driver,
             'whatsapp' => $this->whatsApp($context),
             'cost_per_segment' => $settings->costPerSegment,

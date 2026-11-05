@@ -11,4 +11,9 @@ final class SmsNotConfigured extends DomainException
     {
         return new self((string) __('sms.not_configured'));
     }
+
+    public static function switchedOff(): self
+    {
+        return new self((string) __('sms.sending_off'));
+    }
 }

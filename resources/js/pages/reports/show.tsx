@@ -485,7 +485,7 @@ export default function ReportShow({
                     {tileColumns.length > 0 && filtered.length > 0 ? (
                         <dl
                             aria-label={t('reports.total_row')}
-                            className="grid grid-cols-2 gap-3 md:grid-cols-4"
+                            className="grid grid-cols-2 gap-3 xl:grid-cols-4"
                         >
                             {tileColumns.map((column) => (
                                 <div key={column.key} className="contents">

@@ -33,9 +33,10 @@ export function searchApi(
     );
 }
 
-/** Detail pages (route table 02_AppFlow §2: products.show, customers.show, sales.show). */
+/** Detail pages (route table 02_AppFlow §2: products.edit, customers.show, sales.show). */
 export const hitHref = {
-    product: (hit: SearchHit) => `/app/products/${hit.id}`,
-    customer: (hit: SearchHit) => `/app/customers/${hit.id}`,
+    // Products have no detail page, and both routes bind by uuid.
+    product: (hit: SearchHit) => `/app/products/${hit.uuid}/edit`,
+    customer: (hit: SearchHit) => `/app/customers/${hit.uuid}`,
     sale: (hit: SearchHit) => `/app/sales/${hit.id}`,
 };

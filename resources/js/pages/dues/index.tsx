@@ -472,7 +472,7 @@ export default function DuesIndex({
         <>
             <Head title={t('dues.title')} />
             <Page fill>
-                <div className="grid shrink-0 grid-cols-2 gap-3 lg:grid-cols-4">
+                <div className="grid shrink-0 grid-cols-2 gap-3 xl:grid-cols-4">
                     {BUCKETS.map((bucket) => (
                         <KpiTile
                             key={bucket}

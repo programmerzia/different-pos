@@ -108,6 +108,7 @@ it('computes the nine KPIs with the previous period for the current branch', fun
             ->where('dashboard.kpis.low_stock.value', 1)
             ->where('dashboard.low_stock.0.cost', 60_000)
             ->where('dashboard.debtors.0.customer', 'Bob')
+            ->where('dashboard.debtors.0.uuid', fn (?string $uuid): bool => is_string($uuid) && Customer::query()->where('uuid', $uuid)->where('name', 'Bob')->exists())
             ->where('dashboard.debtors.0.due', 50_000)
             ->where('dashboard.recent_sales.0.customer', 'Bob')
             ->where('dashboard.top_customers.0.customer', 'Alice')
