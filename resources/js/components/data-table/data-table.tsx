@@ -593,7 +593,7 @@ export function DataTable<Row extends Record<string, unknown>>({
                                               .map((c) => (
                                                   <div
                                                       key={c.id}
-                                                      className="flex justify-between gap-3"
+                                                      className="flex flex-wrap justify-between gap-x-3"
                                                   >
                                                       <span className="text-muted-foreground">
                                                           {c.header ??
@@ -601,6 +601,7 @@ export function DataTable<Row extends Record<string, unknown>>({
                                                       </span>
                                                       <span
                                                           className={cn(
+                                                              'ml-auto max-w-full min-w-0',
                                                               c.numeric &&
                                                                   'num text-right',
                                                           )}

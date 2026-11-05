@@ -130,7 +130,7 @@ export default function TransferShow({
             <Head title={transfer.number} />
             <Page className="max-w-6xl">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex max-w-full min-w-0 items-center gap-3">
                         <Button
                             asChild
                             variant="outline"
@@ -145,8 +145,9 @@ export default function TransferShow({
                             </Link>
                         </Button>
                         <PageHeader
+                            className="min-w-0 shrink"
                             title={
-                                <span className="inline-flex items-center gap-2">
+                                <span className="inline-flex flex-wrap items-center gap-x-2">
                                     <ArrowLeftRight
                                         className="size-5 text-primary"
                                         aria-hidden="true"

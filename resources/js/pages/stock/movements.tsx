@@ -78,7 +78,7 @@ export default function StockMovements({
                     <EmptyState title={t('stock.no_movements')} />
                 ) : (
                     <div className="overflow-x-auto rounded-lg border">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-sm max-sm:text-xs [&_td]:max-sm:px-2 [&_th]:max-sm:px-2">
                             <caption className="sr-only">
                                 {t('stock.movements')}
                             </caption>

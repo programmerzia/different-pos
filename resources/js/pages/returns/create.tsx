@@ -485,7 +485,7 @@ function ReturnForm({
 
     return (
         <form
-            className="grid gap-4 lg:grid-cols-3"
+            className="grid grid-cols-1 gap-4 lg:grid-cols-3"
             onSubmit={(e) => {
                 e.preventDefault();
                 submit();

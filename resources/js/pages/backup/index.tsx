@@ -284,7 +284,7 @@ export default function BackupIndex({
                     </output>
                 ) : null}
 
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <section
                         className="space-y-1.5 rounded-xl border bg-surface p-4 text-xs"
                         aria-labelledby="backup-policy"

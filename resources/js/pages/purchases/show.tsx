@@ -552,7 +552,7 @@ export default function PurchaseShow({
                     </div>
                 </article>
 
-                <div className="grid gap-3 lg:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                     {/* Stock batches */}
                     <section
                         aria-labelledby="pb-title"

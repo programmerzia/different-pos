@@ -85,11 +85,11 @@ export function TableToolbar({
     return (
         <search
             className={cn(
-                'flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-xl border bg-surface p-2.5',
+                'flex max-w-full shrink-0 flex-wrap items-center justify-between gap-2 rounded-xl border bg-surface p-2.5',
                 className,
             )}
         >
-            <div className="flex min-w-64 flex-1 flex-wrap items-center gap-2">
+            <div className="flex max-w-full min-w-64 flex-1 flex-wrap items-center gap-2">
                 <div className="relative min-w-50 flex-1 md:max-w-sm">
                     <Search
                         className="pointer-events-none absolute top-1/2 left-2.5 size-3.25 -translate-y-1/2 text-muted-foreground"

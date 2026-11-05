@@ -159,7 +159,10 @@ export default function FamilyPage({
                     </p>
                 ) : null}
 
-                <section aria-labelledby="matrix-title" className="grid gap-2">
+                <section
+                    aria-labelledby="matrix-title"
+                    className="grid grid-cols-1 gap-2"
+                >
                     <h2 id="matrix-title" className="text-xl font-semibold">
                         {t('products.matrix')}
                     </h2>
@@ -167,7 +170,7 @@ export default function FamilyPage({
                         {t('products.matrix_hint')}
                     </p>
                     <div className="overflow-x-auto rounded-lg border">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-sm max-sm:min-w-[32rem]">
                             <caption className="sr-only">
                                 {t('products.matrix')}
                             </caption>
@@ -308,7 +311,7 @@ export default function FamilyPage({
                         <h2 id="attach-title" className="text-xl font-semibold">
                             {t('products.group_existing')}
                         </h2>
-                        <div className="grid gap-3 lg:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                             <FormField
                                 label={t('products.product')}
                                 error={errors['product_id']}

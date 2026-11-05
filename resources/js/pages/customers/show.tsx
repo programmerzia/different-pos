@@ -253,7 +253,7 @@ export default function CustomerShow({
         <>
             <Head title={customer.name} />
             <Page className="gap-4">
-                <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+                <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
                     <div className="min-w-0 space-y-4">
                         {/* Banner */}
                         <section

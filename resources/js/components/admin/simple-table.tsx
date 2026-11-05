@@ -32,13 +32,16 @@ export function SimpleTable<Row extends { id: number }>({
                 <caption className="sr-only">{caption}</caption>
                 <thead className="border-b bg-surface-sunken font-semibold text-muted-foreground">
                     <tr>
-                        {columns.map((c) => (
+                        {columns.map((c, i) => (
                             <th
                                 key={c.id}
                                 scope="col"
                                 className={cn(
                                     'px-3 py-2.5 font-semibold',
                                     c.numeric && 'text-right',
+                                    // Phone: the last column (row actions) stays visible while the rest scrolls.
+                                    i === columns.length - 1 &&
+                                        'max-sm:sticky max-sm:right-0 max-sm:bg-surface-sunken',
                                 )}
                             >
                                 {t(c.headerKey)}
@@ -52,12 +55,14 @@ export function SimpleTable<Row extends { id: number }>({
                             key={row.id}
                             className="transition-colors hover:bg-surface-sunken/50"
                         >
-                            {columns.map((c) => (
+                            {columns.map((c, i) => (
                                 <td
                                     key={c.id}
                                     className={cn(
                                         'px-3 py-2.5',
                                         c.numeric && 'num text-right',
+                                        i === columns.length - 1 &&
+                                            'max-sm:sticky max-sm:right-0 max-sm:bg-surface',
                                     )}
                                 >
                                     {c.cell(row)}

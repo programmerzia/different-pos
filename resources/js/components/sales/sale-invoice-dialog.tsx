@@ -431,7 +431,7 @@ export function SaleInvoiceDialog({
                             </div>
                         ) : null}
 
-                        <div className="grid gap-4 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                             <section
                                 className={cn(card, 'space-y-3 lg:col-span-2')}
                                 aria-labelledby="sale-items-heading"
@@ -443,7 +443,7 @@ export function SaleInvoiceDialog({
                                     {t('sales.items_discounts')}
                                 </h2>
                                 <div className="overflow-x-auto">
-                                    <table className="w-full text-left text-xs">
+                                    <table className="w-full text-left text-xs max-sm:min-w-[28rem]">
                                         <thead className="border-b text-muted-foreground">
                                             <tr>
                                                 <th
@@ -763,7 +763,7 @@ export function SaleInvoiceDialog({
                             </div>
                         </div>
 
-                        <div className="grid gap-4 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                             <section
                                 className={cn(card, 'space-y-2')}
                                 aria-labelledby="sale-payments-heading"

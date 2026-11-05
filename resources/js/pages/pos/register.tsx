@@ -1277,7 +1277,7 @@ export default function Register(props: Props) {
                     </div>
                     {/* Function bar (mockup "POS Function Bar"). */}
                     <div
-                        className="flex shrink-0 items-center justify-between gap-0.5 overflow-x-auto border-t bg-surface-sunken p-1.5 text-[11px] max-md:grid max-md:grid-cols-3 max-md:gap-1.5 max-md:overflow-visible min-[420px]:max-md:grid-cols-4"
+                        className="flex shrink-0 items-center justify-between gap-0.5 overflow-x-auto border-t bg-surface-sunken p-1.5 text-[11px] max-[1366px]:flex-wrap max-[1366px]:justify-start max-md:grid max-md:grid-cols-3 max-md:gap-1.5 max-md:overflow-visible min-[420px]:max-md:grid-cols-4"
                         role="toolbar"
                         aria-label={t('pos.fn.label')}
                     >

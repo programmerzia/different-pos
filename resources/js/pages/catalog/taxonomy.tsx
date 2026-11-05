@@ -80,7 +80,7 @@ export default function Taxonomy({
     const nameOf = (id: number | null) =>
         rows.find((r) => r.id === id)?.name ?? '';
     const editor = (
-        <div className="grid gap-3 rounded-lg border bg-muted p-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 rounded-lg border bg-muted p-4 lg:grid-cols-3">
             <FormField
                 label={t('common.name')}
                 error={errors['name'] || errors['form']}
@@ -205,7 +205,10 @@ export default function Taxonomy({
                                     <th scope="col" className="px-3 py-2">
                                         {t('common.status')}
                                     </th>
-                                    <th scope="col" className="px-3 py-2">
+                                    <th
+                                        scope="col"
+                                        className="px-3 py-2 max-sm:sticky max-sm:right-0 max-sm:bg-muted"
+                                    >
                                         <span className="sr-only">
                                             {t('common.actions')}
                                         </span>
@@ -246,7 +249,7 @@ export default function Taxonomy({
                                                     />
                                                 )}
                                             </td>
-                                            <td className="px-3 py-2 text-right whitespace-nowrap">
+                                            <td className="px-3 py-2 text-right whitespace-nowrap max-sm:sticky max-sm:right-0 max-sm:bg-background">
                                                 {can('products.update') ? (
                                                     <Button
                                                         variant="ghost"

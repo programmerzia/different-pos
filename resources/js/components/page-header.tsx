@@ -35,7 +35,7 @@ export function Page({
     return (
         <div
             className={cn(
-                'flex flex-col gap-3 p-page',
+                'flex flex-col gap-3 p-page *:min-w-0',
                 fill && 'min-h-0 flex-1 md:overflow-hidden',
                 className,
             )}

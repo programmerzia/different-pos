@@ -250,6 +250,19 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
     const path = new URL(page.url, 'http://localhost').pathname;
     const [hash, setHash] = useState('');
     const pane = useRef<HTMLDivElement>(null);
+    const nav = useRef<HTMLElement>(null);
+    // On phones the menu is a sideways strip: keep the current section in view without moving the page.
+    useEffect(() => {
+        const strip = nav.current;
+        const active = strip?.querySelector<HTMLElement>(
+            '[aria-current="page"]',
+        );
+        if (strip && active && strip.scrollWidth > strip.clientWidth) {
+            strip.scrollLeft =
+                active.offsetLeft -
+                (strip.clientWidth - active.offsetWidth) / 2;
+        }
+    }, [path, hash]);
     // Follow the hash on every visit (Inertia links do not fire hashchange) and on manual edits.
     useEffect(() => {
         const sync = (behavior: ScrollBehavior) => {
@@ -322,7 +335,7 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                     </span>
                     <span
                         className={cn(
-                            'block truncate text-[10px]',
+                            'block truncate text-[10px] max-md:hidden',
                             active
                                 ? 'text-primary-foreground opacity-80'
                                 : 'text-muted-foreground',
@@ -336,7 +349,7 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
             </>
         );
         const cls = cn(
-            'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-all [@media(pointer:coarse)]:min-h-11',
+            'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-all max-md:w-auto max-md:shrink-0 [@media(pointer:coarse)]:min-h-11',
             active
                 ? 'bg-primary font-bold text-primary-foreground shadow-xs'
                 : 'text-muted-foreground hover:bg-surface hover:text-foreground',
@@ -452,16 +465,17 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
 
                 <div className="flex min-h-0 w-full flex-1 flex-col md:flex-row md:overflow-clip">
                     <nav
+                        ref={nav}
                         aria-label={t('settings_hub.menu')}
-                        className="shrink-0 space-y-0.5 overflow-y-auto border-b bg-surface-sunken p-2 select-none max-md:max-h-56 md:w-64 md:border-r md:border-b-0"
+                        className="shrink-0 overflow-y-auto border-b bg-surface-sunken p-2 select-none max-md:relative max-md:flex max-md:gap-1 max-md:overflow-x-auto max-md:overflow-y-hidden md:w-64 md:space-y-0.5 md:border-r md:border-b-0"
                     >
-                        <div className="px-2.5 py-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                        <div className="px-2.5 py-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase max-md:hidden">
                             {t('settings_hub.menu')}
                         </div>
                         {sections
                             .filter((s) => s.href || s.overlay || showSoon)
                             .map(item)}
-                        <div className="px-2.5 pt-3 pb-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                        <div className="px-2.5 pt-3 pb-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase max-md:hidden">
                             {t('settings_hub.account')}
                         </div>
                         {ACCOUNT.map(item)}
