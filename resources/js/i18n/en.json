@@ -2882,6 +2882,7 @@
         "close": "Close",
         "price_check": "Price Check",
         "return_key": "Return (F11)",
+        "return_short": "Return",
         "fn": {
             "label": "Register actions",
             "held": "Held List",

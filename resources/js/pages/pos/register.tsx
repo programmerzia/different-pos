@@ -865,15 +865,15 @@ export default function Register(props: Props) {
     return (
         <>
             <Head title={t('pos.title')} />
-            <div className="flex min-h-0 flex-col overflow-hidden md:h-[calc(100svh-var(--topbar-h)-var(--statusbar-h))] lg:flex-row">
+            <div className="flex min-h-0 flex-col overflow-hidden max-md:shrink-0 md:h-[calc(100svh-var(--topbar-h)-var(--statusbar-h))] lg:flex-row">
                 {/* Left: scan bar + Browse, the bill ledger (or the completed sale), the browse surface over it, function bar */}
                 <section
-                    className="flex min-w-0 flex-1 flex-col overflow-hidden border-r"
+                    className="flex min-w-0 flex-1 flex-col overflow-hidden border-r max-md:shrink-0"
                     aria-label={t('pos.bill.ledger')}
                 >
                     <div className="shrink-0 border-b bg-surface p-2">
-                        <div className="flex items-center gap-2">
-                            <div className="relative flex-1">
+                        <div className="flex items-center gap-2 max-md:flex-wrap">
+                            <div className="relative flex-1 max-md:basis-full">
                                 <Search
                                     className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
                                     aria-hidden="true"
@@ -966,7 +966,7 @@ export default function Register(props: Props) {
                                 aria-pressed={browse.open}
                                 onClick={() => run('browse')}
                                 className={cn(
-                                    'touch-target flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors',
+                                    'touch-target flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors max-md:h-auto max-md:flex-1 max-md:justify-center max-md:px-2 max-md:py-1',
                                     browse.open
                                         ? 'border-primary bg-primary text-primary-foreground shadow-xs'
                                         : 'bg-surface-sunken text-foreground hover:border-primary',
@@ -984,7 +984,7 @@ export default function Register(props: Props) {
                                         aria-hidden="true"
                                     />
                                 )}
-                                <span className="hidden md:inline">
+                                <span className="max-md:text-center max-md:leading-tight">
                                     {browse.open
                                         ? t('pos.catalog.back', { count: pcs })
                                         : t('pos.catalog.browse')}
@@ -999,7 +999,7 @@ export default function Register(props: Props) {
                             </button>
                             {props.registers.length > 1 && (
                                 <select
-                                    className="touch-target h-9 rounded-lg border bg-surface-sunken px-2 text-xs"
+                                    className="touch-target h-9 rounded-lg border bg-surface-sunken px-2 text-xs max-md:flex-1"
                                     aria-label={t('pos.register_select')}
                                     value={registerId ?? ''}
                                     onChange={(e) => {
@@ -1027,11 +1027,11 @@ export default function Register(props: Props) {
                             <button
                                 type="button"
                                 onClick={() => run('price_check')}
-                                className="touch-target flex h-9 items-center gap-1 rounded-lg border bg-surface-sunken px-2.5 text-xs font-medium text-muted-foreground hover:border-primary"
+                                className="touch-target flex h-9 items-center gap-1 rounded-lg border bg-surface-sunken px-2.5 text-xs font-medium text-muted-foreground hover:border-primary max-md:h-auto max-md:flex-1 max-md:justify-center max-md:px-2 max-md:py-1"
                                 title={t('pos.keys.price_check')}
                             >
                                 <Tag className="size-3.5" aria-hidden="true" />
-                                <span className="hidden sm:inline">
+                                <span className="max-md:text-center max-md:leading-tight">
                                     {t('pos.price_check')}
                                 </span>
                                 <Kbd keys="f5" className="text-[10px]" />
@@ -1040,20 +1040,30 @@ export default function Register(props: Props) {
                                 <button
                                     type="button"
                                     onClick={() => run('returns')}
-                                    className="touch-target flex h-9 items-center gap-1.5 rounded-lg border border-warning/30 bg-warning-soft px-3 text-xs font-semibold text-warning"
+                                    className="touch-target flex h-9 items-center gap-1.5 rounded-lg border border-warning/30 bg-warning-soft px-3 text-xs font-semibold text-warning max-md:h-auto max-md:flex-1 max-md:justify-center max-md:px-2 max-md:py-1"
                                     title={t('pos.keys.returns')}
                                 >
                                     <RotateCcw
                                         className="size-3.5"
                                         aria-hidden="true"
                                     />
-                                    {t('pos.return_key')}
+                                    <span className="max-md:hidden">
+                                        {t('pos.return_key')}
+                                    </span>
+                                    <span className="md:hidden">
+                                        {t('pos.return_short')}
+                                    </span>
                                 </button>
                             )}
                         </div>
                     </div>
 
-                    <div className="relative flex min-h-0 flex-1 flex-col">
+                    <div
+                        className={cn(
+                            'relative flex min-h-0 flex-1 flex-col max-md:min-h-64',
+                            browse.open && 'max-md:min-h-[65svh]',
+                        )}
+                    >
                         {completed ? (
                             <div className="min-h-0 flex-1 overflow-y-auto p-3">
                                 <Completed
@@ -1089,10 +1099,10 @@ export default function Register(props: Props) {
                                 <div className="min-h-0 flex-1 overflow-y-auto">
                                     <table
                                         aria-label={t('pos.bill.lines')}
-                                        className="w-full border-collapse"
+                                        className="w-full border-collapse max-md:block"
                                     >
                                         <BillHead />
-                                        <tbody className="divide-y">
+                                        <tbody className="divide-y max-md:block">
                                             {cart.lines.map((line, i) => (
                                                 <RowContextMenu
                                                     key={line.key}
@@ -1267,7 +1277,7 @@ export default function Register(props: Props) {
                     </div>
                     {/* Function bar (mockup "POS Function Bar"). */}
                     <div
-                        className="flex shrink-0 items-center justify-between gap-0.5 overflow-x-auto border-t bg-surface-sunken p-1.5 text-[11px]"
+                        className="flex shrink-0 items-center justify-between gap-0.5 overflow-x-auto border-t bg-surface-sunken p-1.5 text-[11px] max-md:grid max-md:grid-cols-3 max-md:gap-1.5 max-md:overflow-visible min-[420px]:max-md:grid-cols-4"
                         role="toolbar"
                         aria-label={t('pos.fn.label')}
                     >

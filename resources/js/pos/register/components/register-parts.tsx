@@ -187,7 +187,7 @@ export function FnButton({
             title={title ?? (iconOnly ? label : undefined)}
             onClick={onClick}
             className={cn(
-                'touch-target flex items-center gap-1 rounded px-1.5 py-1 text-left leading-tight font-medium disabled:opacity-40',
+                'touch-target flex items-center gap-1 rounded px-1.5 py-1 text-left leading-tight font-medium disabled:opacity-40 max-md:min-w-0 max-md:flex-col max-md:justify-center max-md:gap-0.5 max-md:px-1 max-md:text-center',
                 tone === 'default' && 'border bg-surface hover:border-primary',
                 tone === 'warning' &&
                     'border border-warning/30 bg-warning-soft text-warning',
@@ -196,7 +196,14 @@ export function FnButton({
             )}
         >
             <Icon className="size-3 shrink-0" aria-hidden="true" />
-            <span className={iconOnly ? 'sr-only' : undefined}>{label}</span>
+            <span
+                className={cn(
+                    iconOnly && 'sr-only max-md:not-sr-only',
+                    'max-md:break-words',
+                )}
+            >
+                {label}
+            </span>
             {keys &&
                 (keys.startsWith('shift+') ? (
                     // Mockup keycap "⇧F8": the long "Shift+F8" would push the bar off screen.
@@ -228,11 +235,13 @@ export function MemberPinChip({
     policy: 'off' | 'optional' | 'required';
 }) {
     const { t } = useT();
-    const own = member !== null && member.customerId === customer.id ? member : null;
+    const own =
+        member !== null && member.customerId === customer.id ? member : null;
     const tone =
         own?.kind === 'pin_online' || own?.kind === 'override'
             ? 'bg-success-soft text-success'
-            : customer.pin_status === 'locked' || (policy === 'required' && own === null)
+            : customer.pin_status === 'locked' ||
+                (policy === 'required' && own === null)
               ? 'bg-danger-soft text-danger'
               : 'bg-warning-soft text-warning';
     const label =
@@ -415,7 +424,7 @@ export function BillHead() {
         'sticky top-0 z-[1] bg-surface-sunken px-2 py-2 text-[11px] font-semibold text-muted-foreground';
 
     return (
-        <thead>
+        <thead className="max-md:sr-only">
             <tr className="border-b">
                 <th scope="col" className={cn(th, 'w-8 pl-3 text-center')}>
                     {t('pos.bill.col_no')}
@@ -498,7 +507,7 @@ export const BillLine = forwardRef<
             tabIndex={0}
             aria-selected={selected}
             className={cn(
-                'cursor-pointer transition-colors select-none hover:bg-surface-sunken focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
+                'cursor-pointer transition-colors select-none hover:bg-surface-sunken focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring max-md:grid max-md:grid-cols-[auto_1fr_auto_auto] max-md:items-center max-md:gap-x-2 max-md:gap-y-1 max-md:px-3 max-md:py-2',
                 selected && 'bg-primary-soft/60 hover:bg-primary-soft/60',
             )}
             onClick={onSelect}
@@ -514,12 +523,17 @@ export const BillLine = forwardRef<
             <td
                 className={cn(
                     td,
-                    'num pl-3 text-center font-mono text-[11px] text-muted-foreground',
+                    'num pl-3 text-center font-mono text-[11px] text-muted-foreground max-md:col-start-1 max-md:row-start-1 max-md:p-0',
                 )}
             >
                 {d.n(index + 1)}
             </td>
-            <td className={cn(td, 'max-w-0 min-w-40')}>
+            <td
+                className={cn(
+                    td,
+                    'max-w-0 min-w-40 max-md:col-span-2 max-md:col-start-2 max-md:row-start-1 max-md:max-w-none max-md:min-w-0 max-md:p-0',
+                )}
+            >
                 <div className="truncate text-xs leading-tight font-semibold text-foreground">
                     {line.name}
                 </div>
@@ -537,9 +551,14 @@ export const BillLine = forwardRef<
                     )}
                 </div>
             </td>
-            <td className={cn(td, 'text-right whitespace-nowrap')}>
+            <td
+                className={cn(
+                    td,
+                    'text-right whitespace-nowrap max-md:col-span-2 max-md:col-start-1 max-md:row-start-2 max-md:p-0 max-md:text-left',
+                )}
+            >
                 {discount > 0 ? (
-                    <span className="flex flex-col items-end leading-tight">
+                    <span className="flex flex-col items-end leading-tight max-md:items-start">
                         <span className="num text-[10px] text-muted-foreground line-through opacity-70">
                             {d.money(line.unitPrice)}
                         </span>
@@ -553,7 +572,12 @@ export const BillLine = forwardRef<
                     </span>
                 )}
             </td>
-            <td className={td}>
+            <td
+                className={cn(
+                    td,
+                    'max-md:col-start-3 max-md:row-start-2 max-md:p-0',
+                )}
+            >
                 <div className="flex items-center justify-center gap-1">
                     <button
                         type="button"
@@ -591,7 +615,7 @@ export const BillLine = forwardRef<
                     </button>
                 </div>
             </td>
-            <td className={cn(td, 'text-right')}>
+            <td className={cn(td, 'text-right max-md:hidden')}>
                 <button
                     type="button"
                     onClick={(e) => {
@@ -613,7 +637,7 @@ export const BillLine = forwardRef<
             <td
                 className={cn(
                     td,
-                    'text-right text-[11px] whitespace-nowrap text-muted-foreground',
+                    'text-right text-[11px] whitespace-nowrap text-muted-foreground max-md:hidden',
                 )}
             >
                 <span className="num block">{d.money(priced?.tax ?? 0)}</span>
@@ -625,12 +649,22 @@ export const BillLine = forwardRef<
                     </span>
                 )}
             </td>
-            <td className={cn(td, 'text-right whitespace-nowrap')}>
+            <td
+                className={cn(
+                    td,
+                    'text-right whitespace-nowrap max-md:col-start-4 max-md:row-start-2 max-md:p-0',
+                )}
+            >
                 <span className="num text-xs font-bold text-foreground">
                     {d.money(lineTotal)}
                 </span>
             </td>
-            <td className={cn(td, 'pr-3 text-center')}>
+            <td
+                className={cn(
+                    td,
+                    'pr-3 text-center max-md:col-start-4 max-md:row-start-1 max-md:p-0',
+                )}
+            >
                 <button
                     type="button"
                     onClick={(e) => {
